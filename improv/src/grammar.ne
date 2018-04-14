@@ -1,77 +1,74 @@
-start -> comment | _ block _
+start ->block _
 
-block -> comment | (exp NL:+):? (fromTransition NL:+):? scene #_ NL:* _ exp:? _ NL:* _ 
+block -> comment | exp:? scene #_ NL:* _ exp:? _ NL:* _ 
 {%
-    (data) => {
-        let block = {
+    ([comment, exp, scene]) => {
+        return ({
             type: "state",
-            shouldStart:  data[0],
-            blockDepth: data[2], // data[1] is "NL:+"
-            fromTransition: data[3],
-            toTransition: data[11]
-        }
-        //TODO: figure out how to parse conditionals
-        if(data[6] == "scene"){
-          block.scene = data[6]
-        } else {
-          block.blocks = data[6]
-        }
-        return block
+            //comment:  data[0],
+            //blockDepth: data[2], // data[1] is "NL"
+            condition: exp,
+            scene: scene
+        })
     }
 %}
-exp -> var
-  | exp AND exp {% ([lhs, _, rhs]) => AND(lhs, rhs) %}
-  | exp OR exp {% ([lhs, _, rhs]) => OR(lhs, rhs) %}
-  | AWAIT exp {% id %}
-  | INPUT exp {% ([_, rhs]) => INPUT(lhs, rhs) %}
+exp -> var NL:? {% ([varName]) => ({varName}) %}
+  | exp _ AND exp NL {% ([lhs, _, op, rhs]) => ({lhs, op, rhs})  %}
+  | exp _ OR exp NL {% ([lhs, _, op, rhs]) => ({lhs, op, rhs}) %}
+  | AWAIT exp NL {% ([op, rhs]) => ({op, rhs}) %}
+  | input exp NL {% ([op, rhs]) => ({op, rhs}) %}
 
-var -> WORD {% id %}
+var -> [A-Z]:+ {% id %}
 
-scene -> sceneHeading:? shot:+
-sceneHeading -> SCENE_PLACEMENT ".":? _ sceneName _ SHOTSEP _ TIME_OF_DAY comment:? NL:+
-sceneName -> (_ WORD _):+
-
-shot -> shotHeading:? NL:+ (action|dialogue):+ comment:?
-shotHeading -> SHOT_TYPE (_ SHOTSEP _ shotSource _):? (_ SHOTSEP _ shotTarget _):? (_ SHOTSEP _ SHOT_MOVEMENT _):? _ SHOTSEP _ TIME (comment:?|NL:+)
-action -> SENTENCE:+ 
-TIME -> unsigned_int unsigned_int ":" unsigned_int unsigned_int
-unsigned_int -> [0-9]:+ {%
-    function(d) {
-        return parseInt(d[0].join(""));
-    }
+scene -> fromTransition:? sceneHeading:? {% 
+    ([fromTransition, sceneHeading, shot]) => 
+        { return ({ fromTransition, sceneHeading, shot})} 
 %}
+sceneHeading -> scenePlacement sceneName sceneTime NL {% 
+    ([scenePlacement, sceneName, sceneTime]) => 
+        { return ({ scenePlacement, sceneName, sceneTime})} 
+%}
+sceneName -> WORD:+ 
 
-shotSource -> shotSubject
-shotTarget -> shotSubject
-shotSubject -> WORD (_ SHOT_SUBJECT_SEP _ WORD):*
+shot -> shotHeading:? (action|dialogue):+
+shotHeading -> shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL {%
+    ([shotType, shotSource, shotTarget, shotMovement, time]) => 
+        ({shotType, shotSource, shotTarget, shotMovement, time})
+%}
+action -> sentence:+ NL {% id %}
+timeSpan -> num ":" num _ {% d => { return ({min: d[0], sec: d[2]})}%}
+num -> [0-9] [0-9] {% d => parseInt(d[0] + d[1]) %}
 
-dialogue -> speakerName ":" SENTENCE:+
-speakerName -> (_ WORD ".":? "-":? _):+
+shotSource -> shotSubject {% id %}
+shotTarget -> shotSubject {% id %}
+shotSubject -> WORD (SHOT_SUBJECT_SEP WORD):* SHOTSEP {% id %} #TODO: flesh this one out
 
-val -> BOOL
-fromTransition ->  _ TRANSITION_TYPE ":" _
-toTransition ->  _ TRANSITION_TYPE ":" _
+dialogue -> speakerName ":" sentence:+ NL {% id %} 
+speakerName -> (WORD [.-]:? WORD):+ {% id %} #TODO: space support
 
-# Whitespace: `_` is optional, `NL:+` is mandatory.
+fromTransition -> transitionType ":" NL {% (d) => ({transitionType:d[0]}) %}
+toTransition -> transitionType ":" NL  {% (d) => ({transitionType:d[0]}) %}
+
+# Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => null %}
 __ -> wschar:+ {% () => null %}
 wschar -> [ ] {% id %}
-NL -> "\r" "\n" | "\r" | "\n" {% id %}
+NL -> _ ("\r" "\n" | "\r" | "\n"):+ {% id %}
 TAB -> [\t] {% id %}
 
-comment -> _ "//" .:* {% () => null %}
+sentence -> (WORD _):+ [.?!] _ {% id %}
+WORD -> [a-zA-Z]:+ _ {% id %}
 
-SHOT_MOVEMENT -> "STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN"
-SENTENCE -> .:* [.?!\n]:+ _
-WORD -> [a-zA-Z]:+
-INPUT -> "TOUCH"|"SWIPE"|"TAP"
-BOOL -> "TRUE"|"FALSE"
-TRANSITION_TYPE -> "FADE OUT"|"FADE IN"|"CUT TO" #TODO: fill in rest
-SCENE_PLACEMENT -> "INT"|"EXT"|"INT/EXT"|"EXT/INT"
-TIME_OF_DAY -> "DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN" #TODO: fill in rest
-SHOT_SUBJECT_SEP -> "/"
-SHOT_TYPE -> "MCU"|"CU"|"EWS"|"MED SHOT" #TODO: fill in rest
-AWAIT -> "AWAIT"
-AND -> "&&"
-OR -> "||"
-SHOTSEP -> "-"
+comment -> "//" .:* {% () => null %}
+
+input -> ("TOUCH"|"SWIPE"|"TAP") _ {% id %}
+transitionType -> ("FADE OUT"|"FADE IN"|"CUT TO") _  {% id %}#TODO: fill in rest _
+scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") "." _ {% d => d[0] %}
+sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% id %}#TODO: fill in rest
+shotMovement -> ("STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN") _ SHOTSEP
+shotType -> ("MCU"|"CU"|"EWS"|"MED SHOT") _ SHOTSEP {% id %}#TODO: fill in rest
+SHOT_SUBJECT_SEP ->"/" _ {% id %}
+AWAIT ->"AWAIT" _ {% id %}
+AND ->"&&" _ {% id %}
+OR ->"||" _ {% id %}
+SHOTSEP ->"-" _ {% id %}
