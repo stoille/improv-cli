@@ -28,7 +28,7 @@ sceneHeading -> scenePlacement sceneName sceneTime NL {%
     ([scenePlacement, sceneName, sceneTime]) => 
         { return ({ scenePlacement, sceneName, sceneTime})} 
 %}
-sceneName -> WORD:+ 
+sceneName -> WORD:+ SHOTSEP
 
 shot -> shotHeading:? (action|dialogue):+
 shotHeading -> shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL {%
