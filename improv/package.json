@@ -1,0 +1,16 @@
+{
+  "name": "improv",
+  "version": "0.0.1",
+  "main": "commander.js",
+  "license": "BSD0",
+  "dependencies": {
+    "commander": "^2.15.1",
+    "inquirer": "^5.1.0",
+    "nearley": "^2.13.0",
+    "xstate": "^3.1.0"
+  },
+  "scripts": {
+    "generate-grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.js",
+    "compile": "node ./commander.js"
+  }
+}
