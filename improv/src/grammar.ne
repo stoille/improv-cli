@@ -1,16 +1,14 @@
-start ->block _
+start -> block _ {% d => d[0] %}
 
 block -> comment | exp:? scene #_ NL:* _ exp:? _ NL:* _ 
 {%
-    ([comment, exp, scene]) => {
-        return ({
-            type: "state",
-            //comment:  data[0],
-            //blockDepth: data[2], // data[1] is "NL"
-            condition: exp,
-            scene: scene
-        })
-    }
+    ([comment, exp, scene]) => ({
+        type: "state",
+        //comment:  data[0],
+        //blockDepth: data[2], // data[1] is "NL"
+        condition: exp,
+        scene: scene
+    })
 %}
 exp -> var NL:? {% ([varName]) => ({varName}) %}
   | exp _ AND exp NL {% ([lhs, _, op, rhs]) => ({lhs, op, rhs})  %}
@@ -20,30 +18,33 @@ exp -> var NL:? {% ([varName]) => ({varName}) %}
 
 var -> [A-Z]:+ {% id %}
 
-scene -> fromTransition:? sceneHeading:? {% 
+scene -> fromTransition:? sceneHeading:? shot {% 
     ([fromTransition, sceneHeading, shot]) => 
-        { return ({ fromTransition, sceneHeading, shot})} 
+        ({ fromTransition, sceneHeading, shot})
 %}
 sceneHeading -> scenePlacement sceneName sceneTime NL {% 
     ([scenePlacement, sceneName, sceneTime]) => 
-        { return ({ scenePlacement, sceneName, sceneTime})} 
+        ({ scenePlacement, sceneName, sceneTime})
 %}
-sceneName -> WORD:+ SHOTSEP
+sceneName -> WORD:+ SHOTSEP {% d => d[0] %}
 
-shot -> shotHeading:? (action|dialogue):+
-shotHeading -> shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL {%
-    ([shotType, shotSource, shotTarget, shotMovement, time]) => 
-        ({shotType, shotSource, shotTarget, shotMovement, time})
+shot -> shotHeading:? (action|dialogue):+ {% 
+    ([shotHeading, actionOrDialogue]) => 
+        ({shotHeading, actionOrDialogue})
 %}
-action -> sentence:+ NL {% id %}
-timeSpan -> num ":" num _ {% d => { return ({min: d[0], sec: d[2]})}%}
+shotHeading -> shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL {%
+    ([shotType, shotSource, shotTarget, shotMovement, timeSpan]) => 
+        ({shotType, shotSource, shotTarget, shotMovement, timeSpan})
+%}
+action -> sentence:+ NL {% d => ({text: d[0]}) %}
+timeSpan -> num ":" num _ {% d => ({ min: d[0], sec: d[2] }) %}
 num -> [0-9] [0-9] {% d => parseInt(d[0] + d[1]) %}
 
 shotSource -> shotSubject {% id %}
 shotTarget -> shotSubject {% id %}
-shotSubject -> WORD (SHOT_SUBJECT_SEP WORD):* SHOTSEP {% id %} #TODO: flesh this one out
+shotSubject -> WORD (SHOT_SUBJECT_SEP WORD):* SHOTSEP {% ([root, child]) => ({root, child}) %}
 
-dialogue -> speakerName ":" sentence:+ NL {% id %} 
+dialogue -> speakerName ":" sentence:+ NL {% ([speaker, _, text]) => ({speaker: speaker, text: text}) %}
 speakerName -> (WORD [.-]:? WORD):+ {% id %} #TODO: space support
 
 fromTransition -> transitionType ":" NL {% (d) => ({transitionType:d[0]}) %}
@@ -53,22 +54,22 @@ toTransition -> transitionType ":" NL  {% (d) => ({transitionType:d[0]}) %}
 _  -> wschar:* {% () => null %}
 __ -> wschar:+ {% () => null %}
 wschar -> [ ] {% id %}
-NL -> _ ("\r" "\n" | "\r" | "\n"):+ {% id %}
-TAB -> [\t] {% id %}
+NL -> _ ("\r" "\n" | "\r" | "\n"):+ {% () => null %}
+TAB -> [\t]:+ {% id %}
 
 sentence -> (WORD _):+ [.?!] _ {% id %}
 WORD -> [a-zA-Z]:+ _ {% id %}
 
 comment -> "//" .:* {% () => null %}
 
-input -> ("TOUCH"|"SWIPE"|"TAP") _ {% id %}
-transitionType -> ("FADE OUT"|"FADE IN"|"CUT TO") _  {% id %}#TODO: fill in rest _
+input -> ("TOUCH"|"SWIPE"|"TAP") _ {% d => d[0] %}
+transitionType -> ("FADE OUT"|"FADE IN"|"CUT TO") _  {% d => d[0] %}#TODO: fill in rest _
 scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") "." _ {% d => d[0] %}
-sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% id %}#TODO: fill in rest
-shotMovement -> ("STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN") _ SHOTSEP
-shotType -> ("MCU"|"CU"|"EWS"|"MED SHOT") _ SHOTSEP {% id %}#TODO: fill in rest
-SHOT_SUBJECT_SEP ->"/" _ {% id %}
-AWAIT ->"AWAIT" _ {% id %}
-AND ->"&&" _ {% id %}
-OR ->"||" _ {% id %}
-SHOTSEP ->"-" _ {% id %}
+sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% d => d[0] %} #TODO: fill in rest
+shotMovement -> ("STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN") _ SHOTSEP {% d => d[0] %}
+shotType -> ("MCU"|"CU"|"EWS"|"MED SHOT") _ SHOTSEP _ {% d => d[0] %} #TODO: fill in rest
+SHOT_SUBJECT_SEP -> "/" _ {% id %}
+AWAIT -> "AWAIT" _ {% id %}
+AND -> "&&" _ {% id %}
+OR -> "||" _ {% id %}
+SHOTSEP -> "-" _ {% id %}
