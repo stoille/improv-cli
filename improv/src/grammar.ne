@@ -1,15 +1,16 @@
-start -> block _ {% d => d[0] %}
+start -> (block):+ {% d => [].concat.apply([], d[0]) %} 
 
-block -> comment | exp:? scene #_ NL:* _ exp:? _ NL:* _ 
+block -> exp:? scene #_ NL:* _ exp:? _ NL:* _ 
 {%
-    ([comment, exp, scene]) => { 
+    ([condition, scene]) => { 
         return ({
-        type: "state",
-        //comment:  data[0],
-        //blockDepth: data[2], // data[1] is "NL"
-        condition: exp,
-        scene: scene
-    }) }
+            type: "state",
+            //comment:  data[0],
+            //blockDepth: data[2], // data[1] is "NL"
+            condition,
+            scene
+        })
+    }
 %}
 exp -> var NL:? {% ([varName]) => { 
     return ({varName}) } %}
@@ -22,7 +23,7 @@ exp -> var NL:? {% ([varName]) => {
   | input exp NL {% ([op, rhs]) => { 
       return ({op, rhs}) } %}
 
-var -> [A-Z]:+ {% id %}
+var -> [A-Z]:+ {% d => d[0].join('') %}
 
 scene -> fromTransition:? sceneHeading:? shot {% 
     ([fromTransition, sceneHeading, shot]) => {
@@ -32,11 +33,11 @@ sceneHeading -> scenePlacement sceneName sceneTime NL {%
     ([scenePlacement, sceneName, sceneTime]) => {
         return ({ scenePlacement, sceneName, sceneTime}) }
 %}
-sceneName -> WORD:+ SHOTSEP {% d => d[0] %}
+sceneName -> WORD:+ SHOTSEP {% d => d[0].join('') %}
 
-shot -> shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL (action|dialogue):* {%
+shot -> shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL (dialogue|.:* NL) {%
     ([shotType, shotSource, shotTarget, shotMovement, timeSpan, _, action, dialogue]) => {
-        return ({shotType, shotSource, shotTarget, shotMovement, timeSpan, _, action, dialogue}) }
+        return ({shotType, shotSource, shotTarget, shotMovement, timeSpan, action: [].concat.apply([], action).join('')}) }
 %}
 action -> sentence:+ NL:? {% d => { 
     return ({text: d[0]}) } %}
@@ -51,7 +52,7 @@ shotSubject -> WORD (SHOT_SUBJECT_SEP WORD):* SHOTSEP {% ([root, child]) => {
 
 dialogue -> speakerName ":" sentence:+ NL {% ([speaker, _, text]) => { 
     return ({speaker: speaker, text: text}) } %}
-speakerName -> (WORD [.-]:? WORD):+ {% id %} #TODO: space support
+speakerName -> (WORD [.-]:? WORD):+ {% d => d[0].join('') %} #TODO: space support
 
 fromTransition -> transitionType ":" NL {% (d) => { 
     return ({transitionType:d[0]}) } %}
@@ -59,25 +60,25 @@ toTransition -> transitionType ":" NL  {% (d) => {
     return ({transitionType:d[0]}) } %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
-_  -> wschar:* {% () => null %}
-__ -> wschar:+ {% () => null %}
+_  -> wschar:* {% () => ' ' %}
+__ -> wschar:+ {% () => ' ' %}
 wschar -> [ ] {% id %}
 NL -> _ ("\r" "\n" | "\r" | "\n"):* {% () => null %}
 TAB -> [\t]:+ {% id %}
 
-sentence -> (WORD _):+ [.?!] _ {% id %}
-WORD -> [a-zA-Z]:+ _ {% id %}
-
 comment -> "//" .:* {% () => null %}
 
-input -> ("TOUCH"|"SWIPE"|"TAP") _ {% d => d[0] %}
-transitionType -> ("FADE OUT"|"FADE IN"|"CUT TO") _  {% d => d[0] %}#TODO: fill in rest _
-scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") "." _ {% d => d[0] %}
-sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% d => d[0] %} #TODO: fill in rest
-shotMovement -> ("STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN") _ SHOTSEP {% d => d[0] %}
-shotType -> ("MCU"|"CU"|"EWS"|"MED SHOT") _ SHOTSEP _ {% d => d[0] %} #TODO: fill in rest
-SHOT_SUBJECT_SEP -> "/" _ {% d => d[0] %}
-AWAIT -> "AWAIT" _ {% d => d[0] %}
-AND -> "&&" _ {% d => d[0] %}
-OR -> "||" _ {% d => d[0] %}
-SHOTSEP -> "-" _ {% d => d[0] %}
+input -> ("TOUCH"|"SWIPE"|"TAP") _ {% d => d[0].join('') %}
+transitionType -> ("FADE OUT"|"FADE IN"|"CUT TO") _  {% d => d[0].join('') %}#TODO: fill in rest _
+scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") "." _ {% d => d[0].join('') %}
+sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% d => d[0].join('') %} #TODO: fill in rest
+shotMovement -> ("STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN") _ SHOTSEP {% d => d[0].join('') %}
+shotType -> ("MCU"|"CU"|"EWS"|"MED SHOT") _ SHOTSEP _ {% d => d[0].join('') %} #TODO: fill in rest
+SHOT_SUBJECT_SEP -> "/" _ {% d => d[0].join('') %}
+AWAIT -> "AWAIT" _ {% d => d[0].join('') %}
+AND -> "&&" _ {% d => d[0].join('') %}
+OR -> "||" _ {% d => d[0].join('') %}
+SHOTSEP -> "-" _ {% id %}
+
+sentence -> WORD:+ [.?!] _ {% d => [].concat.apply([], d[0]).join('')  %}
+WORD -> [a-zA-Z]:+ _ {% d => d[0].join('')  %}

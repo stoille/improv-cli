@@ -7,7 +7,7 @@ const parseScript = (text) => {
   parser.feed(text)
   //console.info(`text: ${text}`)
   //console.info(`parsed text: ${parser.results}`)
-  return parser.results
+  return parser.results[0]
 }
 
 module.exports = { parseScript }
