@@ -1,4 +1,4 @@
-block -> (TAB state):+ {% d => [].concat.apply([], d[0]) %} 
+block -> (state):+ {% d => [].concat.apply([], d[0]) %} 
 
 state -> scene exp:* {%
 	([scene, subStates]) => {
@@ -14,28 +14,28 @@ scene -> fromTransition:? sceneHeading:? shot {%
 		return ({ fromTransition, sceneHeading, shot}) }
 %}
 
-exp -> TAB var NL block {% ([tab, varName, nl, tabs, subStates]) => { return ({varName, subStates}) } %}
-	| TAB exp _ AND exp {% ([tab, lhs, _, op, rhs]) => { return ({lhs, op, rhs}) }  %}
-	| TAB exp _ OR exp {% ([tab, lhs, _, op, rhs]) => { return ({lhs, op, rhs}) } %}
-	| TAB AWAIT exp {% ([tab, op, rhs]) => { return ({op, rhs}) } %}
-	| TAB input exp {% ([tab, op, rhs]) => { return ({op, rhs}) } %}
+exp -> var NL block {% ([varName, nl, subStates]) => { return ({varName, subStates}) } %}
+	| exp _ AND exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) }  %}
+	| exp _ OR exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) } %}
+	| AWAIT exp {% ([op, rhs]) => { return ({op, rhs}) } %}
+	| input exp {% ([op, rhs]) => { return ({op, rhs}) } %}
 
 var -> [A-Z]:+ {% d => d[0].join('') %}
 
-sceneHeading -> TAB scenePlacement sceneName sceneTime NL {% 
-	([tab, scenePlacement, sceneName, sceneTime]) => {
+sceneHeading -> scenePlacement sceneName sceneTime NL {% 
+	([scenePlacement, sceneName, sceneTime]) => {
 		return ({ scenePlacement, sceneName, sceneTime}) }
 %}
 sceneName -> sentence SHOTSEP {% d => d[0].join(' ') %}
 
-shot -> TAB shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL (dialogue|.:* NL) {%
-	([tab, shotType, shotSource, shotTarget, shotMovement, timeSpan, _, action, dialogue]) => {
+shot -> shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL (dialogue|.:* NL) {%
+	([shotType, shotSource, shotTarget, shotMovement, timeSpan, _, action, dialogue]) => {
 		return ({shotType, shotSource, shotTarget, shotMovement, timeSpan, action: [].concat.apply([], action).join('')}) }
 %}
-action -> TAB sentence:+ {% ([tab, text]) => { 
+action -> sentence:+ {% ([text]) => { 
 	return ({text}) } %}
-sentence -> WORD:+ _ NL:? {% id  %}
-WORD -> [a-zA-Z,'.?!-]:+ __ {% d => d[0].join('')  %}
+sentence -> word:+ _ NL:? {% id  %}
+word -> [a-zA-Z,'.?!-]:+ __ {% d => d[0].join('')  %}
 
 timeSpan -> num ":" num _ {% d => { 
 	return ({ min: d[0], sec: d[2] }) } %}
@@ -43,12 +43,12 @@ num -> [0-9] [0-9] {% d => parseInt(d[0] + d[1]) %}
 
 shotSource -> shotSubject {% id %}
 shotTarget -> shotSubject {% id %}
-shotSubject -> WORD (SHOT_SUBJECT_SEP WORD):* SHOTSEP {% ([root, path]) => { 
+shotSubject -> word (SHOT_SUBJECT_SEP word):* SHOTSEP {% ([root, path]) => { 
 	return ({root, path}) } %}
 
-dialogue -> TAB speakerName ":" sentence:+ NL {% ([tab, speaker, _, text]) => { 
+dialogue -> speakerName ":" sentence:+ NL {% ([speaker, _, text]) => { 
 	return ({speaker: speaker, text: text}) } %}
-speakerName -> (WORD [.-]:? WORD):+ {% d => d[0].join('') %} #TODO: space support
+speakerName -> sentence {% d => d[0].join('') %} #TODO: space support
 
 fromTransition -> transitionType ":" NL {% (d) => { 
 	return ({transitionType:d[0]}) } %}
@@ -59,8 +59,8 @@ toTransition -> transitionType ":" NL  {% (d) => {
 _  -> wschar:* {% () => ' ' %}
 __ -> wschar:+ {% () => ' ' %}
 wschar -> [ ] {% id %}
-NL -> _ ("\r" "\n" | "\r" | "\n"):* {% () => null %}
-TAB -> [\t]:* {% id %} #TODO: investigate if space is needed
+NL -> _ ("\r" "\n" | "\r" | "\n"|"\t"):* {% () => null %}
+#TAB -> [\t]:* {% id %} #TODO: investigate if space is needed
 
 comment -> "//" .:* {% () => null %}
 
