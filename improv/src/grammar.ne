@@ -1,20 +1,25 @@
-block -> (state):+ {% d => [].concat.apply([], d[0]) %} 
+script -> state:+ {% d => [].concat.apply([], d[0]) %} 
 
-state -> scene exp:* {%
-	([scene, subStates]) => {
+state -> [\t]:* (scene | exp) {%
+	([depth, scene, subStates]) => {
 		return ({
+			depth,
 			scene,
 			subStates
 		})
 	}
 %}
 
-scene -> fromTransition:? sceneHeading:? shot {% 
-	([fromTransition, sceneHeading, shot]) => {
-		return ({ fromTransition, sceneHeading, shot}) }
+scene -> fromTransition:? sceneHeading shot:+ {% 
+	([fromTransition, setting, shots]) => {
+		return ({ fromTransition, setting, shots}) }
 %}
+fromTransition -> transitionType ":" NL {% (d) => { 
+	return ({transitionType:d[0]}) } %}
+toTransition -> transitionType ":" NL  {% (d) => { 
+	return ({transitionType:d[0]}) } %}
 
-exp -> var NL block {% ([varName, nl, subStates]) => { return ({varName, subStates}) } %}
+exp -> var NL state NL {% ([varName, nl, subStates]) => { return ({varName, subStates}) } %}
 	| exp _ AND exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) }  %}
 	| exp _ OR exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) } %}
 	| AWAIT exp {% ([op, rhs]) => { return ({op, rhs}) } %}
@@ -26,52 +31,48 @@ sceneHeading -> scenePlacement sceneName sceneTime NL {%
 	([scenePlacement, sceneName, sceneTime]) => {
 		return ({ scenePlacement, sceneName, sceneTime}) }
 %}
-sceneName -> sentence SHOTSEP {% d => d[0].join(' ') %}
+scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") "." _ {% d => d[0].join('') %}
+sceneName -> .:+ SEP {% d => d[0].join('') %}
+sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% d => d[0].join('') %} 
 
-shot -> shotType shotSource:? shotTarget:? shotMovement:? timeSpan NL (dialogue|.:* NL) {%
-	([shotType, shotSource, shotTarget, shotMovement, timeSpan, _, action, dialogue]) => {
-		return ({shotType, shotSource, shotTarget, shotMovement, timeSpan, action: [].concat.apply([], action).join('')}) }
+#TODO: replace .:* for action here
+#TODO: restore (exp|dialogue|action)
+#TODO: investigate why action:+ runs out of memory
+shot -> camType camSubject:? camSubject:? camMovement:? timeSpan NL (action) {%
+	([camType, camSource, camTarget, camMovement, timeSpan, _, actions, dialogue]) => {
+		return ({camType, camSource, camTarget, camMovement, timeSpan, actions}) }
 %}
-action -> sentence:+ {% ([text]) => { 
-	return ({text}) } %}
-sentence -> word:+ _ NL:? {% id  %}
-word -> [a-zA-Z,'.?!-]:+ __ {% d => d[0].join('')  %}
+camType -> ("MCU"|"CU"|"EWS"|"MED SHOT"|"MED") SEP {% d => d[0].join('') %} #TODO: fill in rest
+camSubject -> word (SUBJSEP word):* SEP {% ([root, path]) => { return ({root, path}) } %}
+camMovement -> ("STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN") SEP {% d => d[0].join('') %}
 
 timeSpan -> num ":" num _ {% d => { 
 	return ({ min: d[0], sec: d[2] }) } %}
 num -> [0-9] [0-9] {% d => parseInt(d[0] + d[1]) %}
 
-shotSource -> shotSubject {% id %}
-shotTarget -> shotSubject {% id %}
-shotSubject -> word (SHOT_SUBJECT_SEP word):* SHOTSEP {% ([root, path]) => { 
-	return ({root, path}) } %}
+#TODO: investigate why sentences sometimes ignore _:* after punctuation? ex: 'space. ok' vs. 'no space.not ok'
+action -> sentence:+ NL:* {% ([text]) => { 
+	return text.join('') } %}
+sentence -> .:+ [.?!]:+ _ {% d => d[0].concat(d[1]).join('') %}
+word -> [a-zA-Z,']:+ {% d => d[0].join('')  %} #took out '-'
 
-dialogue -> speakerName ":" sentence:+ NL {% ([speaker, _, text]) => { 
+dialogue -> word:+ ":" sentence:+ NL {% ([speaker, _, text]) => { 
 	return ({speaker: speaker, text: text}) } %}
-speakerName -> sentence {% d => d[0].join('') %} #TODO: space support
-
-fromTransition -> transitionType ":" NL {% (d) => { 
-	return ({transitionType:d[0]}) } %}
-toTransition -> transitionType ":" NL  {% (d) => { 
-	return ({transitionType:d[0]}) } %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}
 __ -> wschar:+ {% () => ' ' %}
 wschar -> [ ] {% id %}
-NL -> _ ("\r" "\n" | "\r" | "\n"|"\t"):* {% () => null %}
-#TAB -> [\t]:* {% id %} #TODO: investigate if space is needed
+NL -> [\r\n\t ]:+ {% () => null %}
+#TAB -> [\t ]:* {% id %} #TODO: investigate if space is needed
 
-comment -> "//" .:* {% () => null %}
+comment -> "//" .:* {% () => null %} #TODO: fix comment
 
-input -> ("TOUCH"|"SWIPE"|"TAP") _ {% d => d[0].join('') %}
+input -> ("TOUCH"|"SWIPE"|"TAP") __ {% d => d[0].join('') %}
 transitionType -> ("FADE OUT"|"FADE IN"|"CUT TO") _  {% d => d[0].join('') %}#TODO: fill in rest _
-scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") "." _ {% d => d[0].join('') %}
-sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% d => d[0].join('') %} #TODO: fill in rest
-shotMovement -> ("STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN") _ SHOTSEP {% d => d[0].join('') %}
-shotType -> ("MCU"|"CU"|"EWS"|"MED SHOT") _ SHOTSEP _ {% d => d[0].join('') %} #TODO: fill in rest
-SHOT_SUBJECT_SEP -> "/" _ {% d => d[0].join('') %}
-AWAIT -> "AWAIT" _ {% d => d[0].join('') %}
-AND -> "&&" _ {% d => d[0].join('') %}
-OR -> "||" _ {% d => d[0].join('') %}
-SHOTSEP -> "-" _ {% id %}
+#TODO: fill in rest
+SUBJSEP -> _ "/" _ {% d => d[0].join('') %}
+AWAIT -> _ "AWAIT" _ {% d => d[0].join('') %}
+AND -> _ "&&" _ {% d => d[0].join('') %}
+OR -> _ "||" _ {% d => d[0].join('') %}
+SEP -> _ "-" _ {% id %}
