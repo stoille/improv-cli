@@ -1,29 +1,33 @@
-script -> state:+ {% d => [].concat.apply([], d[0]) %} 
-
-state -> [\t]:* (scene | exp) {%
-	([depth, scene, subStates]) => {
+start -> unit:+ {%
+	d => d.map( ([scenes, subUnits]) => ({
+		scenes,
+		subUnits
+	}))
+%}
+unit -> scene | (TAB exp NL TAB unit) {%
+	([scene, tab, exp, nl, __, Unit]) => {
 		return ({
-			depth,
-			scene,
-			subStates
+			foo: scene, bar: exp, bee: Unit
 		})
 	}
 %}
+#exp, depth, subUnits
 
-scene -> fromTransition:? sceneHeading shot:+ {% 
+scene -> fromTransition:? sceneHeading:? shot:+ {% 
 	([fromTransition, setting, shots]) => {
-		return ({ fromTransition, setting, shots}) }
+		fromTransition = fromTransition ? fromTransition : "CUT"
+		return ({ fromTransition, setting, shots }) }
 %}
 fromTransition -> transitionType ":" NL {% (d) => { 
 	return ({transitionType:d[0]}) } %}
 toTransition -> transitionType ":" NL  {% (d) => { 
 	return ({transitionType:d[0]}) } %}
 
-exp -> var NL state NL {% ([varName, nl, subStates]) => { return ({varName, subStates}) } %}
-	| exp _ AND exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) }  %}
+exp -> exp _ AND exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) }  %}
 	| exp _ OR exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) } %}
 	| AWAIT exp {% ([op, rhs]) => { return ({op, rhs}) } %}
 	| input exp {% ([op, rhs]) => { return ({op, rhs}) } %}
+	| var NL {% ([rhs, _, Unit]) => { return ({op: "EQT", rhs}) } %}
 
 var -> [A-Z]:+ {% d => d[0].join('') %}
 
@@ -38,7 +42,8 @@ sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN"
 #TODO: replace .:* for action here
 #TODO: restore (exp|dialogue|action)
 #TODO: investigate why action:+ runs out of memory
-shot -> camType camSubject:? camSubject:? camMovement:? timeSpan NL (action) {%
+# NL:* allows EOF without a newline
+shot -> camType camSubject:? camSubject:? camMovement:? timeSpan NL (action) NL:* {%
 	([camType, camSource, camTarget, camMovement, timeSpan, _, actions, dialogue]) => {
 		return ({camType, camSource, camTarget, camMovement, timeSpan, actions}) }
 %}
@@ -63,8 +68,8 @@ dialogue -> word:+ ":" sentence:+ NL {% ([speaker, _, text]) => {
 _  -> wschar:* {% () => ' ' %}
 __ -> wschar:+ {% () => ' ' %}
 wschar -> [ ] {% id %}
-NL -> [\r\n\t ]:+ {% () => null %}
-#TAB -> [\t ]:* {% id %} #TODO: investigate if space is needed
+NL -> [\r\n\t]:+ {% () => null %}
+TAB -> [\t]:* {% d => d[0] %} #TODO: investigate if space is needed
 
 comment -> "//" .:* {% () => null %} #TODO: fix comment
 
