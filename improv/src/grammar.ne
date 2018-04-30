@@ -1,44 +1,34 @@
-unit -> exp:? scene unit:?
-{%
-	([condition, scene, subUnits]) => {
-		return ({
-			condition, scene, subUnits
-		})
-	}
-%}
-#exp, depth, subUnits
 
-scene -> transition:? sceneHeading:? shot:+ {% 
-	([transition, setting, shots]) => {
-		transition = transition ? transition : {"transitionType": "CUT"}
-		return ({ transition, setting, shots }) }
+@{% 
+function deleteNullProps(obj){
+	Object.keys(obj).forEach((key) => (obj[key] == null) && delete obj[key])
+	return obj
+}
 %}
-transition -> transitionType ":" NL {% (d) => { 
+
+#unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
+unitLine -> TAB:? sceneHeading:? shot:? action:?  exp:? transition:? dialogue:? comment:? {%
+	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
+	([tab, sceneHeading, shot, action,  exp, transition, dialogue, comment]) => deleteNullProps({ depth: tab ? tab.length : 0, sceneHeading: sceneHeading, shot: shot, action: action, exp: exp, transition: transition, dialogue: dialogue, comment: comment })
+%}
+
+transition -> transitionType ":" {% (d) => { 
 	return ({transitionType:d[0]}) } %}
+transitionType -> ("FADE"|"CUT") _ ("IN"|"OUT") _  {% id %}#TODO: fill in rest _
 
-exp -> exp _ AND exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) }  %}
-	| exp _ OR exp {% ([lhs, _, op, rhs]) => { return ({lhs, op, rhs}) } %}
-	| AWAIT exp {% ([op, rhs]) => { return ({op, rhs}) } %}
-	| input exp {% ([op, rhs]) => { return ({op, rhs}) } %}
-	| var NL {% ([rhs]) => { return ({op: "EQT", rhs}) } %}
-
-var -> [A-Z]:+ {% d => d[0].join('') %}
-
-sceneHeading -> scenePlacement sceneName sceneTime NL {% 
+sceneHeading -> scenePlacement sceneName sceneTime {% 
 	([scenePlacement, sceneName, sceneTime]) => {
 		return ({ scenePlacement, sceneName, sceneTime}) }
 %}
-scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") "." _ {% d => d[0].join('') %}
+scenePlacement -> scenePlacementName "." _ {% d => d[0].join('') %}
+scenePlacementName -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") _ {% id %}
 sceneName -> .:+ SEP {% d => d[0].join('') %}
 sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% d => d[0].join('') %} 
 
-#TODO: replace .:* for action here
-#TODO: restore (exp|dialogue|action)
-#TODO: investigate why action:+ runs out of memory
-# NL:* allows EOF without a newline
-shot -> camType camSubject:? camSubject:? camMovement:? timeSpan NL action NL {%
-	([camType, camSource, camTarget, camMovement, timeSpan, _, action, dialogue]) => {
-		return ({camType, camSource, camTarget, camMovement, timeSpan, action}) }
+SEP -> _ "-" _ {% id %}
+
+shot -> camType camSubject:? camSubject:? camMovement:? timeSpan {%
+	([camType, camSource, camTarget, camMovement, timeSpan]) => deleteNullProps({camType, camSource, camTarget, camMovement, timeSpan})
 %}
 camType -> ("MCU"|"CU"|"EWS"|"MED SHOT"|"MED") SEP {% d => d[0].join('') %} #TODO: fill in rest
 camSubject -> word (SUBJSEP word):* SEP {% ([root, path]) => { return ({root, path}) } %}
@@ -48,29 +38,33 @@ timeSpan -> num ":" num _ {% d => {
 	return ({ min: d[0], sec: d[2] }) } %}
 num -> [0-9] [0-9] {% d => parseInt(d[0] + d[1]) %}
 
-#TODO: investigate why sentences sometimes ignore _:* after punctuation? ex: 'space. ok' vs. 'no space.not ok' -- might have been solved by removing NL following 'shot' definition
-action -> sentence:+ {% ([text]) => { 
-	return text.join('') } %}
-sentence -> .:+ [.?!]:+ _ {% d => d[0].concat(d[1]).join('') %}
-word -> [a-zA-Z,']:+ {% d => d[0].join('')  %} #took out '-'
+action -> sentence:+ {% ([text]) => text.join('') %}
+sentence -> word .:* [.?!]:+ _ {% d => d[0].concat(d[1]).concat(d[2]) %}
+word -> [a-zA-Z,']:+ {% d => d[0].join('')  %} 
 
-dialogue -> word:+ ":" sentence:+ NL {% ([speaker, _, text]) => { 
+dialogue -> word:+ ":" sentence:+ {% ([speaker, _, text]) => { 
 	return ({speaker: speaker, text: text}) } %}
+
+exp -> exp _ AND _ exp {% ([lhs, _, op, __, rhs]) => { return ({lhs, op, rhs}) }  %}
+	| exp _ OR _ exp {% ([lhs, _, op, __, rhs]) => { return ({lhs, op, rhs}) } %}
+	| AWAIT exp {% ([op, rhs]) => { return ({op, rhs}) } %}
+	| input exp {% ([op, rhs]) => { return ({op, rhs}) } %}
+	| var {% ([rhs]) => { return ({op: "EQT", rhs}) } %}
+
+var -> [A-Z]:+ {% d => d[0].join('') %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}
 __ -> wschar:+ {% () => ' ' %}
 wschar -> [ ] {% id %}
-NL -> [\r\n\t]:+ {% () => null %}
-TAB -> [\t]:* {% d => d[0] %} #TODO: investigate if space is needed
+#NL -> [\r\n]:+ {% () => null %}
+TAB -> [\t]:+ {% id %}
+comment -> "#" .:* {% d => d[1].join('') %} 
 
-comment -> "//" .:* {% () => null %} #TODO: fix comment
+input -> ("TOUCH"|"SWIPE"|"TAP") __ ("UP"|"DOWN"):? {% ([userAction, direction]) => ({userAction, direction}) %}
+AWAIT -> "AWAIT" _ {% id %}
 
-input -> ("TOUCH"|"SWIPE"|"TAP") __ {% d => d[0].join('') %}
-transitionType -> ("FADE"|"CUT IN"|"CUT") _ ("IN"|"OUT") _  {% d => d[0].join('') %}#TODO: fill in rest _
 #TODO: fill in rest
-SUBJSEP -> _ "/" _ {% d => d[0].join('') %}
-AWAIT -> _ "AWAIT" _ {% d => d[0].join('') %}
-AND -> _ "&&" _ {% d => d[0].join('') %}
-OR -> _ "||" _ {% d => d[0].join('') %}
-SEP -> _ "-" _ {% id %}
+SUBJSEP -> _ "/" _ {% id %}
+AND -> "AND" _ {% id %}
+OR -> "OR" _ {% id %}

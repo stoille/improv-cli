@@ -1,13 +1,8 @@
-
-const nearley = require("nearley")
-const grammar = require("./grammar")
+const { parseLines } = require("./parser")
 
 const parseScript = (text) => {
-  const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar))
-  parser.feed(text)
-  //console.info(`text: ${text}`)
-  //console.info(`parsed text: ${parser.results}`)
-  return parser.results[0]
+  let t = text.split('\n')
+  return parseLines(t)
 }
 
-module.exports = { parseScript }
+module.exports.parseScript = parseScript
