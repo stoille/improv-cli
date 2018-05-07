@@ -60,18 +60,18 @@ class Unit {
 	}
 }
 
+const canSkipLine = l => !l || l === '\n' || l === ''
+const canSkipStmt = s => !s
+
+const isStartOfChild = (currStmt, lastStmt) => lastStmt == null ||
+	(currStmt.exp && currStmt.exp.op != 'AWAIT')
+const isEndOfChild = (currStmt, lastStmt) => currStmt.depth < lastStmt.depth
+
 module.exports.parseLines = (lines) => {
 	let root = new Unit()
 	let currUnit = root
 	let lastStmt = null
 	
-	const canSkipLine = line => !line || line === '\n' || line === ''
-	const canSkipStmt = stmt => !stmt
-	
-	const isStartOfChild = (currStmt, lastStmt) => lastStmt == null 
-		|| (currStmt.exp && currStmt.exp.op != 'AWAIT')
-	const isEndOfChild = (currStmt, lastStmt) => currStmt.depth < lastStmt.depth
-
 	for(let line of lines){
 		if (canSkipLine(line)) continue
 		var currStmt = parseLine(line)
