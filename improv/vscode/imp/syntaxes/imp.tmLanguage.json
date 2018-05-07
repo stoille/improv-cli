@@ -1,6 +1,6 @@
 {
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-	"name": "improv",
+	"name": "imp",
 	"patterns": [
 		{
 			"include": "#keywords"
@@ -92,16 +92,16 @@
 		]
 		},
 		"strings": {
-			"name": "string.quoted.double.improv",
+			"name": "string.quoted.double.imp",
 			"begin": "\"",
 			"end": "\"",
 			"patterns": [
 				{
-					"name": "constant.character.escape.improv",
+					"name": "constant.character.escape.imp",
 					"match": "\\\\."
 				}
 			]
 		}
 	},
-	"scopeName": "source.improv"
+	"scopeName": "source.imp"
 }

@@ -1,0 +1,26 @@
+{
+    "name": "imp",
+    "displayName": "imp",
+    "description": "",
+    "version": "0.0.1",
+    "publisher": "",
+    "engines": {
+        "vscode": "^1.23.0"
+    },
+    "categories": [
+        "Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "imp",
+            "aliases": ["imp", "imp"],
+            "extensions": [".imp"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "imp",
+            "scopeName": "source.imp",
+            "path": "./syntaxes/imp.tmLanguage.json"
+        }]
+    }
+}
