@@ -14,7 +14,7 @@ unitLine -> TAB:? sceneHeading:? shot:? action:?  exp:? transition:? dialogue:? 
 
 transition -> transitionType ":" {% (d) => { 
 	return ({transitionType:d[0]}) } %}
-transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _ ("IN"|"OUT"):? _  {% id %}
+transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0][0] %}
 
 sceneHeading -> scenePlacement sceneName sceneTime {% 
 	([scenePlacement, sceneName, sceneTime]) => {
@@ -64,7 +64,7 @@ wschar -> [ ] {% id %}
 TAB -> [\t]:+ {% id %}
 comment -> "#" .:* {% d => d[1].join('') %} 
 
-input -> ("TOUCH"|"TAP"|"PRESS") _ ("UP"|"DOWN"|"LEFT"|"RIGHT"|"ZIGZAG"|"CIRCLE"|"CUSTOM"):? {% ([userAction, direction]) => ({userAction, direction}) %}
+input -> ("TOUCH"|"TAP"|"PRESS"|"UP"|"DOWN"|"LEFT"|"RIGHT"|"ZIGZAG"|"CIRCLE"|"CUSTOM") _ {% d => d[0][0] %}
 AWAIT -> "AWAIT" _ {% id %}
 
 #TODO: fill in rest
