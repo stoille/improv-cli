@@ -7,20 +7,25 @@ function parseLine(lineText) {
 	return parser.results[0]
 }
 
+function createSceneObj() {
+	return ({
+		type: 'scene',
+		shots: []
+	})
+}
+
 class Unit {
 	constructor(parent) {
 		this.type = 'unit'
-		this.parent = parent ? parent : null
-		if(parent){
-			this.comments = []
-			this.conditions = []
-			this.scene = parent.scene ? Object.create( parent.scene ) : null
-			if(this.scene){
-				this.scene.shots = []
-			}
-			parent.children.push(this)
-		}
+		this.parent = null
+		this.comments = []
+		this.conditions = []
+		this.scene = createSceneObj()
 		this.children = []
+		if (parent) {
+			this.parent = parent
+			this.scene = Object.assign(createSceneObj(), parent.scene)
+		}
 	}
 
 	get lastShot (){
@@ -42,14 +47,10 @@ class Unit {
 					this[prop] = obj
 					break
 				case 'transition':
-					if(!this.scene){
-						this.scene = {}
-					}
 					this.scene[prop] = obj
 				break
 				case 'sceneHeading':
-					this.scene = this.scene ? Object.assign(this.scene, obj) : obj
-					this.scene.shots = []
+					this.scene = Object.assign(this.scene, obj)
 					break
 				case 'shot':
 					obj.actions = []
@@ -74,11 +75,10 @@ class Unit {
 }
 
 const canSkipLine = l => !l || l === '\n' || l === ''
-const canSkipStmt = s => !s || typeof s === 'number'
 
-const isStartOfChild = (currStmt, lastStmt) => lastStmt == null ||
+const isStartOfChild = (currStmt, lastStmt) => lastStmt === null ||
 	(currStmt.exp && currStmt.exp.op != 'AWAIT')
-const isEndOfChild = (currStmt, lastStmt) => currStmt.depth < lastStmt.depth
+const isEndOfChild = (currStmt, lastStmt) => lastStmt && currStmt.depth < lastStmt.depth
 
 module.exports.parseLines = (lines) => {
 	let root = new Unit()
@@ -92,16 +92,22 @@ module.exports.parseLines = (lines) => {
 
 		//another scene or indent starts a new unit
 		if (isStartOfChild(currStmt, lastStmt)){
-			currUnit = new Unit(currUnit)
-		} else if(isEndOfChild(currStmt, lastStmt)){
-			let depth = lastStmt.depth - currStmt.depth
-			while(--depth){
-				currUnit = currUnit.parent
-			}
+			let childUnit = new Unit(currUnit)
+			currUnit.children.push(childUnit)
+			currUnit = childUnit
 		}
+
 		//inject lines into unit
 		currUnit.ingestStmt(currStmt)
 		
+		//a decreased indent denotes return to parent unit
+		if (isEndOfChild(currStmt, lastStmt)) {
+			let depth = lastStmt.depth - currStmt.depth
+			while (depth--) {
+				currUnit = currUnit.parent
+			}
+		}
+
 		lastStmt = currStmt
 	}
 	return root
