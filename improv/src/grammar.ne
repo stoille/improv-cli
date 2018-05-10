@@ -14,7 +14,7 @@ unitLine -> TAB:? sceneHeading:? shot:? action:?  exp:? transition:? dialogue:? 
 
 transition -> transitionType ":" {% (d) => { 
 	return ({transitionType:d[0]}) } %}
-transitionType -> ("FADE"|"CUT") _ ("IN"|"OUT") _  {% id %}#TODO: fill in rest _
+transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _ ("IN"|"OUT"):? _  {% id %}
 
 sceneHeading -> scenePlacement sceneName sceneTime {% 
 	([scenePlacement, sceneName, sceneTime]) => {
@@ -23,27 +23,30 @@ sceneHeading -> scenePlacement sceneName sceneTime {%
 scenePlacement -> scenePlacementName "." _ {% d => d[0].join('') %}
 scenePlacementName -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") _ {% id %}
 sceneName -> .:+ SEP {% d => d[0].join('') %}
-sceneTime -> ("DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"DUSK"|"EVENING"|"DAWN") _  {% d => d[0].join('') %} 
+sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") _  {% d => d[0].join('') %}
 
 SEP -> _ "-" _ {% id %}
 
 shot -> camType camSubject:? camSubject:? camMovement:? timeSpan {%
 	([camType, camSource, camTarget, camMovement, timeSpan]) => deleteNullProps({camType, camSource, camTarget, camMovement, timeSpan})
 %}
-camType -> ("MCU"|"CU"|"EWS"|"MED SHOT"|"MED") SEP {% d => d[0].join('') %} #TODO: fill in rest
-camSubject -> word (SUBJSEP word):* SEP {% ([root, path]) => { return ({root, path}) } %}
-camMovement -> ("STEADICAM"|"HANDHELD"|"POV"|"P.O.V."|"EASE IN") SEP {% d => d[0].join('') %}
+camType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS") SEP:? {% d => d[0].join('') %}
+camSubject -> word (SUBJSEP word):* (SEP| _ "," _ ) {% ([root, path]) => { return ({root, path:path.join('')}) } %}
+camMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
-timeSpan -> num ":" num _ {% d => { 
+timeSpan -> num:? ":" num _ {% d => { 
 	return ({ min: d[0], sec: d[2] }) } %}
 num -> [0-9] [0-9] {% d => parseInt(d[0] + d[1]) %}
 
-action -> sentence:+ {% ([text]) => text.join('') %}
-sentence -> word .:* [.?!]:+ _ {% d => d[0].concat(d[1]).concat(d[2]) %}
+action -> _ sentence:+ {% ([_, text]) => ({ lines: text}) %}
+
+#originally: word .:* [.?!]:+ _ {% d => d[0].concat(d[1]).concat(d[2]) %}
+sentence -> _ .:* [.?!]:+ _ timeSpan:? {% ([_, words, punctuation, s, timeSpan, ss]) => ({text:words.join('') + punctuation.join(''), time:timeSpan}) %} 
+
 word -> [a-zA-Z,']:+ {% d => d[0].join('')  %} 
 
 dialogue -> word:+ ":" sentence:+ {% ([speaker, _, text]) => { 
-	return ({speaker: speaker, text: text}) } %}
+	return ({speaker: speaker.join(''), lines: text}) } %}
 
 exp -> exp _ AND _ exp {% ([lhs, _, op, __, rhs]) => { return ({lhs, op, rhs}) }  %}
 	| exp _ OR _ exp {% ([lhs, _, op, __, rhs]) => { return ({lhs, op, rhs}) } %}
@@ -61,7 +64,7 @@ wschar -> [ ] {% id %}
 TAB -> [\t]:+ {% id %}
 comment -> "#" .:* {% d => d[1].join('') %} 
 
-input -> ("TOUCH"|"SWIPE"|"TAP") __ ("UP"|"DOWN"):? {% ([userAction, direction]) => ({userAction, direction}) %}
+input -> ("TOUCH"|"TAP"|"PRESS") _ ("UP"|"DOWN"|"LEFT"|"RIGHT"|"ZIGZAG"|"CIRCLE"|"CUSTOM"):? {% ([userAction, direction]) => ({userAction, direction}) %}
 AWAIT -> "AWAIT" _ {% id %}
 
 #TODO: fill in rest

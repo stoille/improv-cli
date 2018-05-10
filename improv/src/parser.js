@@ -9,11 +9,12 @@ function parseLine(lineText) {
 
 class Unit {
 	constructor(parent) {
+		this.type = 'unit'
 		this.parent = parent ? parent : null
 		if(parent){
 			this.comments = []
 			this.conditions = []
-			this.scene = parent.scene ? Object.create( parent.scene) : null
+			this.scene = parent.scene ? Object.create( parent.scene ) : null
 			if(this.scene){
 				this.scene.shots = []
 			}
@@ -29,31 +30,43 @@ class Unit {
 	ingestStmt(stmt){
 		for (const prop in stmt) {
 			let val = stmt[prop]
+			if(typeof val !== 'object') { continue }
+			
+			let obj = Object.assign({type:prop}, val)
+			
 			switch (prop) {
 				case 'comment':
-					this.comments.push(val)
+					this.comments.push(obj)
 					break
 				default:
-					this[prop] = val
+					this[prop] = obj
 					break
+				case 'transition':
+					if(!this.scene){
+						this.scene = {}
+					}
+					this.scene[prop] = obj
+				break
 				case 'sceneHeading':
-					this.scene = val
+					this.scene = this.scene ? Object.assign(this.scene, obj) : obj
 					this.scene.shots = []
 					break
 				case 'shot':
-					val.actions = []
-					this.scene.shots.push(val)
+					obj.actions = []
+					this.scene.shots.push(obj)
 					break
 				case 'exp':
-					if (val.op == 'AWAIT') {
-						this.actions.push(val)
+					if (obj.op == 'AWAIT') {
+						this.lastShot.actions.push(obj)
 					} else {
-						this.conditions.push(val)
+						this.conditions.push(obj)
 					}
 					break
 				case 'dialogue':
+					this.lastShot.actions.push(obj)
+					break
 				case 'action':
-					this.lastShot.actions.push(val)
+					this.lastShot.actions.push(obj)
 					break
 			}
 		}
@@ -61,7 +74,7 @@ class Unit {
 }
 
 const canSkipLine = l => !l || l === '\n' || l === ''
-const canSkipStmt = s => !s
+const canSkipStmt = s => !s || typeof s === 'number'
 
 const isStartOfChild = (currStmt, lastStmt) => lastStmt == null ||
 	(currStmt.exp && currStmt.exp.op != 'AWAIT')
@@ -73,16 +86,16 @@ module.exports.parseLines = (lines) => {
 	let lastStmt = null
 	
 	for(let line of lines){
-		if (canSkipLine(line)) continue
+		if (canSkipLine(line)) {continue}
 		var currStmt = parseLine(line)
-		if (canSkipStmt(currStmt)) continue
+		if (canSkipStmt(currStmt)) {continue}
 
 		//another scene or indent starts a new unit
 		if (isStartOfChild(currStmt, lastStmt)){
 			currUnit = new Unit(currUnit)
 		} else if(isEndOfChild(currStmt, lastStmt)){
 			let depth = lastStmt.depth - currStmt.depth
-			while(depth--){
+			while(--depth){
 				currUnit = currUnit.parent
 			}
 		}
