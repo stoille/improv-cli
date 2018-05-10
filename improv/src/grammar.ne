@@ -31,7 +31,7 @@ shot -> camType camSubject:? camSubject:? camMovement:? timeSpan {%
 	([camType, camSource, camTarget, camMovement, timeSpan]) => deleteNullProps({camType, camSource, camTarget, camMovement, timeSpan})
 %}
 camType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS") SEP:? {% d => d[0].join('') %}
-camSubject -> word (SUBJSEP word):* (SEP| _ "," _ ) {% ([root, path]) => { return ({root, path:path.join('')}) } %}
+camSubject -> word ("/" word):* (SEP| _ "," _ ) {% ([root, path]) => { return ({root, path:path.map(p=>p[1])}) } %}
 camMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
 timeSpan -> num:? ":" num _ {% d => { 
@@ -68,6 +68,5 @@ input -> ("TOUCH"|"TAP"|"PRESS") _ ("UP"|"DOWN"|"LEFT"|"RIGHT"|"ZIGZAG"|"CIRCLE"
 AWAIT -> "AWAIT" _ {% id %}
 
 #TODO: fill in rest
-SUBJSEP -> _ "/" _ {% id %}
 AND -> "AND" _ {% id %}
 OR -> "OR" _ {% id %}
