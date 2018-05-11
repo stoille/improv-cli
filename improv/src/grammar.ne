@@ -41,7 +41,7 @@ num -> [0-9] [0-9] {% d => parseInt(d[0] + d[1]) %}
 action -> _ sentence:+ {% ([_, text]) => ({ lines: text}) %}
 
 #originally: word .:* [.?!]:+ _ {% d => d[0].concat(d[1]).concat(d[2]) %}
-sentence -> [^\t] _ .:* [.?!]:+ _ timeSpan:? {% ([nt, _, words, punctuation, s, timeSpan, ss]) => ({text:words.join('') + punctuation.join(''), time:timeSpan}) %} 
+sentence -> _ .:* [.?!]:+ _ timeSpan:? {% ([_, words, punctuation, s, timeSpan, ss]) => ({text:words.join('') + punctuation.join(''), time:timeSpan}) %} 
 
 word -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %} 
 
