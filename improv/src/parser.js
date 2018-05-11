@@ -14,6 +14,10 @@ function createSceneObj() {
 	})
 }
 
+function deepCopy(obj){
+	return JSON.parse(JSON.stringify(obj))
+}
+
 class Unit {
 	constructor(parent) {
 		this.type = 'unit'
@@ -24,7 +28,9 @@ class Unit {
 		this.children = []
 		if (parent) {
 			this.parent = parent
-			this.scene = Object.assign(createSceneObj(), parent.scene)
+			this.scene = deepCopy(parent.scene)
+			this.scene.shots = []
+			delete this.scene.transition
 		}
 	}
 
@@ -50,7 +56,8 @@ class Unit {
 					this.scene[prop] = obj
 				break
 				case 'sceneHeading':
-					this.scene = Object.assign(this.scene, obj)
+					this.scene = Object.assign(obj, this.scene)
+					this.scene.shots = []
 					break
 				case 'shot':
 					obj.actions = []
@@ -75,6 +82,7 @@ class Unit {
 }
 
 const canSkipLine = l => !l || l === '\n' || l === ''
+const canSkipStmt = s => !s || typeof s === 'number'
 
 const isStartOfChild = (currStmt, lastStmt) => lastStmt === null ||
 	(currStmt.exp && currStmt.exp.op != 'AWAIT')
@@ -82,6 +90,7 @@ const isEndOfChild = (currStmt, lastStmt) => lastStmt && currStmt.depth < lastSt
 
 module.exports.parseLines = (lines) => {
 	let root = new Unit()
+	//root.scene = null
 	let currUnit = root
 	let lastStmt = null
 	
@@ -90,6 +99,13 @@ module.exports.parseLines = (lines) => {
 		var currStmt = parseLine(line)
 		if (canSkipStmt(currStmt)) {continue}
 
+		//a decreased indent denotes return to parent unit
+		if (isEndOfChild(currStmt, lastStmt)) {
+			let depth = lastStmt.depth - currStmt.depth
+			while (depth--) {
+				currUnit = currUnit.parent
+			}
+		}
 		//another scene or indent starts a new unit
 		if (isStartOfChild(currStmt, lastStmt)){
 			let childUnit = new Unit(currUnit)
@@ -99,14 +115,6 @@ module.exports.parseLines = (lines) => {
 
 		//inject lines into unit
 		currUnit.ingestStmt(currStmt)
-		
-		//a decreased indent denotes return to parent unit
-		if (isEndOfChild(currStmt, lastStmt)) {
-			let depth = lastStmt.depth - currStmt.depth
-			while (depth--) {
-				currUnit = currUnit.parent
-			}
-		}
 
 		lastStmt = currStmt
 	}
