@@ -1,17 +1,13 @@
 FADE IN:
 
-INT.  WALL WALL - DUSK
+INT.  WALL, WALL - DUSK
 
-MED - WALL - EASE IN - 00:05
+EWS - MAN/UP/EAST, WALL/EAST/UP - 00:05
 
-Aaa. Aaa.
-
-#MEE: He talks.
-
-#AWAIT ME
+Aaa. 
 
 TAP FOO
-	MED - WALL - EASE IN - 00:05
+	MCU - WALL - EASE IN - 00:05
 	Ccc.
 
 CU - WALL - EASE IN - 00:05
