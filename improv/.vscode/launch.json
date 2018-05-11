@@ -23,7 +23,7 @@
       "console": "integratedTerminal",
       "args": [
         "parse",
-        "${workspaceFolder}/scripts/hello.improv"
+        "${workspaceFolder}/scripts/summerAfternoon.imp"
       ]
     }
   ]
