@@ -34,25 +34,25 @@ camType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"
 camSubject -> word ("/" word):* (SEP| _ "," _ ) {% ([root, path]) => { return ({root, path:path.map(p=>p[1])}) } %}
 camMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
-timeSpan -> num:? ":" num _ {% d => { 
+timeSpan -> num:? ":":? num _ {% d => { 
 	return ({ min: d[0], sec: d[2] }) } %}
-num -> [0-9] [0-9] {% d => parseInt(d[0] + d[1]) %}
+num -> [0-9] [0-9]:? {% d => parseInt(d[0] + d[1]) %}
 
 action -> _ sentence:+ {% ([_, text]) => ({ lines: text}) %}
 
 #originally: word .:* [.?!]:+ _ {% d => d[0].concat(d[1]).concat(d[2]) %}
-sentence -> _ ([A-Za-z] .:*) [.?!]:+ _ timeSpan:? {% ([_, words, punctuation, s, timeSpan, ss]) => ({text:words[0] + words[1].join('') + punctuation.join(''), time:timeSpan}) %} 
+sentence -> _ ([A-Za-z] .:*) [.?!]:+ SEP:? timeSpan:? {% ([_, words, punctuation, s, timeSpan, ss]) => ({text:words[0] + words[1].join('') + punctuation.join(''), time:timeSpan}) %} 
 
 word -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %} 
 
 dialogue -> word:+ ":" sentence:+ {% ([speaker, _, text]) => { 
 	return ({speaker: speaker.join(''), lines: text}) } %}
 
-exp -> exp _ AND _ exp {% ([lhs, _, op, __, rhs]) => { return ({lhs, op, rhs}) }  %}
-	| exp _ OR _ exp {% ([lhs, _, op, __, rhs]) => { return ({lhs, op, rhs}) } %}
-	| AWAIT exp:? {% ([op, rhs]) => { return ({op, rhs}) } %}
-	| input exp {% ([op, rhs]) => { return ({op, rhs}) } %}
-	| word {% ([rhs, rhss]) => { return ({op: "EQT", rhs:rhs}) } %}
+exp -> exp _ AND _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return ({lhs, op, rhs, time}) }  %}
+	| exp _ OR _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return ({lhs, op, rhs, time}) } %}
+	| AWAIT exp:? SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return ({op, rhs, time}) } %}
+	| input exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return ({op, rhs, time}) } %}
+	| word {% ([rhs, sep, time]) => { return ({op: "EQT", rhs:rhs, time:time}) } %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}
