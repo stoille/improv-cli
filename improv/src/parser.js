@@ -7,13 +7,6 @@ function parseLine(lineText) {
 	return parser.results[0]
 }
 
-function createSceneObj() {
-	return ({
-		type: 'scene',
-		shots: []
-	})
-}
-
 function deepCopy(obj){
 	return JSON.parse(JSON.stringify(obj))
 }
@@ -24,12 +17,14 @@ class Unit {
 		this.parent = null
 		this.comments = []
 		this.conditions = []
-		this.scene = createSceneObj()
-		this.children = []
-		if (parent) {
+		this.scene= ({
+			type: 'scene',
+			shots: [{actions:[]}]
+		})
+		if(parent){
 			this.parent = parent
 			this.scene = deepCopy(parent.scene)
-			this.scene.shots = []
+			this.scene.shots = [{actions: []}]
 			delete this.scene.transition
 		}
 	}
@@ -109,7 +104,7 @@ module.exports.parseLines = (lines) => {
 		//another scene or indent starts a new unit
 		if (isStartOfChild(currStmt, lastStmt)){
 			let childUnit = new Unit(currUnit)
-			currUnit.children.push(childUnit)
+			currUnit.lastShot.actions.push(childUnit)
 			currUnit = childUnit
 		}
 
