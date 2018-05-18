@@ -10,9 +10,9 @@ TOUCH OLD_BAPTIST_CHURCH
 	LONG SHOT - CHURCH/FRONT - 00:04
 	The long church doors tower above a wraparound porch.
 
-TOUCH BUSH
-	LONG SHOT - BUSH, MAN - 00:04
-	The bush sways in a light breeze. The man paces between them.
+	TOUCH BUSH
+		LONG SHOT - BUSH, MAN - 00:04
+		The bush sways in a light breeze. The man paces between them.
 
 AWAIT TOUCH MAN
 
@@ -24,7 +24,7 @@ MEDIUM SHOT - MAN/RIGHT - 00:02
 
 The man wipes his brow and looks up.
 
-AWAIT UP MAN_AND_FOO
+AWAIT UP MAN_FOO
 
 MCU - MAN - 00:02
 

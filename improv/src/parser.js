@@ -7,10 +7,6 @@ function parseLine(lineText) {
 	return parser.results[0]
 }
 
-function deepCopy(obj){
-	return JSON.parse(JSON.stringify(obj))
-}
-
 class Unit {
 	constructor(parent) {
 		this.type = 'unit'
@@ -23,7 +19,7 @@ class Unit {
 		})
 		if(parent){
 			this.parent = parent
-			this.scene = deepCopy(parent.scene)
+			this.scene = Object.create(parent.scene)
 			this.scene.shots = [{actions: []}]
 			delete this.scene.transition
 		}
