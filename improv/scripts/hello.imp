@@ -1,14 +1,19 @@
+#comment
 FADE IN:
 
 INT.  WALL, WALL - DUSK
 
-EWS - MAN/UP/EAST, WALL/EAST/UP - 00:05
+EWS - MAN/UP/EAST, WALL/EAST/UP - 1
 
-Aaa. 
+Aaa. - 2 AAA. -3
 
 TAP FOO
-	MCU - WALL - EASE IN - 00:05
+	MCU - WALL - EASE IN - 5
 	Ccc.
 
-CU - WALL - EASE IN - 00:05
+TAP BAR
+	LONG SHOT - WALL - EASE IN - 5
+	Ddd.
+
+CU - WALL - EASE IN - 05
 Bbb.
