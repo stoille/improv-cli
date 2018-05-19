@@ -44,7 +44,7 @@ num -> [0-9] [0-9]:? {% d => parseInt(d[0] + d[1]) %}
 action -> _ sentence:+ {% ([_, text]) => ({ lines: text}) %}
 
 #originally: word .:* [.?!]:+ _ {% d => d[0].concat(d[1]).concat(d[2]) %}
-sentence -> _ ([A-Za-z] .:*) [.?!]:+ SEP:? timeSpan:? {% ([_, words, punctuation, s, timeSpan, ss]) => dnp({text:words[0] + words[1].join('') + punctuation.join(''), time:timeSpan}) %} 
+sentence -> _ ([A-Za-z] [^.?!]:*) [.?!]:+ SEP:? timeSpan:? {% ([_, words, punctuation, s, timeSpan, ss]) => dnp({text:words[0] + words[1].join('') + punctuation.join(''), time:timeSpan}) %} 
 
 word -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %} 
 
