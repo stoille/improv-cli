@@ -77,7 +77,7 @@ const canSkipStmt = s => !s || typeof s === 'number'
 
 const isStartOfChild = (currStmt, lastStmt) => lastStmt === null ||
 	(currStmt.exp && currStmt.exp.op != 'AWAIT')
-const isEndOfChild = (currStmt, lastStmt) => lastStmt && currStmt.depth < lastStmt.depth
+const isEndOfChild = (currStmt, lastStmt) => (currStmt.exp && currStmt.exp.op === 'AWAIT') || (lastStmt && currStmt.depth < lastStmt.depth)
 
 module.exports.parseLines = (lines) => {
 	let root = new Unit()
