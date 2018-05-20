@@ -51,11 +51,14 @@ word -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %}
 dialogue -> word:+ ":" sentence:+ {% ([speaker, _, text]) => { 
 	return ({speaker: speaker.join(''), lines: text}) } %}
 
-exp -> exp _ AND _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return dnp({lhs, op, rhs, time}) }  %}
-	| exp _ OR _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return dnp({lhs, op, rhs, time}) } %}
-	| AWAIT exp:? SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return dnp({op, rhs, time}) } %}
-	| input exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return dnp({op, rhs, time}) } %}
-	| word {% ([rhs, sep, time]) => { return dnp({op: "EQT", rhs:rhs, time:time}) } %}
+exp -> exp _ "AND" _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return dnp({type:"exp",lhs, op, rhs, time}) }  %}
+	| exp _ "OR" _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return dnp({type:"exp",lhs, op, rhs, time}) } %}
+	| AWAIT exp:? SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return dnp({type:"exp", op, rhs, time}) } %}
+	| input exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return dnp({type:"exp", op, rhs, time}) } %}
+	| word ("/" word):* {% ([root, path]) => { 
+		return ({type:"exp", op: "EQT", rhs:{type:"selector", root, path:path.map(p=>p[1])}}) 
+		} 
+	%}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}
@@ -68,7 +71,3 @@ comment -> "#" .:* {% d => d[1] %}
 
 input -> ("TOUCH"|"TAP"|"PRESS"|"UP"|"DOWN"|"LEFT"|"RIGHT"|"ZIGZAG"|"CIRCLE"|"CUSTOM") _ {% d => d[0][0] %}
 AWAIT -> "AWAIT" _ {% id %}
-
-#TODO: fill in rest
-AND -> "AND" _ {% id %}
-OR -> "OR" _ {% id %}
