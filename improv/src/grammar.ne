@@ -63,7 +63,8 @@ __ -> wschar:+ {% () => ' ' %}
 wschar -> [ ] {% id %}
 #NL -> [\r\n]:+ {% () => null %}
 TAB -> [\t]:+ {% id %}
-comment -> "#" .:* {% d => d[1].join('') %} 
+
+comment -> "#" .:* {% d => d[1] %}  
 
 input -> ("TOUCH"|"TAP"|"PRESS"|"UP"|"DOWN"|"LEFT"|"RIGHT"|"ZIGZAG"|"CIRCLE"|"CUSTOM") _ {% d => d[0][0] %}
 AWAIT -> "AWAIT" _ {% id %}
