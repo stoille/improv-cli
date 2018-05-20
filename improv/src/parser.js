@@ -38,6 +38,8 @@ class Unit {
 			
 			switch (prop) {
 				case 'comment':
+					//TODO: find out why this is necessary
+					obj = {type:prop, text: val.join('')}
 					this.comments.push(obj)
 					break
 				default:
