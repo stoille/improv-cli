@@ -11,7 +11,7 @@ class Unit {
 	constructor(parent) {
 		this.type = 'unit'
 		this.parent = null
-		this.comments = []
+		this.decorators = []
 		this.conditions = []
 		this.scene= ({
 			type: 'scene',
@@ -40,7 +40,7 @@ class Unit {
 				case 'comment':
 					//TODO: find out why this is necessary
 					obj = {type:prop, text: val.join('')}
-					this.comments.push(obj)
+					this.decorators.push(obj)
 					break
 				default:
 					this[prop] = obj
