@@ -10,9 +10,9 @@ function dnp(obj){
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> TAB:? sceneHeading:? shot:? action:?  exp:? transition:? dialogue:? comment:? {%
+unitLine -> TAB:? sceneHeading:? shot:? action:? transition:? dialogue:? exp:?  comment:? {%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
-	([tab, sceneHeading, shot, action,  exp, transition, dialogue, comment]) => dnp({ depth: tab ? tab.length : 0, sceneHeading: dnp(sceneHeading), shot: dnp(shot), action: dnp(action), exp: dnp(exp), transition: transition, dialogue: dialogue, comment: comment })
+	([tab, sceneHeading, shot, action, transition, dialogue, exp, comment]) => dnp({ depth: tab ? tab.length : 0, sceneHeading: dnp(sceneHeading), shot: dnp(shot), action: dnp(action), exp: dnp(exp), transition: transition, dialogue: dialogue, comment: comment })
 %}
 
 transition -> transitionType ":" {% (d) => { 
