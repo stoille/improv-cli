@@ -12,16 +12,21 @@ class Unit {
 		this.type = 'unit'
 		this.parent = null
 		this.decorators = []
-		this.conditions = []
 		this.scene= ({
-			type: 'scene',
-			shots: [{actions:[]}]
+			type: 'scene'
 		})
 		if(parent){
 			this.parent = parent
-			this.scene = Object.create(parent.scene)
-			this.scene.shots = [{actions: []}]
-			delete this.scene.transition
+			this.scene = {
+				type: parent.type,
+				scenePlacement: parent.scene.scenePlacement,
+				sceneName: parent.scene.sceneName,
+				sceneTime: parent.scene.sceneTime
+			}
+			if (parent.scene.shots && parent.scene.shots.length > 0) {
+				this.scene.shots = [Object.create(parent.lastShot)]
+				this.lastShot.actions = []
+			}
 		}
 	}
 
@@ -58,7 +63,7 @@ class Unit {
 					break
 				case 'exp':
 					if (obj.op == 'AWAIT') {
-						this.lastShot.actions.push(obj)
+						this.lastShot.actions.push({type:'control', conditions:[obj]})
 					} else {
 						this.conditions.push(obj)
 					}
@@ -77,14 +82,14 @@ class Unit {
 const canSkipLine = l => !l || l === '\n' || l === ''
 const canSkipStmt = s => !s || typeof s === 'number'
 
-const isStartOfChild = (currStmt, lastStmt) => lastStmt === null ||
-	(currStmt.exp && currStmt.exp.op != 'AWAIT')
-const isEndOfChild = (currStmt, lastStmt) => (currStmt.exp && currStmt.exp.op === 'AWAIT') || (lastStmt && currStmt.depth < lastStmt.depth)
+const isAwait = stmt => (stmt.exp && stmt.exp.op === 'AWAIT')
+const isControlExp = (stmt) => stmt.exp && stmt.exp.op != 'AWAIT'
+const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isControlExp(currStmt) || isAwait(lastStmt)
+const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) || (lastStmt && currStmt.depth < lastStmt.depth)
 
 module.exports.parseLines = (lines) => {
-	let root = new Unit()
-	//root.scene = null
-	let currUnit = root
+	let rootUnits = []
+	let currUnit = null
 	let lastStmt = null
 	
 	for(let line of lines){
@@ -93,23 +98,37 @@ module.exports.parseLines = (lines) => {
 		if (canSkipStmt(currStmt)) {continue}
 
 		//a decreased indent denotes return to parent unit
-		if (isEndOfChild(currStmt, lastStmt)) {
+		if (isEndOfUnit(currStmt, lastStmt)) {
 			let depth = lastStmt.depth - currStmt.depth
 			while (depth--) {
 				currUnit = currUnit.parent
 			}
 		}
 		//another scene or indent starts a new unit
-		if (isStartOfChild(currStmt, lastStmt)){
-			let childUnit = new Unit(currUnit)
-			currUnit.lastShot.actions.push(childUnit)
-			currUnit = childUnit
+		let isControlStmt = isControlExp(currStmt)
+		if (isStartOfUnit(currStmt, lastStmt)){
+			let newUnit = new Unit(currUnit)
+			
+			if (isControlStmt){
+				let control = {
+					type: 'control',
+					conditions: [currStmt.exp],
+					child: newUnit
+				}
+				currUnit.lastShot.actions.push(control)
+			} else {
+				rootUnits.push(newUnit)
+			}
+			
+			currUnit = newUnit
 		}
 
 		//inject lines into unit
-		currUnit.ingestStmt(currStmt)
+		if (!isControlStmt){
+			currUnit.ingestStmt(currStmt)
+		}
 
 		lastStmt = currStmt
 	}
-	return root
+	return rootUnits
 }
