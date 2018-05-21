@@ -43,12 +43,11 @@ num -> [0-9] [0-9]:? {% d => parseInt(d[0] + d[1]) %}
 
 action -> _ sentence:+ {% ([_, text]) => ({ lines: text}) %}
 
-#originally: word .:* [.?!]:+ _ {% d => d[0].concat(d[1]).concat(d[2]) %}
-sentence -> _ ([A-Za-z] [^.?!]:*) [.?!]:+ SEP:? timeSpan:? {% ([_, words, punctuation, s, timeSpan, ss]) => dnp({text:words[0] + words[1].join('') + punctuation.join(''), time:timeSpan}) %} 
+sentence -> _ ([A-Za-z] [^.?!:]:*) [.?!]:+ SEP:? timeSpan:? {% ([_, words, punctuation, s, timeSpan, ss]) => dnp({text:words[0] + words[1].join('') + punctuation.join(''), time:timeSpan}) %} 
 
 word -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %} 
 
-dialogue -> word:+ ":" sentence:+ {% ([speaker, _, text]) => { 
+dialogue -> .:* ":" sentence:+ {% ([speaker, _, text]) => { 
 	return ({speaker: speaker.join(''), lines: text}) } %}
 
 exp -> exp _ "AND" _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return dnp({type:"exp",lhs, op, rhs, time}) }  %}
