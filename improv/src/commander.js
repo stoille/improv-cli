@@ -14,20 +14,7 @@ program
   .action(scriptPath => {
     let scriptText = fs.readFile(scriptPath, "utf8", (err, text) => {
       let parsedScript = parseScript(text)
-      var cache = []
-      console.log(JSON.stringify(parsedScript, (key, value) => {
-        if (typeof value === 'object' && value !== null) {
-          if (cache.indexOf(value) !== -1) {
-            // Circular reference to parent found, discard key before printing
-            if(key === 'parent')
-              return
-          }
-          // Store value in our collection
-          cache.push(value)
-        }
-        return value;
-      }))
-      cache = null
+      console.log(parsedScript)
       process.exit(0)
     })
   })
