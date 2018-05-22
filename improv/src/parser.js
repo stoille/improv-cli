@@ -18,14 +18,20 @@ class Unit {
 		if(parent){
 			this.parent = parent
 			this.scene = Object.assign({},parent.scene)
-			this.scene.shots = [Object.assign({}, parent.lastShot)]
-			this.lastShot.actions = []
+			this.scene.shots = []
 			delete this.scene.transition
 		}
 	}
 
 	get lastShot (){
-		return this.scene.shots[this.scene.shots.length - 1]
+		return this.scene && this.scene.shots && this.scene.shots.length && this.scene.shots[this.scene.shots.length - 1]
+	}
+
+	copyLastFromParentIfNoShots(){
+		if(this.parent && this.scene.shots.length === 0){
+			this.scene.shots = [Object.assign({}, this.parent.lastShot)]
+			this.lastShot.actions = []
+		}
 	}
 
 	ingestStmt(stmt){
@@ -56,6 +62,7 @@ class Unit {
 					this.scene.shots.push(obj)
 					break
 				case 'exp':
+					this.copyLastFromParentIfNoShots()
 					if (obj.op == 'AWAIT') {
 						this.lastShot.actions.push({type:'control', conditions:[obj]})
 					} else {
@@ -63,9 +70,11 @@ class Unit {
 					}
 					break
 				case 'dialogue':
+					this.copyLastFromParentIfNoShots()
 					this.lastShot.actions.push(obj)
 					break
 				case 'action':
+					this.copyLastFromParentIfNoShots()
 					this.lastShot.actions.push(obj)
 					break
 			}
