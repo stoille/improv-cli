@@ -1,7 +1,6 @@
 const program = require('commander')
 
-const { parseScript } = require('./commands')
-var fs = require('fs')
+const { readScriptFileAndParse } = require('./commands')
 
 program
   .version('0.0.1')
@@ -12,8 +11,8 @@ program
   .alias('p')
   .description('parses an .improv script file')
   .action(scriptPath => {
-    let scriptText = fs.readFile(scriptPath, "utf8", (err, text) => {
-      let parsedScript = parseScript(text)
+    readScriptFileAndParse(scriptPath)
+    .then(parsedScript => {
       console.log(parsedScript)
       process.exit(0)
     })
