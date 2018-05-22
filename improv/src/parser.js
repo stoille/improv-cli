@@ -17,16 +17,10 @@ class Unit {
 		})
 		if(parent){
 			this.parent = parent
-			this.scene = {
-				type: parent.type,
-				scenePlacement: parent.scene.scenePlacement,
-				sceneName: parent.scene.sceneName,
-				sceneTime: parent.scene.sceneTime
-			}
-			if (parent.scene.shots && parent.scene.shots.length > 0) {
-				this.scene.shots = [Object.create(parent.lastShot)]
-				this.lastShot.actions = []
-			}
+			this.scene = Object.assign({},parent.scene)
+			this.scene.shots = [Object.assign({}, parent.lastShot)]
+			this.lastShot.actions = []
+			delete this.scene.transition
 		}
 	}
 
