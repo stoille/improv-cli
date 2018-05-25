@@ -25,6 +25,22 @@
         "parse",
         "${workspaceFolder}/scripts/summerAfternoon.imp"
       ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "test",
+      "console": "integratedTerminal",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "test"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Process",
+      "port": 56868
     }
   ]
 }

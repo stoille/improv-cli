@@ -1,22 +1,36 @@
 const { parseLines } = require("./parser")
 var fs = require('fs')
 
-var cache = []
-
-const parseScript = (text) => {
+const parseScript = (text, shouldPrint) => {
+  //console.log(text)
   let t = text.split('\n')
   let parsedScript = parseLines(t)
-  cache = []
-  return JSON.stringify(parsedScript, filterParentRefences)
+  if (shouldPrint){
+    return printScript(parsedScript)
+  }
+  //console.log(parsedScript)
+  return parsedScript
 }
 module.exports.parseScript = parseScript
 
-const readScriptFileAndParse = (scriptPath) => new Promise( resolve =>
+function printScript(parsedScript) {
+  cache = []
+  return JSON.stringify(parsedScript, filterParentRefences)
+}
+
+const readScriptFileAndParse = (scriptPath, shouldPrint) => new Promise((resolve, reject) =>
   fs.readFile(scriptPath, "utf8", (err, text) => {
-    let ps = parseScript(text)
+    if(err){
+      console.error('readScriptFileAndParse:'+err)
+      reject(err)
+    }
+    let ps = parseScript(text, shouldPrint)
+    //console.log(parseScript)
     resolve(ps)
   }))
 module.exports.readScriptFileAndParse = readScriptFileAndParse
+
+var cache = []
 
 function filterParentRefences(key, value) {  
   if (typeof value === 'object' && value !== null) {
