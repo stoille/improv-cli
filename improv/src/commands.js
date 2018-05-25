@@ -1,11 +1,11 @@
 const { parseLines } = require("./parser")
 var fs = require('fs')
 
-const parseScript = (text, shouldPrint) => {
+const parseScript = (text, printToJSON) => {
   //console.log(text)
   let t = text.split('\n')
   let parsedScript = parseLines(t)
-  if (shouldPrint){
+  if (printToJSON){
     return printScript(parsedScript)
   }
   //console.log(parsedScript)
@@ -18,13 +18,13 @@ function printScript(parsedScript) {
   return JSON.stringify(parsedScript, filterParentRefences)
 }
 
-const readScriptFileAndParse = (scriptPath, shouldPrint) => new Promise((resolve, reject) =>
+const readScriptFileAndParse = (scriptPath, printToJSON) => new Promise((resolve, reject) =>
   fs.readFile(scriptPath, "utf8", (err, text) => {
     if(err){
       console.error('readScriptFileAndParse:'+err)
       reject(err)
     }
-    let ps = parseScript(text, shouldPrint)
+    let ps = parseScript(text, printToJSON)
     //console.log(parseScript)
     resolve(ps)
   }))
