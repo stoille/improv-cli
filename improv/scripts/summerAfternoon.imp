@@ -1,12 +1,18 @@
 FADE IN:
+#comments bla bla
 EXT. Old Baptist Church, Kentucky - NOON
-EWS - CHURCH - 00:05
+EWS - CHURCH/FRONT - 05
 
-Over the dense hiss and buzz of a humid summer afternoon we watch a man pace in front of an old baptist CHURCH.
+Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church. The man pauses to speak.
 
-He anxiously brushes through his hair and crumples his cap while he paces.
+Old Man: Hello world?
 
-TOUCH OLD_BAPTIST_CHURCH
+TOUCH MAN/CAP
+	He anxiously brushes through his hair and crumples his cap while he paces. He stops to stroke his beard.
+	CU - OLD/FACE - 00:04
+	We see the old man's white beard.
+
+TOUCH OLD_BAPTIST_CHURCH/FRONT/DOOR
 	LONG SHOT - CHURCH/FRONT - 00:04
 	The long church doors tower above a wraparound porch.
 
@@ -30,14 +36,14 @@ MCU - MAN - 00:02
 
 He looks up at us. The church's cross drapes a shadow over his face.
 
-Man: hmph
+Man: hmph.
 
 UP Man
 	LOW ANGLE - MAN, CHURCH - 00:02
 
-	We see the silhouette of the cross .
+	We see the silhouette of the cross.
 
-AWAIT
+AWAIT FOO
 
 HIGH ANGLE - MAN/RIGHT - 00:02
 
