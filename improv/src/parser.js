@@ -1,20 +1,34 @@
 const nearley = require("nearley")
 const grammar = require("./grammar")
 
+var rootUnits = []
+
 function parseLine(lineText) {
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), { keepHistory: false })
 	parser.feed(lineText)
-	return parser.results[0]
+	//HACK: enforce rule precedence ambiguity - why doesn't nearly.js do this?
+	let results = {}
+	for (let idx in parser.results) {
+		let result = parser.results[idx]
+		results[result.rule] = result
+	}
+	if (results.activeObjects) return results.activeObjects
+	if( results.sceneHeading ) return results.sceneHeading
+	if( results.shot ) return results.shot
+	if( results.action ) return results.action
+	if( results.transition ) return results.transition
+	if( results.dialogue ) return results.dialogue
+	if( results.await ) return results.await
+	if( results.exp ) return results.exp
+	if( results.comment ) return results.comment
+	return null
 }
 
 class Unit {
 	constructor(parent) {
-		this.type = 'unit'
 		this.parent = null
 		this.decorators = []
-		this.scene= ({
-			type: 'scene'
-		})
+		this.scene= {}
 		if(parent){
 			this.parent = parent
 			this.scene = Object.assign({},parent.scene)
@@ -27,57 +41,92 @@ class Unit {
 		return this.scene && this.scene.shots && this.scene.shots.length && this.scene.shots[this.scene.shots.length - 1]
 	}
 
-	copyLastFromParentIfNoShots(){
+	copyLastShotFromParentIfHaveNone(){
 		if(this.parent && this.scene.shots.length === 0){
 			this.scene.shots = [Object.assign({}, this.parent.lastShot)]
 			this.lastShot.actions = []
 		}
 	}
 
+	//post-processing statements
 	ingestStmt(stmt){
-		for (const prop in stmt) {
-			let val = stmt[prop]
-			if(typeof val !== 'object') { continue }
-			
-			let obj = Object.assign({type:prop}, val)
-			
-			switch (prop) {
-				case 'comment':
-					//TODO: find out why this is necessary
-					obj = {type:prop, text: val.join('')}
-					this.decorators.push(obj)
-					break
-				default:
-					this[prop] = obj
-					break
-				case 'transition':
-					this.scene[prop] = obj
+		let isArray = stmt.result.length
+		let obj = isArray ? stmt.result : Object.assign({}, stmt.result)
+		switch (stmt.rule) {
+			case 'comment':
+				obj = {
+					text: obj.join('')
+				}
+				this.decorators.push(obj)
 				break
-				case 'sceneHeading':
-					this.scene = Object.assign(obj, this.scene)
-					this.scene.shots = []
-					break
-				case 'shot':
-					obj.actions = []
-					this.scene.shots.push(obj)
-					break
-				case 'exp':
-					this.copyLastFromParentIfNoShots()
-					if (obj.op == 'AWAIT') {
-						this.lastShot.actions.push({type:'control', conditions:[obj]})
-					} else {
-						this.conditions.push(obj)
+			case 'activeObjects':
+				this.lastShot.activeObjects = obj.map(d=>d.trim())
+				break
+			case 'sceneHeading':
+				this.scene = Object.assign(obj, this.scene)
+				this.scene.shots = []
+				break
+			case 'shot':
+				//active objects declaration
+				if (this.parent && this.parent.lastShot.activeObjects) {
+					obj.activeObjects = this.parent.lastShot.activeObjects.slice()
+				} else {
+					obj.activeObjects = []
+				}
+
+				//action declaration
+				obj.actions = []
+
+				//camera source/target
+				if (!obj.camSource || obj.camSource.root === '') {
+					obj.camSource = obj.camTarget
+				} else if (!obj.camTarget || obj.camTarget.root === '') {
+					obj.camTarget = obj.camSource
+				}
+				this.scene.shots.push(obj)
+				break
+			case 'exp':
+				this.copyLastShotFromParentIfHaveNone()
+				obj = {
+					condition: obj,
+					child: this
+				}
+				this.parent.lastShot.actions.push(obj)
+				break
+			case 'await':
+				let stmtToConditions = stmt => {
+					if (stmt && stmt.rule) {
+						let op = stmt.result.op
+						let lhs = stmtToConditions(stmt.result.lhs)
+						let rhs = stmtToConditions(stmt.result.rhs)
+						let time = stmt.result.time
+						return ({
+							op,
+							time,
+							lhs,
+							rhs
+						})
+					} else if (stmt && stmt.result) {
+						return stmt.result
 					}
-					break
-				case 'dialogue':
-					this.copyLastFromParentIfNoShots()
-					this.lastShot.actions.push(obj)
-					break
-				case 'action':
-					this.copyLastFromParentIfNoShots()
-					this.lastShot.actions.push(obj)
-					break
-			}
+					return stmt
+				}
+				this.await = stmtToConditions(obj.rhs)
+				break;
+			case 'dialogue':
+				this.copyLastShotFromParentIfHaveNone()
+				this.lastShot.actions.push(obj)
+				break
+			case 'action':
+				this.copyLastShotFromParentIfHaveNone()
+				this.lastShot.actions.push(obj)
+				break
+			case 'transition':
+				this.scene[stmt.rule] = obj
+				break
+			default:
+				this[stmt.rule] = obj
+				break
 		}
 	}
 }
@@ -85,51 +134,47 @@ class Unit {
 const canSkipLine = l => !l || l === '\n' || l === ''
 const canSkipStmt = s => !s || typeof s === 'number'
 
-const isAwait = stmt => (stmt.exp && stmt.exp.op === 'AWAIT')
-const isControlExp = (stmt) => stmt.exp && stmt.exp.op != 'AWAIT'
-const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isControlExp(currStmt) || isAwait(lastStmt)
-const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) || (lastStmt && currStmt.depth < lastStmt.depth)
-
 module.exports.parseLines = (lines) => {
-	let rootUnits = []
 	let currUnit = null
 	let lastStmt = null
+	let lineNum = 0
 	
+	//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
 	for(let line of lines){
+		++lineNum;
 		if (canSkipLine(line)) {continue}
 		var currStmt = parseLine(line)
-		if (canSkipStmt(currStmt)) {continue}
+		if (canSkipStmt(currStmt)) {
+			console.error(`Error Ln ${lineNum}: ${line}`)
+			continue
+		}
 
-		//a decreased indent denotes return to parent unit
+		const isAwait = stmt => stmt.rule === 'await'
+		const isActiveObjectDeclaration = lastStmt && lastStmt.rule === 'activeObjects'
+		const tabDecreased = lastStmt && currStmt.depth < lastStmt.depth
+
+		const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) 
+			|| (isActiveObjectDeclaration === false && tabDecreased)
 		if (isEndOfUnit(currStmt, lastStmt)) {
 			let depth = lastStmt.depth - currStmt.depth
 			while (depth--) {
 				currUnit = currUnit.parent
 			}
 		}
-		//another scene or indent starts a new unit
-		let isControlStmt = isControlExp(currStmt)
+		
+		let isCurrStmtControl = currStmt.rule === 'exp'
+		const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isAwait(lastStmt) || isCurrStmtControl
 		if (isStartOfUnit(currStmt, lastStmt)){
 			let newUnit = new Unit(currUnit)
-			
-			if (isControlStmt){
-				let control = {
-					type: 'control',
-					conditions: [currStmt.exp],
-					child: newUnit
-				}
-				currUnit.lastShot.actions.push(control)
-			} else {
+
+			if (isCurrStmtControl === false) {
 				rootUnits.push(newUnit)
 			}
-			
+
 			currUnit = newUnit
 		}
 
-		//inject lines into unit
-		if (!isControlStmt){
-			currUnit.ingestStmt(currStmt)
-		}
+		currUnit.ingestStmt(currStmt)
 
 		lastStmt = currStmt
 	}

@@ -25,7 +25,6 @@ const readScriptFileAndParse = (scriptPath, printToJSON) => new Promise((resolve
       reject(err)
     }
     let ps = parseScript(text, printToJSON)
-    //console.log(parseScript)
     resolve(ps)
   }))
 module.exports.readScriptFileAndParse = readScriptFileAndParse
