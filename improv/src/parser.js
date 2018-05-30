@@ -47,6 +47,9 @@ class Unit {
 					obj = {type:prop, text: val.join('')}
 					this.decorators.push(obj)
 					break
+				case 'activeObjects':
+					this.lastShot.activeObjects = val.map(d=>d.trim())
+					break
 				default:
 					this[prop] = obj
 					break
@@ -58,6 +61,11 @@ class Unit {
 					this.scene.shots = []
 					break
 				case 'shot':
+					if (this.parent && this.parent.lastShot.activeObjects) {
+						obj.activeObjects = this.parent.lastShot.activeObjects.slice()
+					} else {
+						obj.activeObjects = []
+					}
 					obj.actions = []
 					this.scene.shots.push(obj)
 					break
@@ -88,7 +96,7 @@ const canSkipStmt = s => !s || typeof s === 'number'
 const isAwait = stmt => (stmt.exp && stmt.exp.op === 'AWAIT')
 const isControlExp = (stmt) => stmt.exp && stmt.exp.op != 'AWAIT'
 const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isControlExp(currStmt) || isAwait(lastStmt)
-const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) || (lastStmt && currStmt.depth < lastStmt.depth)
+const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) || (lastStmt && !lastStmt.activeObjects && (currStmt.depth < lastStmt.depth))
 
 module.exports.parseLines = (lines) => {
 	let rootUnits = []
