@@ -7,21 +7,21 @@ Over the dense hiss and buzz of a humid summer afternoon we watch an old man pac
 
 Old Man: Hello world?
 
-"OLD MAN/CAP" - TOUCH
+TOUCH - OLD MAN/CAP
 	He anxiously brushes through his hair and crumples his cap while he paces. He stops to stroke his beard.
 	CU - OLD/FACE - 00:04
 	We see the old man's white beard.
 
-"OLD BAPTIST CHURCH/FRONT/DOOR" - TOUCH
+TOUCH - OLD BAPTIST CHURCH/FRONT/DOOR
 	LONG SHOT - CHURCH/FRONT - 00:04
 		[BUSH]
 	The long church doors tower above a wraparound porch.
 
-	"BUSH" - TOUCH
+	TOUCH - BUSH
 		LONG SHOT - BUSH, MAN - 00:04
 		The bush sways in a light breeze. The man paces between them.
 
-AWAIT "Old Man/Cap" - TOUCH AND "Bush" - TOUCH
+AWAIT TOUCH - Old Man/Cap AND TOUCH - Bush
 
 EWS - CHURCH - 00:02
 
@@ -31,7 +31,7 @@ MEDIUM SHOT - OLD MAN/RIGHT - 00:02
 
 The man wipes his brow and looks up.
 
-AWAIT "OLD MAN" - TOUCH
+AWAIT - OLD MAN
 
 MCU - OLD MAN - 00:02
 
@@ -39,18 +39,18 @@ He looks up at us. The church's cross drapes a long shadow over his face.
 
 Old Man: hmph.
 
-"Old Man" - TOUCH
+Old Man - TOUCH
 	LOW ANGLE - MAN, CHURCH - 00:02
 
 	We see the silhouette of the cross cast against the bright sky.
 
-AWAIT "Old Man" - TOUCH
+AWAIT - Old Man - TOUCH
 
 HIGH ANGLE - MAN/RIGHT - 00:02
 
 He almost looks up but shrugs and huffs. He kicks a pebble.
 
-AWAIT "CHURCH/DOOR" - TOUCH
+AWAIT - CHURCH/DOOR - TOUCH
 
 FULL - CHURCH/DOOR - EASE IN - 00:05
 
