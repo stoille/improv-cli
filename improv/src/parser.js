@@ -1,6 +1,8 @@
 const nearley = require("nearley")
 const grammar = require("./grammar")
 
+var rootUnits = []
+
 function parseLine(lineText) {
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), { keepHistory: false })
 	parser.feed(lineText)
@@ -81,12 +83,33 @@ class Unit {
 				break
 			case 'exp':
 				this.copyLastShotFromParentIfHaveNone()
+				obj = {
+					type: 'control',
+					condition: stmt.result,
+					child: this
+				}
+				this.parent.lastShot.actions.push(obj)
 				break
 			case 'await':
+				let stmtToConditions = stmt => {
+					if (stmt && stmt.rule) {
+						let op = stmt.result.op
+						let lhs = stmtToConditions(stmt.result.lhs)
+						let rhs = stmtToConditions(stmt.result.rhs)
+						return ({
+							op,
+							lhs,
+							rhs
+						})
+					} else if( stmt && stmt.result ) {
+						return stmt.result
+					}
+					return stmt
+				}
 				this.await = ({
 					type: stmt.rule,
 					time: stmt.result.time,
-					condition: stmt.result.rhs
+					condition: stmtToConditions(stmt.result.rhs)
 				})
 				break;
 			case 'dialogue':
@@ -110,13 +133,7 @@ class Unit {
 const canSkipLine = l => !l || l === '\n' || l === ''
 const canSkipStmt = s => !s || typeof s === 'number'
 
-const isAwait = stmt => stmt.rule === 'await'
-const isControlExp = (stmt) => stmt.rule === 'exp'
-const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isAwait(lastStmt) || isControlExp(currStmt)
-const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) || (lastStmt && lastStmt.rule !== 'activeObjects' && (currStmt.depth < lastStmt.depth))
-
 module.exports.parseLines = (lines) => {
-	let rootUnits = []
 	let currUnit = null
 	let lastStmt = null
 	let lineNum = 0
@@ -130,37 +147,32 @@ module.exports.parseLines = (lines) => {
 			continue
 		}
 
-		//a decreased indent denotes return to parent unit
+		const isAwait = stmt => stmt.rule === 'await'
+		const isActiveObjectDeclaration = lastStmt && lastStmt.rule === 'activeObjects'
+		const tabDecreased = lastStmt && currStmt.depth < lastStmt.depth
+
+		const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) 
+			|| (isActiveObjectDeclaration === false && tabDecreased)
 		if (isEndOfUnit(currStmt, lastStmt)) {
 			let depth = lastStmt.depth - currStmt.depth
 			while (depth--) {
 				currUnit = currUnit.parent
 			}
 		}
-		//another scene or indent starts a new unit
-		let isControlStmt = isControlExp(currStmt)
+		
+		let isCurrStmtControl = currStmt.rule === 'exp'
+		const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isAwait(lastStmt) || isCurrStmtControl
 		if (isStartOfUnit(currStmt, lastStmt)){
 			let newUnit = new Unit(currUnit)
 
-			if (isControlStmt) {
-				let control = {
-					type: 'control',
-					condition: currStmt.result,
-					child: newUnit
-				}
-				currUnit.lastShot.actions.push(control)
-			} else {
+			if (isCurrStmtControl === false) {
 				rootUnits.push(newUnit)
 			}
-			
+
 			currUnit = newUnit
 		}
 
-		//inject lines into unit
-		//!isControlStmt prevents lastShot from being reintroduced into a new unit
-		if (!isControlStmt){
-			currUnit.ingestStmt(currStmt)
-		}
+		currUnit.ingestStmt(currStmt)
 
 		lastStmt = currStmt
 	}
