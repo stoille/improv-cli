@@ -69,8 +69,9 @@ await -> ("AWAIT" SEP) exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return 
 
 exp -> exp _ ("AND"|"&&") _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return rule('exp', {lhs, op, rhs, time}) }  %}
 	| exp _ ("OR"|"||") _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return rule('exp', {lhs, op, rhs, time}) } %}
-	| evtName SEP nameWS ("/" nameWS):* SEP:? timeSpan:? {% ([eventName, s, root, path, ss, time]) => {
+	| (evtName SEP):? nameWS ("/" nameWS):* SEP:? timeSpan:? {% ([eventName, root, path, ss, time]) => {
 			path = path.map( p => p[1])
+			eventName = eventName ? eventName[0] : eventName
 			return rule('exp', {op: eventName, time, rhs: selector(root, path)}) 
 		}
 %}
