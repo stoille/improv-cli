@@ -10,9 +10,7 @@ function parseLine(lineText) {
 	let results = {}
 	for (let idx in parser.results) {
 		let result = parser.results[idx]
-		if (!results[result.rule]) {
-			results[result.rule] = result
-		}
+		results[result.rule] = result
 	}
 	if (results.activeObjects) return results.activeObjects
 	if( results.sceneHeading ) return results.sceneHeading
