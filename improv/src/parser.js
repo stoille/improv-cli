@@ -110,8 +110,8 @@ const canSkipLine = l => !l || l === '\n' || l === ''
 const canSkipStmt = s => !s || typeof s === 'number'
 
 const isAwait = stmt => stmt.rule === 'exp' && stmt.result.op === 'AWAIT'
-const isControlExp = (stmt) => stmt.rule === 'exp' && stmt.result.op !== 'AWAIT'
-const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || currStmt.rule === 'exp'
+const isControlExp = (stmt) => stmt.rule === 'exp' && !isAwait(stmt)
+const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isAwait(lastStmt) || isControlExp(currStmt)
 const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) || (lastStmt && lastStmt.rule !== 'activeObjects' && (currStmt.depth < lastStmt.depth))
 
 module.exports.parseLines = (lines) => {
@@ -156,6 +156,7 @@ module.exports.parseLines = (lines) => {
 		}
 
 		//inject lines into unit
+		//!isControlStmt prevents lastShot from being reintroduced into a new unit
 		if (!isControlStmt){
 			currUnit.ingestStmt(currStmt)
 		}
