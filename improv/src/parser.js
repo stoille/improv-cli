@@ -96,8 +96,10 @@ class Unit {
 						let op = stmt.result.op
 						let lhs = stmtToConditions(stmt.result.lhs)
 						let rhs = stmtToConditions(stmt.result.rhs)
+						let time = stmt.result.time
 						return ({
 							op,
+							time,
 							lhs,
 							rhs
 						})
@@ -106,9 +108,10 @@ class Unit {
 					}
 					return stmt
 				}
+				let time = stmt.result.time ? stmt.result.time : stmt.result.rhs.time //hoist the time into the await
 				this.await = ({
 					type: stmt.rule,
-					time: stmt.result.time,
+					time: time,
 					condition: stmtToConditions(stmt.result.rhs)
 				})
 				break;

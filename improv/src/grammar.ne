@@ -67,7 +67,7 @@ dialogue -> .:* ":" sentence:+ {% ([speaker, _, text]) => {
 
 await -> ("AWAIT" SEP) exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return rule('await', {time, rhs}) } %}
 
-exp -> exp (SEP ("AND"|"OR") SEP) exp SEP:? timeSpan:? {% ([lhs, op, rhs, sep, time]) => { return rule('exp', {lhs, op: op[1][0], rhs, time}) }  %}
+exp -> exp (SEP ("AND"|"OR") SEP) exp {% ([lhs, op, rhs]) => { return rule('exp', {lhs, op: op[1][0], rhs}) }  %}
 	| (evtName SEP):? nameWS ("/" nameWS):* SEP:? timeSpan:? {% ([eventName, root, path, ss, time]) => {
 			path = path.map( p => p[1])
 			eventName = eventName ? eventName[0] : eventName
