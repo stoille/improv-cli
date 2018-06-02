@@ -36,7 +36,7 @@ sceneHeading -> scenePlacement sceneName sceneTime {%
 %}
 scenePlacement -> scenePlacementName "." _ {% d => d[0].join('') %}
 scenePlacementName -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") _ {% id %}
-sceneName -> .:+ SEP {% d => d[0].join('') %}
+sceneName -> .:+ SEP {% d => d[0].join('').trim() %}
 sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") _  {% d => d[0].join('') %}
 
 SEP -> _ "-" _ {% id %}
@@ -59,8 +59,8 @@ action -> _ sentence:+ {% ([_, text]) => rule('action', { lines: text}) %}
 sentence -> _ ([A-Za-z] [^.?!:]:*) [.?!]:+ SEP:? timeSpan:? {% ([_, names, punctuation, s, timeSpan, ss]) => dnp({text:names[0] + names[1].join('') + punctuation.join(''), time:timeSpan}) %} 
 
 name -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %}
-nameWS -> [a-zA-Z,'_ ]:+ {% d => d[0].join('')  %}
-evtName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
+nameWS -> [a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
+evtName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
 
 dialogue -> .:* ":" sentence:+ {% ([speaker, _, text]) => { 
 	return rule('dialogue', {speaker: speaker.join(''), lines: text}) } %}

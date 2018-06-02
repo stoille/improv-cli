@@ -4,7 +4,7 @@ const grammar = require("./grammar")
 function parseLine(lineText) {
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), { keepHistory: false })
 	parser.feed(lineText)
-	//HACK: resolve ambiguity by rule precedence 
+	//HACK: enforce rule precedence ambiguity - why doesn't nearly.js do this?
 	let results = {}
 	for (let idx in parser.results) {
 		let result = parser.results[idx]
@@ -70,6 +70,7 @@ class Unit {
 				this.scene.shots = []
 				break
 			case 'shot':
+				obj = Object.assign(obj, stmt.result)
 				if (this.parent && this.parent.lastShot.activeObjects) {
 					obj.activeObjects = this.parent.lastShot.activeObjects.slice()
 				} else {
@@ -83,7 +84,7 @@ class Unit {
 				if(isAwait(stmt)){
 					this.lastShot.actions.push({
 						type: 'control',
-						condition: stmt.result.rhs
+						condition: stmt.result
 					})
 				}
 				break
@@ -117,11 +118,16 @@ module.exports.parseLines = (lines) => {
 	let rootUnits = []
 	let currUnit = null
 	let lastStmt = null
+	let lineNum = 0
 	
 	for(let line of lines){
+		++lineNum;
 		if (canSkipLine(line)) {continue}
 		var currStmt = parseLine(line)
-		if (canSkipStmt(currStmt)) {continue}
+		if (canSkipStmt(currStmt)) {
+			console.error(`Error Ln ${lineNum}: ${line}`)
+			continue
+		}
 
 		//a decreased indent denotes return to parent unit
 		if (isEndOfUnit(currStmt, lastStmt)) {

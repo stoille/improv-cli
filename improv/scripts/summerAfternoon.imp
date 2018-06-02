@@ -21,7 +21,7 @@ TOUCH - OLD BAPTIST CHURCH/FRONT/DOOR
 		LONG SHOT - BUSH, MAN - 00:04
 		The bush sways in a light breeze. The man paces between them.
 
-AWAIT TOUCH - Old Man/Cap AND TOUCH - Bush
+AWAIT - Foo Bar
 
 EWS - CHURCH - 00:02
 
@@ -39,7 +39,7 @@ He looks up at us. The church's cross drapes a long shadow over his face.
 
 Old Man: hmph.
 
-Old Man - TOUCH
+TOUCH - Old Man
 	LOW ANGLE - MAN, CHURCH - 00:02
 
 	We see the silhouette of the cross cast against the bright sky.
