@@ -26,7 +26,6 @@ function parseLine(lineText) {
 
 class Unit {
 	constructor(parent) {
-		this.type = 'unit'
 		this.parent = null
 		this.decorators = []
 		this.scene= ({
@@ -51,13 +50,12 @@ class Unit {
 		}
 	}
 
+	//post-processing statements
 	ingestStmt(stmt){
 		let obj = {}
 		switch (stmt.rule) {
 			case 'comment':
-				//TODO: find out why this is necessary
 				obj = {
-					type: stmt.rule,
 					text: stmt.result.join('')
 				}
 				this.decorators.push(obj)
@@ -139,6 +137,7 @@ module.exports.parseLines = (lines) => {
 	let lastStmt = null
 	let lineNum = 0
 	
+	//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
 	for(let line of lines){
 		++lineNum;
 		if (canSkipLine(line)) {continue}

@@ -13,7 +13,7 @@ function rule(rule, obj){
 }
 
 function selector(root, path){
-	return ({type:"selector", root, path})
+	return ({root, path})
 }
 %}
 
@@ -60,7 +60,7 @@ sentence -> _ ([A-Za-z] [^.?!:]:*) [.?!]:+ SEP:? timeSpan:? {% ([_, names, punct
 
 name -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %}
 nameWS -> [a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
-evtName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
+opName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
 
 dialogue -> .:* ":" sentence:+ {% ([speaker, _, text]) => { 
 	return rule('dialogue', {speaker: speaker.join(''), lines: text}) } %}
@@ -68,10 +68,10 @@ dialogue -> .:* ":" sentence:+ {% ([speaker, _, text]) => {
 await -> ("AWAIT" SEP) exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return rule('await', {time, rhs}) } %}
 
 exp -> exp (SEP ("AND"|"OR") SEP) exp {% ([lhs, op, rhs]) => { return rule('exp', {lhs, op: op[1][0], rhs}) }  %}
-	| (evtName SEP):? nameWS ("/" nameWS):* SEP:? timeSpan:? {% ([eventName, root, path, ss, time]) => {
+	| (opName SEP):? nameWS ("/" nameWS):* SEP:? timeSpan:? {% ([opName, root, path, ss, time]) => {
 			path = path.map( p => p[1])
-			eventName = eventName ? eventName[0] : eventName
-			return rule('exp', {op: eventName, time, rhs: selector(root, path)}) 
+			opName = opName ? opName[0] : opName
+			return rule('exp', {op: opName, time, rhs: selector(root, path)}) 
 		}
 %}
 
