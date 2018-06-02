@@ -82,9 +82,9 @@ class Unit {
 			case 'exp':
 				this.copyLastShotFromParentIfHaveNone()
 				if(isAwait(stmt)){
-					this.lastShot.actions.push({
-						type: 'control',
-						condition: stmt.result
+					this.await = ({
+						type: 'await',
+						condition: stmt.result.rhs
 					})
 				}
 				break
