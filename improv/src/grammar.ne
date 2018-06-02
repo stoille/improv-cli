@@ -65,7 +65,7 @@ evtName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
 dialogue -> .:* ":" sentence:+ {% ([speaker, _, text]) => { 
 	return rule('dialogue', {speaker: speaker.join(''), lines: text}) } %}
 
-await -> ("AWAIT" _) exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return rule('await', {condition:rhs, time}) } %}
+await -> ("AWAIT" SEP) exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return rule('await', {time, rhs}) } %}
 
 exp -> exp _ ("AND"|"&&") _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return rule('exp', {lhs, op, rhs, time}) }  %}
 	| exp _ ("OR"|"||") _ exp SEP:? timeSpan:? {% ([lhs, _, op, __, rhs, sep, time]) => { return rule('exp', {lhs, op, rhs, time}) } %}

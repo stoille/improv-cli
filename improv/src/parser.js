@@ -81,13 +81,14 @@ class Unit {
 				break
 			case 'exp':
 				this.copyLastShotFromParentIfHaveNone()
-				if(isAwait(stmt)){
-					this.await = ({
-						type: 'await',
-						condition: stmt.result.rhs
-					})
-				}
 				break
+			case 'await':
+				this.await = ({
+					type: stmt.rule,
+					time: stmt.result.time,
+					condition: stmt.result.rhs
+				})
+				break;
 			case 'dialogue':
 				this.copyLastShotFromParentIfHaveNone()
 				this.lastShot.actions.push(stmt.result)
@@ -109,8 +110,8 @@ class Unit {
 const canSkipLine = l => !l || l === '\n' || l === ''
 const canSkipStmt = s => !s || typeof s === 'number'
 
-const isAwait = stmt => stmt.rule === 'exp' && stmt.result.op === 'AWAIT'
-const isControlExp = (stmt) => stmt.rule === 'exp' && !isAwait(stmt)
+const isAwait = stmt => stmt.rule === 'await'
+const isControlExp = (stmt) => stmt.rule === 'exp'
 const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isAwait(lastStmt) || isControlExp(currStmt)
 const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) || (lastStmt && lastStmt.rule !== 'activeObjects' && (currStmt.depth < lastStmt.depth))
 
