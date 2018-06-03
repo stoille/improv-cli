@@ -7,1027 +7,1057 @@
 'use strict'
 exports[`summerAfternoonTest.js TAP readScriptFile: ../scripts/summerAfternoon.imp... summerAfternoon parsed... > summerAfternoon 1`] = `
 [ Unit {
-    type: 'unit',
     parent: null,
-    decorators: [ { type: 'comment', text: 'comments bla bla' } ],
+    decorators: [],
     scene: 
-     { type: 'scene',
-       scenePlacement: 'EXT',
-       sceneName: 'Old Baptist Church, Kentucky ',
+     { scenePlacement: 'EXT',
+       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
        sceneTime: 'NOON',
-       transition: { type: 'transition', transitionType: 'FADE IN' },
+       transition: { transitionType: 'FADE IN' },
        shots: 
-        [ { type: 'shot',
-            camType: 'EWS',
-            camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-            time: { sec: 5 },
+        [ { camType: 'EWS',
+            camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+            camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+            camMovement: null,
+            time: { min: 1, sec: 51 },
+            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
             actions: 
-             [ { type: 'action',
-                 lines: 
-                  [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.' },
-                    { text: 'The man pauses to speak.' } ] },
-               { type: 'dialogue',
-                 speaker: 'Old Man',
-                 lines: [ { text: 'Hello world?' } ] },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'TOUCH',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'EQT',
-                         rhs: { type: 'selector', root: 'MAN', path: [ 'CAP' ] } } } ],
+             [ { lines: 
+                  [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.',
+                      time: { min: 0, sec: 0 } },
+                    { text: 'The man pauses to speak.', time: { min: 0, sec: 0 } } ] },
+               { speaker: 'Old Man',
+                 lines: [ { text: 'Hello world?', time: { min: 0, sec: 0 } } ] },
+               { condition: 
+                  { op: 'TOUCH',
+                    time: { min: 0, sec: 0 },
+                    rhs: { root: 'OLD MAN', path: [ 'CAP' ] } },
                  child: 
                   Unit {
-                    type: 'unit',
                     parent: [Circular],
                     decorators: [],
                     scene: 
-                     { type: 'scene',
-                       scenePlacement: 'EXT',
-                       sceneName: 'Old Baptist Church, Kentucky ',
+                     { scenePlacement: 'EXT',
+                       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                        sceneTime: 'NOON',
                        shots: 
-                        [ { type: 'shot',
-                            camType: 'EWS',
-                            camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-                            time: { sec: 5 },
+                        [ { camType: 'EWS',
+                            camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                            camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                            camMovement: null,
+                            time: { min: 1, sec: 51 },
+                            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                             actions: 
-                             [ { type: 'action',
-                                 lines: 
-                                  [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.' },
-                                    { text: 'He stops to stroke his beard.' } ] } ] },
-                          { type: 'shot',
-                            camType: 'CU',
+                             [ { lines: 
+                                  [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.',
+                                      time: { min: 0, sec: 0 } },
+                                    { text: 'He stops to stroke his beard.',
+                                      time: { min: 0, sec: 0 } } ] } ] },
+                          { camType: 'CU',
+                            camSource: { root: 'OLD', path: [ 'FACE' ] },
                             camTarget: { root: 'OLD', path: [ 'FACE' ] },
+                            camMovement: null,
                             time: { min: 0, sec: 4 },
+                            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                             actions: 
-                             [ { type: 'action',
-                                 lines: [ { text: 'We see the old man\\'s white beard.' } ] } ] } ] } } },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'TOUCH',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'EQT',
-                         rhs: 
-                          { type: 'selector',
-                            root: 'OLD_BAPTIST_CHURCH',
-                            path: [ 'FRONT', 'DOOR' ] } } } ],
+                             [ { lines: 
+                                  [ { text: 'We see the old man\\'s white beard.',
+                                      time: { min: 0, sec: 0 } } ] } ] } ] } } },
+               { condition: 
+                  { op: 'TOUCH',
+                    time: { min: 0, sec: 0 },
+                    rhs: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT', 'DOOR' ] } },
                  child: 
                   Unit {
-                    type: 'unit',
                     parent: [Circular],
                     decorators: [],
                     scene: 
-                     { type: 'scene',
-                       scenePlacement: 'EXT',
-                       sceneName: 'Old Baptist Church, Kentucky ',
+                     { scenePlacement: 'EXT',
+                       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                        sceneTime: 'NOON',
                        shots: 
-                        [ { type: 'shot',
-                            camType: 'LONG SHOT',
+                        [ { camType: 'EWS',
+                            camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                            camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                            camMovement: null,
+                            time: { min: 1, sec: 51 },
+                            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                            actions: [] },
+                          { camType: 'LONG',
+                            camSource: { root: 'SHOT', path: [] },
                             camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                            camMovement: null,
                             time: { min: 0, sec: 4 },
+                            activeObjects: [ 'BUSH' ],
                             actions: 
-                             [ { type: 'action',
-                                 lines: [ { text: 'The long church doors tower above a wraparound porch.' } ] },
-                               { type: 'control',
-                                 conditions: 
-                                  [ { type: 'exp',
-                                      op: 'TOUCH',
-                                      rhs: 
-                                       { type: 'exp',
-                                         op: 'EQT',
-                                         rhs: { type: 'selector', root: 'BUSH', path: [] } } } ],
+                             [ { lines: 
+                                  [ { text: 'The long church doors tower above a wraparound porch.',
+                                      time: { min: 0, sec: 0 } } ] },
+                               { condition: 
+                                  { op: 'TOUCH',
+                                    time: { min: 0, sec: 0 },
+                                    rhs: { root: 'BUSH', path: [] } },
                                  child: 
                                   Unit {
-                                    type: 'unit',
                                     parent: [Circular],
                                     decorators: [],
                                     scene: 
-                                     { type: 'scene',
-                                       scenePlacement: 'EXT',
-                                       sceneName: 'Old Baptist Church, Kentucky ',
+                                     { scenePlacement: 'EXT',
+                                       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                        sceneTime: 'NOON',
                                        shots: 
-                                        [ { type: 'shot',
-                                            camType: 'LONG SHOT',
+                                        [ { camType: 'LONG',
+                                            camSource: { root: 'SHOT', path: [] },
+                                            camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                                            camMovement: null,
+                                            time: { min: 0, sec: 4 },
+                                            activeObjects: [ 'BUSH' ],
+                                            actions: [] },
+                                          { camType: 'LONG SHOT',
                                             camSource: { root: 'BUSH', path: [] },
                                             camTarget: { root: 'MAN', path: [] },
+                                            camMovement: null,
                                             time: { min: 0, sec: 4 },
+                                            activeObjects: [ 'BUSH' ],
                                             actions: 
-                                             [ { type: 'action',
-                                                 lines: 
-                                                  [ { text: 'The bush sways in a light breeze.' },
-                                                    { text: 'The man paces between them.' } ] } ] } ] } } } ] } ] } } },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'AWAIT',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'TOUCH',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'EQT',
-                            rhs: { type: 'selector', root: 'MAN', path: [] } } } } ] } ] } ] } },
+                                             [ { lines: 
+                                                  [ { text: 'The bush sways in a light breeze.',
+                                                      time: { min: 0, sec: 0 } },
+                                                    { text: 'The man paces between them.',
+                                                      time: { min: 0, sec: 0 } } ] } ] } ] } } } ] } ] } } } ] } ] },
+    await: 
+     { op: 'AND',
+       time: undefined,
+       lhs: 
+        { op: 'TOUCH',
+          time: { min: 0, sec: 0 },
+          lhs: undefined,
+          rhs: { root: 'FOOZ', path: [] } },
+       rhs: 
+        { op: 'AND',
+          time: undefined,
+          lhs: 
+           { op: 'TOUCH',
+             time: { min: 0, sec: 0 },
+             lhs: undefined,
+             rhs: { root: 'FOOZ', path: [] } },
+          rhs: 
+           { op: 'TOUCH',
+             time: { min: 0, sec: 4 },
+             lhs: undefined,
+             rhs: { root: 'GAG', path: [] } } } } },
   Unit {
-    type: 'unit',
     parent: 
      Unit {
-       type: 'unit',
        parent: null,
-       decorators: [ { type: 'comment', text: 'comments bla bla' } ],
+       decorators: [],
        scene: 
-        { type: 'scene',
-          scenePlacement: 'EXT',
-          sceneName: 'Old Baptist Church, Kentucky ',
+        { scenePlacement: 'EXT',
+          sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
           sceneTime: 'NOON',
-          transition: { type: 'transition', transitionType: 'FADE IN' },
+          transition: { transitionType: 'FADE IN' },
           shots: 
-           [ { type: 'shot',
-               camType: 'EWS',
-               camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-               time: { sec: 5 },
+           [ { camType: 'EWS',
+               camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+               camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+               camMovement: null,
+               time: { min: 1, sec: 51 },
+               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                actions: 
-                [ { type: 'action',
-                    lines: 
-                     [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.' },
-                       { text: 'The man pauses to speak.' } ] },
-                  { type: 'dialogue',
-                    speaker: 'Old Man',
-                    lines: [ { text: 'Hello world?' } ] },
-                  { type: 'control',
-                    conditions: 
-                     [ { type: 'exp',
-                         op: 'TOUCH',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'EQT',
-                            rhs: { type: 'selector', root: 'MAN', path: [ 'CAP' ] } } } ],
+                [ { lines: 
+                     [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.',
+                         time: { min: 0, sec: 0 } },
+                       { text: 'The man pauses to speak.', time: { min: 0, sec: 0 } } ] },
+                  { speaker: 'Old Man',
+                    lines: [ { text: 'Hello world?', time: { min: 0, sec: 0 } } ] },
+                  { condition: 
+                     { op: 'TOUCH',
+                       time: { min: 0, sec: 0 },
+                       rhs: { root: 'OLD MAN', path: [ 'CAP' ] } },
                     child: 
                      Unit {
-                       type: 'unit',
                        parent: [Circular],
                        decorators: [],
                        scene: 
-                        { type: 'scene',
-                          scenePlacement: 'EXT',
-                          sceneName: 'Old Baptist Church, Kentucky ',
+                        { scenePlacement: 'EXT',
+                          sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                           sceneTime: 'NOON',
                           shots: 
-                           [ { type: 'shot',
-                               camType: 'EWS',
-                               camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-                               time: { sec: 5 },
+                           [ { camType: 'EWS',
+                               camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                               camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                               camMovement: null,
+                               time: { min: 1, sec: 51 },
+                               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                actions: 
-                                [ { type: 'action',
-                                    lines: 
-                                     [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.' },
-                                       { text: 'He stops to stroke his beard.' } ] } ] },
-                             { type: 'shot',
-                               camType: 'CU',
+                                [ { lines: 
+                                     [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.',
+                                         time: { min: 0, sec: 0 } },
+                                       { text: 'He stops to stroke his beard.',
+                                         time: { min: 0, sec: 0 } } ] } ] },
+                             { camType: 'CU',
+                               camSource: { root: 'OLD', path: [ 'FACE' ] },
                                camTarget: { root: 'OLD', path: [ 'FACE' ] },
+                               camMovement: null,
                                time: { min: 0, sec: 4 },
+                               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                actions: 
-                                [ { type: 'action',
-                                    lines: [ { text: 'We see the old man\\'s white beard.' } ] } ] } ] } } },
-                  { type: 'control',
-                    conditions: 
-                     [ { type: 'exp',
-                         op: 'TOUCH',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'EQT',
-                            rhs: 
-                             { type: 'selector',
-                               root: 'OLD_BAPTIST_CHURCH',
-                               path: [ 'FRONT', 'DOOR' ] } } } ],
+                                [ { lines: 
+                                     [ { text: 'We see the old man\\'s white beard.',
+                                         time: { min: 0, sec: 0 } } ] } ] } ] } } },
+                  { condition: 
+                     { op: 'TOUCH',
+                       time: { min: 0, sec: 0 },
+                       rhs: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT', 'DOOR' ] } },
                     child: 
                      Unit {
-                       type: 'unit',
                        parent: [Circular],
                        decorators: [],
                        scene: 
-                        { type: 'scene',
-                          scenePlacement: 'EXT',
-                          sceneName: 'Old Baptist Church, Kentucky ',
+                        { scenePlacement: 'EXT',
+                          sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                           sceneTime: 'NOON',
                           shots: 
-                           [ { type: 'shot',
-                               camType: 'LONG SHOT',
+                           [ { camType: 'EWS',
+                               camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                               camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                               camMovement: null,
+                               time: { min: 1, sec: 51 },
+                               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                               actions: [] },
+                             { camType: 'LONG',
+                               camSource: { root: 'SHOT', path: [] },
                                camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                               camMovement: null,
                                time: { min: 0, sec: 4 },
+                               activeObjects: [ 'BUSH' ],
                                actions: 
-                                [ { type: 'action',
-                                    lines: [ { text: 'The long church doors tower above a wraparound porch.' } ] },
-                                  { type: 'control',
-                                    conditions: 
-                                     [ { type: 'exp',
-                                         op: 'TOUCH',
-                                         rhs: 
-                                          { type: 'exp',
-                                            op: 'EQT',
-                                            rhs: { type: 'selector', root: 'BUSH', path: [] } } } ],
+                                [ { lines: 
+                                     [ { text: 'The long church doors tower above a wraparound porch.',
+                                         time: { min: 0, sec: 0 } } ] },
+                                  { condition: 
+                                     { op: 'TOUCH',
+                                       time: { min: 0, sec: 0 },
+                                       rhs: { root: 'BUSH', path: [] } },
                                     child: 
                                      Unit {
-                                       type: 'unit',
                                        parent: [Circular],
                                        decorators: [],
                                        scene: 
-                                        { type: 'scene',
-                                          scenePlacement: 'EXT',
-                                          sceneName: 'Old Baptist Church, Kentucky ',
+                                        { scenePlacement: 'EXT',
+                                          sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                           sceneTime: 'NOON',
                                           shots: 
-                                           [ { type: 'shot',
-                                               camType: 'LONG SHOT',
+                                           [ { camType: 'LONG',
+                                               camSource: { root: 'SHOT', path: [] },
+                                               camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                                               camMovement: null,
+                                               time: { min: 0, sec: 4 },
+                                               activeObjects: [ 'BUSH' ],
+                                               actions: [] },
+                                             { camType: 'LONG SHOT',
                                                camSource: { root: 'BUSH', path: [] },
                                                camTarget: { root: 'MAN', path: [] },
+                                               camMovement: null,
                                                time: { min: 0, sec: 4 },
+                                               activeObjects: [ 'BUSH' ],
                                                actions: 
-                                                [ { type: 'action',
-                                                    lines: 
-                                                     [ { text: 'The bush sways in a light breeze.' },
-                                                       { text: 'The man paces between them.' } ] } ] } ] } } } ] } ] } } },
-                  { type: 'control',
-                    conditions: 
-                     [ { type: 'exp',
-                         op: 'AWAIT',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'TOUCH',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'EQT',
-                               rhs: { type: 'selector', root: 'MAN', path: [] } } } } ] } ] } ] } },
+                                                [ { lines: 
+                                                     [ { text: 'The bush sways in a light breeze.',
+                                                         time: { min: 0, sec: 0 } },
+                                                       { text: 'The man paces between them.',
+                                                         time: { min: 0, sec: 0 } } ] } ] } ] } } } ] } ] } } } ] } ] },
+       await: 
+        { op: 'AND',
+          time: undefined,
+          lhs: 
+           { op: 'TOUCH',
+             time: { min: 0, sec: 0 },
+             lhs: undefined,
+             rhs: { root: 'FOOZ', path: [] } },
+          rhs: 
+           { op: 'AND',
+             time: undefined,
+             lhs: 
+              { op: 'TOUCH',
+                time: { min: 0, sec: 0 },
+                lhs: undefined,
+                rhs: { root: 'FOOZ', path: [] } },
+             rhs: 
+              { op: 'TOUCH',
+                time: { min: 0, sec: 4 },
+                lhs: undefined,
+                rhs: { root: 'GAG', path: [] } } } } },
     decorators: [],
     scene: 
-     { type: 'scene',
-       scenePlacement: 'EXT',
-       sceneName: 'Old Baptist Church, Kentucky ',
+     { scenePlacement: 'EXT',
+       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
        sceneTime: 'NOON',
        shots: 
-        [ { type: 'shot',
-            camType: 'EWS',
+        [ { camType: 'EWS',
+            camSource: { root: 'CHURCH', path: [] },
             camTarget: { root: 'CHURCH', path: [] },
+            camMovement: null,
             time: { min: 0, sec: 2 },
-            actions: 
-             [ { type: 'action',
-                 lines: [ { text: 'The man coughs violently.' } ] } ] },
-          { type: 'shot',
-            camType: 'MEDIUM SHOT',
-            camTarget: { root: 'MAN', path: [ 'RIGHT' ] },
+            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+            actions: [ { lines: [ { text: 'The man coughs violently.', time: { min: 0, sec: 0 } } ] } ] },
+          { camType: 'MEDIUM',
+            camSource: { root: 'SHOT', path: [] },
+            camTarget: { root: 'OLD MAN', path: [ 'RIGHT' ] },
+            camMovement: null,
             time: { min: 0, sec: 2 },
+            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
             actions: 
-             [ { type: 'action',
-                 lines: [ { text: 'The man wipes his brow and looks up.' } ] },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'AWAIT',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'UP',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'EQT',
-                            rhs: { type: 'selector', root: 'MAN_FOO', path: [] } } } } ] } ] } ] } },
+             [ { lines: 
+                  [ { text: 'The man wipes his brow and looks up.',
+                      time: { min: 0, sec: 0 } } ] } ] } ] },
+    await: 
+     { op: null,
+       time: { min: 0, sec: 0 },
+       lhs: undefined,
+       rhs: { root: 'FOON', path: [] } } },
   Unit {
-    type: 'unit',
     parent: 
      Unit {
-       type: 'unit',
        parent: 
         Unit {
-          type: 'unit',
           parent: null,
-          decorators: [ { type: 'comment', text: 'comments bla bla' } ],
+          decorators: [],
           scene: 
-           { type: 'scene',
-             scenePlacement: 'EXT',
-             sceneName: 'Old Baptist Church, Kentucky ',
+           { scenePlacement: 'EXT',
+             sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
              sceneTime: 'NOON',
-             transition: { type: 'transition', transitionType: 'FADE IN' },
+             transition: { transitionType: 'FADE IN' },
              shots: 
-              [ { type: 'shot',
-                  camType: 'EWS',
-                  camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-                  time: { sec: 5 },
+              [ { camType: 'EWS',
+                  camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                  camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                  camMovement: null,
+                  time: { min: 1, sec: 51 },
+                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                   actions: 
-                   [ { type: 'action',
-                       lines: 
-                        [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.' },
-                          { text: 'The man pauses to speak.' } ] },
-                     { type: 'dialogue',
-                       speaker: 'Old Man',
-                       lines: [ { text: 'Hello world?' } ] },
-                     { type: 'control',
-                       conditions: 
-                        [ { type: 'exp',
-                            op: 'TOUCH',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'EQT',
-                               rhs: { type: 'selector', root: 'MAN', path: [ 'CAP' ] } } } ],
+                   [ { lines: 
+                        [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.',
+                            time: { min: 0, sec: 0 } },
+                          { text: 'The man pauses to speak.', time: { min: 0, sec: 0 } } ] },
+                     { speaker: 'Old Man',
+                       lines: [ { text: 'Hello world?', time: { min: 0, sec: 0 } } ] },
+                     { condition: 
+                        { op: 'TOUCH',
+                          time: { min: 0, sec: 0 },
+                          rhs: { root: 'OLD MAN', path: [ 'CAP' ] } },
                        child: 
                         Unit {
-                          type: 'unit',
                           parent: [Circular],
                           decorators: [],
                           scene: 
-                           { type: 'scene',
-                             scenePlacement: 'EXT',
-                             sceneName: 'Old Baptist Church, Kentucky ',
+                           { scenePlacement: 'EXT',
+                             sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                              sceneTime: 'NOON',
                              shots: 
-                              [ { type: 'shot',
-                                  camType: 'EWS',
-                                  camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-                                  time: { sec: 5 },
+                              [ { camType: 'EWS',
+                                  camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                  camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                  camMovement: null,
+                                  time: { min: 1, sec: 51 },
+                                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                   actions: 
-                                   [ { type: 'action',
-                                       lines: 
-                                        [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.' },
-                                          { text: 'He stops to stroke his beard.' } ] } ] },
-                                { type: 'shot',
-                                  camType: 'CU',
+                                   [ { lines: 
+                                        [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.',
+                                            time: { min: 0, sec: 0 } },
+                                          { text: 'He stops to stroke his beard.',
+                                            time: { min: 0, sec: 0 } } ] } ] },
+                                { camType: 'CU',
+                                  camSource: { root: 'OLD', path: [ 'FACE' ] },
                                   camTarget: { root: 'OLD', path: [ 'FACE' ] },
+                                  camMovement: null,
                                   time: { min: 0, sec: 4 },
+                                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                   actions: 
-                                   [ { type: 'action',
-                                       lines: [ { text: 'We see the old man\\'s white beard.' } ] } ] } ] } } },
-                     { type: 'control',
-                       conditions: 
-                        [ { type: 'exp',
-                            op: 'TOUCH',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'EQT',
-                               rhs: 
-                                { type: 'selector',
-                                  root: 'OLD_BAPTIST_CHURCH',
-                                  path: [ 'FRONT', 'DOOR' ] } } } ],
+                                   [ { lines: 
+                                        [ { text: 'We see the old man\\'s white beard.',
+                                            time: { min: 0, sec: 0 } } ] } ] } ] } } },
+                     { condition: 
+                        { op: 'TOUCH',
+                          time: { min: 0, sec: 0 },
+                          rhs: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT', 'DOOR' ] } },
                        child: 
                         Unit {
-                          type: 'unit',
                           parent: [Circular],
                           decorators: [],
                           scene: 
-                           { type: 'scene',
-                             scenePlacement: 'EXT',
-                             sceneName: 'Old Baptist Church, Kentucky ',
+                           { scenePlacement: 'EXT',
+                             sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                              sceneTime: 'NOON',
                              shots: 
-                              [ { type: 'shot',
-                                  camType: 'LONG SHOT',
+                              [ { camType: 'EWS',
+                                  camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                  camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                  camMovement: null,
+                                  time: { min: 1, sec: 51 },
+                                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                                  actions: [] },
+                                { camType: 'LONG',
+                                  camSource: { root: 'SHOT', path: [] },
                                   camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                                  camMovement: null,
                                   time: { min: 0, sec: 4 },
+                                  activeObjects: [ 'BUSH' ],
                                   actions: 
-                                   [ { type: 'action',
-                                       lines: [ { text: 'The long church doors tower above a wraparound porch.' } ] },
-                                     { type: 'control',
-                                       conditions: 
-                                        [ { type: 'exp',
-                                            op: 'TOUCH',
-                                            rhs: 
-                                             { type: 'exp',
-                                               op: 'EQT',
-                                               rhs: { type: 'selector', root: 'BUSH', path: [] } } } ],
+                                   [ { lines: 
+                                        [ { text: 'The long church doors tower above a wraparound porch.',
+                                            time: { min: 0, sec: 0 } } ] },
+                                     { condition: 
+                                        { op: 'TOUCH',
+                                          time: { min: 0, sec: 0 },
+                                          rhs: { root: 'BUSH', path: [] } },
                                        child: 
                                         Unit {
-                                          type: 'unit',
                                           parent: [Circular],
                                           decorators: [],
                                           scene: 
-                                           { type: 'scene',
-                                             scenePlacement: 'EXT',
-                                             sceneName: 'Old Baptist Church, Kentucky ',
+                                           { scenePlacement: 'EXT',
+                                             sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                              sceneTime: 'NOON',
                                              shots: 
-                                              [ { type: 'shot',
-                                                  camType: 'LONG SHOT',
+                                              [ { camType: 'LONG',
+                                                  camSource: { root: 'SHOT', path: [] },
+                                                  camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                                                  camMovement: null,
+                                                  time: { min: 0, sec: 4 },
+                                                  activeObjects: [ 'BUSH' ],
+                                                  actions: [] },
+                                                { camType: 'LONG SHOT',
                                                   camSource: { root: 'BUSH', path: [] },
                                                   camTarget: { root: 'MAN', path: [] },
+                                                  camMovement: null,
                                                   time: { min: 0, sec: 4 },
+                                                  activeObjects: [ 'BUSH' ],
                                                   actions: 
-                                                   [ { type: 'action',
-                                                       lines: 
-                                                        [ { text: 'The bush sways in a light breeze.' },
-                                                          { text: 'The man paces between them.' } ] } ] } ] } } } ] } ] } } },
-                     { type: 'control',
-                       conditions: 
-                        [ { type: 'exp',
-                            op: 'AWAIT',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'TOUCH',
-                               rhs: 
-                                { type: 'exp',
-                                  op: 'EQT',
-                                  rhs: { type: 'selector', root: 'MAN', path: [] } } } } ] } ] } ] } },
+                                                   [ { lines: 
+                                                        [ { text: 'The bush sways in a light breeze.',
+                                                            time: { min: 0, sec: 0 } },
+                                                          { text: 'The man paces between them.',
+                                                            time: { min: 0, sec: 0 } } ] } ] } ] } } } ] } ] } } } ] } ] },
+          await: 
+           { op: 'AND',
+             time: undefined,
+             lhs: 
+              { op: 'TOUCH',
+                time: { min: 0, sec: 0 },
+                lhs: undefined,
+                rhs: { root: 'FOOZ', path: [] } },
+             rhs: 
+              { op: 'AND',
+                time: undefined,
+                lhs: 
+                 { op: 'TOUCH',
+                   time: { min: 0, sec: 0 },
+                   lhs: undefined,
+                   rhs: { root: 'FOOZ', path: [] } },
+                rhs: 
+                 { op: 'TOUCH',
+                   time: { min: 0, sec: 4 },
+                   lhs: undefined,
+                   rhs: { root: 'GAG', path: [] } } } } },
        decorators: [],
        scene: 
-        { type: 'scene',
-          scenePlacement: 'EXT',
-          sceneName: 'Old Baptist Church, Kentucky ',
+        { scenePlacement: 'EXT',
+          sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
           sceneTime: 'NOON',
           shots: 
-           [ { type: 'shot',
-               camType: 'EWS',
+           [ { camType: 'EWS',
+               camSource: { root: 'CHURCH', path: [] },
                camTarget: { root: 'CHURCH', path: [] },
+               camMovement: null,
                time: { min: 0, sec: 2 },
-               actions: 
-                [ { type: 'action',
-                    lines: [ { text: 'The man coughs violently.' } ] } ] },
-             { type: 'shot',
-               camType: 'MEDIUM SHOT',
-               camTarget: { root: 'MAN', path: [ 'RIGHT' ] },
+               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+               actions: [ { lines: [ { text: 'The man coughs violently.', time: { min: 0, sec: 0 } } ] } ] },
+             { camType: 'MEDIUM',
+               camSource: { root: 'SHOT', path: [] },
+               camTarget: { root: 'OLD MAN', path: [ 'RIGHT' ] },
+               camMovement: null,
                time: { min: 0, sec: 2 },
+               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                actions: 
-                [ { type: 'action',
-                    lines: [ { text: 'The man wipes his brow and looks up.' } ] },
-                  { type: 'control',
-                    conditions: 
-                     [ { type: 'exp',
-                         op: 'AWAIT',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'UP',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'EQT',
-                               rhs: { type: 'selector', root: 'MAN_FOO', path: [] } } } } ] } ] } ] } },
+                [ { lines: 
+                     [ { text: 'The man wipes his brow and looks up.',
+                         time: { min: 0, sec: 0 } } ] } ] } ] },
+       await: 
+        { op: null,
+          time: { min: 0, sec: 0 },
+          lhs: undefined,
+          rhs: { root: 'FOON', path: [] } } },
     decorators: [],
     scene: 
-     { type: 'scene',
-       scenePlacement: 'EXT',
-       sceneName: 'Old Baptist Church, Kentucky ',
+     { scenePlacement: 'EXT',
+       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
        sceneTime: 'NOON',
        shots: 
-        [ { type: 'shot',
-            camType: 'MCU',
-            camTarget: { root: 'MAN', path: [] },
+        [ { camType: 'MCU',
+            camSource: { root: 'OLD MAN', path: [] },
+            camTarget: { root: 'OLD MAN', path: [] },
+            camMovement: null,
             time: { min: 0, sec: 2 },
+            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
             actions: 
-             [ { type: 'action',
-                 lines: 
-                  [ { text: 'He looks up at us.' },
-                    { text: 'The church\\'s cross drapes a shadow over his face.' } ] },
-               { type: 'dialogue',
-                 speaker: 'Man',
-                 lines: [ { text: 'hmph.' } ] },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'UP',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'EQT',
-                         rhs: { type: 'selector', root: 'Man', path: [] } } } ],
+             [ { lines: 
+                  [ { text: 'He looks up at us.', time: { min: 0, sec: 0 } },
+                    { text: 'The church\\'s cross drapes a long shadow over his face.',
+                      time: { min: 0, sec: 0 } } ] },
+               { speaker: 'Old Man',
+                 lines: [ { text: 'hmph.', time: { min: 0, sec: 0 } } ] },
+               { condition: 
+                  { op: 'TOUCH',
+                    time: { min: 0, sec: 0 },
+                    rhs: { root: 'Old Man', path: [] } },
                  child: 
                   Unit {
-                    type: 'unit',
                     parent: [Circular],
                     decorators: [],
                     scene: 
-                     { type: 'scene',
-                       scenePlacement: 'EXT',
-                       sceneName: 'Old Baptist Church, Kentucky ',
+                     { scenePlacement: 'EXT',
+                       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                        sceneTime: 'NOON',
                        shots: 
-                        [ { type: 'shot',
-                            camType: 'LOW ANGLE',
+                        [ { camType: 'MCU',
+                            camSource: { root: 'OLD MAN', path: [] },
+                            camTarget: { root: 'OLD MAN', path: [] },
+                            camMovement: null,
+                            time: { min: 0, sec: 2 },
+                            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                            actions: [] },
+                          { camType: 'LOW ANGLE',
                             camSource: { root: 'MAN', path: [] },
                             camTarget: { root: 'CHURCH', path: [] },
+                            camMovement: null,
                             time: { min: 0, sec: 2 },
+                            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                             actions: 
-                             [ { type: 'action',
-                                 lines: [ { text: 'We see the silhouette of the cross.' } ] } ] } ] } } },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'AWAIT',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'EQT',
-                         rhs: { type: 'selector', root: 'FOO', path: [] } } } ] } ] } ] } },
+                             [ { lines: 
+                                  [ { text: 'We see the silhouette of the cross cast against the bright sky.',
+                                      time: { min: 0, sec: 0 } } ] } ] } ] } } } ] } ] },
+    await: 
+     { op: 'TOUCH',
+       time: { min: 0, sec: 0 },
+       lhs: undefined,
+       rhs: { root: 'Old Man', path: [] } } },
   Unit {
-    type: 'unit',
     parent: 
      Unit {
-       type: 'unit',
        parent: 
         Unit {
-          type: 'unit',
           parent: 
            Unit {
-             type: 'unit',
              parent: null,
-             decorators: [ { type: 'comment', text: 'comments bla bla' } ],
+             decorators: [],
              scene: 
-              { type: 'scene',
-                scenePlacement: 'EXT',
-                sceneName: 'Old Baptist Church, Kentucky ',
+              { scenePlacement: 'EXT',
+                sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                 sceneTime: 'NOON',
-                transition: { type: 'transition', transitionType: 'FADE IN' },
+                transition: { transitionType: 'FADE IN' },
                 shots: 
-                 [ { type: 'shot',
-                     camType: 'EWS',
-                     camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-                     time: { sec: 5 },
+                 [ { camType: 'EWS',
+                     camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                     camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                     camMovement: null,
+                     time: { min: 1, sec: 51 },
+                     activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                      actions: 
-                      [ { type: 'action',
-                          lines: 
-                           [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.' },
-                             { text: 'The man pauses to speak.' } ] },
-                        { type: 'dialogue',
-                          speaker: 'Old Man',
-                          lines: [ { text: 'Hello world?' } ] },
-                        { type: 'control',
-                          conditions: 
-                           [ { type: 'exp',
-                               op: 'TOUCH',
-                               rhs: 
-                                { type: 'exp',
-                                  op: 'EQT',
-                                  rhs: { type: 'selector', root: 'MAN', path: [ 'CAP' ] } } } ],
+                      [ { lines: 
+                           [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.',
+                               time: { min: 0, sec: 0 } },
+                             { text: 'The man pauses to speak.', time: { min: 0, sec: 0 } } ] },
+                        { speaker: 'Old Man',
+                          lines: [ { text: 'Hello world?', time: { min: 0, sec: 0 } } ] },
+                        { condition: 
+                           { op: 'TOUCH',
+                             time: { min: 0, sec: 0 },
+                             rhs: { root: 'OLD MAN', path: [ 'CAP' ] } },
                           child: 
                            Unit {
-                             type: 'unit',
                              parent: [Circular],
                              decorators: [],
                              scene: 
-                              { type: 'scene',
-                                scenePlacement: 'EXT',
-                                sceneName: 'Old Baptist Church, Kentucky ',
+                              { scenePlacement: 'EXT',
+                                sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                 sceneTime: 'NOON',
                                 shots: 
-                                 [ { type: 'shot',
-                                     camType: 'EWS',
-                                     camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-                                     time: { sec: 5 },
+                                 [ { camType: 'EWS',
+                                     camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                     camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                     camMovement: null,
+                                     time: { min: 1, sec: 51 },
+                                     activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                      actions: 
-                                      [ { type: 'action',
-                                          lines: 
-                                           [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.' },
-                                             { text: 'He stops to stroke his beard.' } ] } ] },
-                                   { type: 'shot',
-                                     camType: 'CU',
+                                      [ { lines: 
+                                           [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.',
+                                               time: { min: 0, sec: 0 } },
+                                             { text: 'He stops to stroke his beard.',
+                                               time: { min: 0, sec: 0 } } ] } ] },
+                                   { camType: 'CU',
+                                     camSource: { root: 'OLD', path: [ 'FACE' ] },
                                      camTarget: { root: 'OLD', path: [ 'FACE' ] },
+                                     camMovement: null,
                                      time: { min: 0, sec: 4 },
+                                     activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                      actions: 
-                                      [ { type: 'action',
-                                          lines: [ { text: 'We see the old man\\'s white beard.' } ] } ] } ] } } },
-                        { type: 'control',
-                          conditions: 
-                           [ { type: 'exp',
-                               op: 'TOUCH',
-                               rhs: 
-                                { type: 'exp',
-                                  op: 'EQT',
-                                  rhs: 
-                                   { type: 'selector',
-                                     root: 'OLD_BAPTIST_CHURCH',
-                                     path: [ 'FRONT', 'DOOR' ] } } } ],
+                                      [ { lines: 
+                                           [ { text: 'We see the old man\\'s white beard.',
+                                               time: { min: 0, sec: 0 } } ] } ] } ] } } },
+                        { condition: 
+                           { op: 'TOUCH',
+                             time: { min: 0, sec: 0 },
+                             rhs: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT', 'DOOR' ] } },
                           child: 
                            Unit {
-                             type: 'unit',
                              parent: [Circular],
                              decorators: [],
                              scene: 
-                              { type: 'scene',
-                                scenePlacement: 'EXT',
-                                sceneName: 'Old Baptist Church, Kentucky ',
+                              { scenePlacement: 'EXT',
+                                sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                 sceneTime: 'NOON',
                                 shots: 
-                                 [ { type: 'shot',
-                                     camType: 'LONG SHOT',
+                                 [ { camType: 'EWS',
+                                     camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                     camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                     camMovement: null,
+                                     time: { min: 1, sec: 51 },
+                                     activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                                     actions: [] },
+                                   { camType: 'LONG',
+                                     camSource: { root: 'SHOT', path: [] },
                                      camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                                     camMovement: null,
                                      time: { min: 0, sec: 4 },
+                                     activeObjects: [ 'BUSH' ],
                                      actions: 
-                                      [ { type: 'action',
-                                          lines: [ { text: 'The long church doors tower above a wraparound porch.' } ] },
-                                        { type: 'control',
-                                          conditions: 
-                                           [ { type: 'exp',
-                                               op: 'TOUCH',
-                                               rhs: 
-                                                { type: 'exp',
-                                                  op: 'EQT',
-                                                  rhs: { type: 'selector', root: 'BUSH', path: [] } } } ],
+                                      [ { lines: 
+                                           [ { text: 'The long church doors tower above a wraparound porch.',
+                                               time: { min: 0, sec: 0 } } ] },
+                                        { condition: 
+                                           { op: 'TOUCH',
+                                             time: { min: 0, sec: 0 },
+                                             rhs: { root: 'BUSH', path: [] } },
                                           child: 
                                            Unit {
-                                             type: 'unit',
                                              parent: [Circular],
                                              decorators: [],
                                              scene: 
-                                              { type: 'scene',
-                                                scenePlacement: 'EXT',
-                                                sceneName: 'Old Baptist Church, Kentucky ',
+                                              { scenePlacement: 'EXT',
+                                                sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                                 sceneTime: 'NOON',
                                                 shots: 
-                                                 [ { type: 'shot',
-                                                     camType: 'LONG SHOT',
+                                                 [ { camType: 'LONG',
+                                                     camSource: { root: 'SHOT', path: [] },
+                                                     camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                                                     camMovement: null,
+                                                     time: { min: 0, sec: 4 },
+                                                     activeObjects: [ 'BUSH' ],
+                                                     actions: [] },
+                                                   { camType: 'LONG SHOT',
                                                      camSource: { root: 'BUSH', path: [] },
                                                      camTarget: { root: 'MAN', path: [] },
+                                                     camMovement: null,
                                                      time: { min: 0, sec: 4 },
+                                                     activeObjects: [ 'BUSH' ],
                                                      actions: 
-                                                      [ { type: 'action',
-                                                          lines: 
-                                                           [ { text: 'The bush sways in a light breeze.' },
-                                                             { text: 'The man paces between them.' } ] } ] } ] } } } ] } ] } } },
-                        { type: 'control',
-                          conditions: 
-                           [ { type: 'exp',
-                               op: 'AWAIT',
-                               rhs: 
-                                { type: 'exp',
-                                  op: 'TOUCH',
-                                  rhs: 
-                                   { type: 'exp',
-                                     op: 'EQT',
-                                     rhs: { type: 'selector', root: 'MAN', path: [] } } } } ] } ] } ] } },
+                                                      [ { lines: 
+                                                           [ { text: 'The bush sways in a light breeze.',
+                                                               time: { min: 0, sec: 0 } },
+                                                             { text: 'The man paces between them.',
+                                                               time: { min: 0, sec: 0 } } ] } ] } ] } } } ] } ] } } } ] } ] },
+             await: 
+              { op: 'AND',
+                time: undefined,
+                lhs: 
+                 { op: 'TOUCH',
+                   time: { min: 0, sec: 0 },
+                   lhs: undefined,
+                   rhs: { root: 'FOOZ', path: [] } },
+                rhs: 
+                 { op: 'AND',
+                   time: undefined,
+                   lhs: 
+                    { op: 'TOUCH',
+                      time: { min: 0, sec: 0 },
+                      lhs: undefined,
+                      rhs: { root: 'FOOZ', path: [] } },
+                   rhs: 
+                    { op: 'TOUCH',
+                      time: { min: 0, sec: 4 },
+                      lhs: undefined,
+                      rhs: { root: 'GAG', path: [] } } } } },
           decorators: [],
           scene: 
-           { type: 'scene',
-             scenePlacement: 'EXT',
-             sceneName: 'Old Baptist Church, Kentucky ',
+           { scenePlacement: 'EXT',
+             sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
              sceneTime: 'NOON',
              shots: 
-              [ { type: 'shot',
-                  camType: 'EWS',
+              [ { camType: 'EWS',
+                  camSource: { root: 'CHURCH', path: [] },
                   camTarget: { root: 'CHURCH', path: [] },
+                  camMovement: null,
                   time: { min: 0, sec: 2 },
-                  actions: 
-                   [ { type: 'action',
-                       lines: [ { text: 'The man coughs violently.' } ] } ] },
-                { type: 'shot',
-                  camType: 'MEDIUM SHOT',
-                  camTarget: { root: 'MAN', path: [ 'RIGHT' ] },
+                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                  actions: [ { lines: [ { text: 'The man coughs violently.', time: { min: 0, sec: 0 } } ] } ] },
+                { camType: 'MEDIUM',
+                  camSource: { root: 'SHOT', path: [] },
+                  camTarget: { root: 'OLD MAN', path: [ 'RIGHT' ] },
+                  camMovement: null,
                   time: { min: 0, sec: 2 },
+                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                   actions: 
-                   [ { type: 'action',
-                       lines: [ { text: 'The man wipes his brow and looks up.' } ] },
-                     { type: 'control',
-                       conditions: 
-                        [ { type: 'exp',
-                            op: 'AWAIT',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'UP',
-                               rhs: 
-                                { type: 'exp',
-                                  op: 'EQT',
-                                  rhs: { type: 'selector', root: 'MAN_FOO', path: [] } } } } ] } ] } ] } },
+                   [ { lines: 
+                        [ { text: 'The man wipes his brow and looks up.',
+                            time: { min: 0, sec: 0 } } ] } ] } ] },
+          await: 
+           { op: null,
+             time: { min: 0, sec: 0 },
+             lhs: undefined,
+             rhs: { root: 'FOON', path: [] } } },
        decorators: [],
        scene: 
-        { type: 'scene',
-          scenePlacement: 'EXT',
-          sceneName: 'Old Baptist Church, Kentucky ',
+        { scenePlacement: 'EXT',
+          sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
           sceneTime: 'NOON',
           shots: 
-           [ { type: 'shot',
-               camType: 'MCU',
-               camTarget: { root: 'MAN', path: [] },
+           [ { camType: 'MCU',
+               camSource: { root: 'OLD MAN', path: [] },
+               camTarget: { root: 'OLD MAN', path: [] },
+               camMovement: null,
                time: { min: 0, sec: 2 },
+               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                actions: 
-                [ { type: 'action',
-                    lines: 
-                     [ { text: 'He looks up at us.' },
-                       { text: 'The church\\'s cross drapes a shadow over his face.' } ] },
-                  { type: 'dialogue',
-                    speaker: 'Man',
-                    lines: [ { text: 'hmph.' } ] },
-                  { type: 'control',
-                    conditions: 
-                     [ { type: 'exp',
-                         op: 'UP',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'EQT',
-                            rhs: { type: 'selector', root: 'Man', path: [] } } } ],
+                [ { lines: 
+                     [ { text: 'He looks up at us.', time: { min: 0, sec: 0 } },
+                       { text: 'The church\\'s cross drapes a long shadow over his face.',
+                         time: { min: 0, sec: 0 } } ] },
+                  { speaker: 'Old Man',
+                    lines: [ { text: 'hmph.', time: { min: 0, sec: 0 } } ] },
+                  { condition: 
+                     { op: 'TOUCH',
+                       time: { min: 0, sec: 0 },
+                       rhs: { root: 'Old Man', path: [] } },
                     child: 
                      Unit {
-                       type: 'unit',
                        parent: [Circular],
                        decorators: [],
                        scene: 
-                        { type: 'scene',
-                          scenePlacement: 'EXT',
-                          sceneName: 'Old Baptist Church, Kentucky ',
+                        { scenePlacement: 'EXT',
+                          sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                           sceneTime: 'NOON',
                           shots: 
-                           [ { type: 'shot',
-                               camType: 'LOW ANGLE',
+                           [ { camType: 'MCU',
+                               camSource: { root: 'OLD MAN', path: [] },
+                               camTarget: { root: 'OLD MAN', path: [] },
+                               camMovement: null,
+                               time: { min: 0, sec: 2 },
+                               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                               actions: [] },
+                             { camType: 'LOW ANGLE',
                                camSource: { root: 'MAN', path: [] },
                                camTarget: { root: 'CHURCH', path: [] },
+                               camMovement: null,
                                time: { min: 0, sec: 2 },
+                               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                actions: 
-                                [ { type: 'action',
-                                    lines: [ { text: 'We see the silhouette of the cross.' } ] } ] } ] } } },
-                  { type: 'control',
-                    conditions: 
-                     [ { type: 'exp',
-                         op: 'AWAIT',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'EQT',
-                            rhs: { type: 'selector', root: 'FOO', path: [] } } } ] } ] } ] } },
+                                [ { lines: 
+                                     [ { text: 'We see the silhouette of the cross cast against the bright sky.',
+                                         time: { min: 0, sec: 0 } } ] } ] } ] } } } ] } ] },
+       await: 
+        { op: 'TOUCH',
+          time: { min: 0, sec: 0 },
+          lhs: undefined,
+          rhs: { root: 'Old Man', path: [] } } },
     decorators: [],
     scene: 
-     { type: 'scene',
-       scenePlacement: 'EXT',
-       sceneName: 'Old Baptist Church, Kentucky ',
+     { scenePlacement: 'EXT',
+       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
        sceneTime: 'NOON',
        shots: 
-        [ { type: 'shot',
-            camType: 'HIGH ANGLE',
+        [ { camType: 'HIGH',
+            camSource: { root: 'ANGLE', path: [] },
             camTarget: { root: 'MAN', path: [ 'RIGHT' ] },
+            camMovement: null,
             time: { min: 0, sec: 2 },
+            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
             actions: 
-             [ { type: 'action',
-                 lines: 
-                  [ { text: 'He almost looks up but shrugs and huffs.' },
-                    { text: 'He kicks a pebble.' } ] },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'AWAIT',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'TOUCH',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'EQT',
-                            rhs: { type: 'selector', root: 'CHURCH', path: [ 'DOOR' ] } } } } ] } ] } ] } },
+             [ { lines: 
+                  [ { text: 'He almost looks up but shrugs and huffs.',
+                      time: { min: 0, sec: 0 } },
+                    { text: 'He kicks a pebble.', time: { min: 0, sec: 0 } } ] } ] } ] },
+    await: 
+     { op: 'TOUCH',
+       time: { min: 0, sec: 0 },
+       lhs: undefined,
+       rhs: { root: 'CHURCH', path: [ 'DOOR' ] } } },
   Unit {
-    type: 'unit',
     parent: 
      Unit {
-       type: 'unit',
        parent: 
         Unit {
-          type: 'unit',
           parent: 
            Unit {
-             type: 'unit',
              parent: 
               Unit {
-                type: 'unit',
                 parent: null,
-                decorators: [ { type: 'comment', text: 'comments bla bla' } ],
+                decorators: [],
                 scene: 
-                 { type: 'scene',
-                   scenePlacement: 'EXT',
-                   sceneName: 'Old Baptist Church, Kentucky ',
+                 { scenePlacement: 'EXT',
+                   sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                    sceneTime: 'NOON',
-                   transition: { type: 'transition', transitionType: 'FADE IN' },
+                   transition: { transitionType: 'FADE IN' },
                    shots: 
-                    [ { type: 'shot',
-                        camType: 'EWS',
-                        camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-                        time: { sec: 5 },
+                    [ { camType: 'EWS',
+                        camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                        camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                        camMovement: null,
+                        time: { min: 1, sec: 51 },
+                        activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                         actions: 
-                         [ { type: 'action',
-                             lines: 
-                              [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.' },
-                                { text: 'The man pauses to speak.' } ] },
-                           { type: 'dialogue',
-                             speaker: 'Old Man',
-                             lines: [ { text: 'Hello world?' } ] },
-                           { type: 'control',
-                             conditions: 
-                              [ { type: 'exp',
-                                  op: 'TOUCH',
-                                  rhs: 
-                                   { type: 'exp',
-                                     op: 'EQT',
-                                     rhs: { type: 'selector', root: 'MAN', path: [ 'CAP' ] } } } ],
+                         [ { lines: 
+                              [ { text: 'Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.',
+                                  time: { min: 0, sec: 0 } },
+                                { text: 'The man pauses to speak.', time: { min: 0, sec: 0 } } ] },
+                           { speaker: 'Old Man',
+                             lines: [ { text: 'Hello world?', time: { min: 0, sec: 0 } } ] },
+                           { condition: 
+                              { op: 'TOUCH',
+                                time: { min: 0, sec: 0 },
+                                rhs: { root: 'OLD MAN', path: [ 'CAP' ] } },
                              child: 
                               Unit {
-                                type: 'unit',
                                 parent: [Circular],
                                 decorators: [],
                                 scene: 
-                                 { type: 'scene',
-                                   scenePlacement: 'EXT',
-                                   sceneName: 'Old Baptist Church, Kentucky ',
+                                 { scenePlacement: 'EXT',
+                                   sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                    sceneTime: 'NOON',
                                    shots: 
-                                    [ { type: 'shot',
-                                        camType: 'EWS',
-                                        camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
-                                        time: { sec: 5 },
+                                    [ { camType: 'EWS',
+                                        camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                        camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                        camMovement: null,
+                                        time: { min: 1, sec: 51 },
+                                        activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                         actions: 
-                                         [ { type: 'action',
-                                             lines: 
-                                              [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.' },
-                                                { text: 'He stops to stroke his beard.' } ] } ] },
-                                      { type: 'shot',
-                                        camType: 'CU',
+                                         [ { lines: 
+                                              [ { text: 'He anxiously brushes through his hair and crumples his cap while he paces.',
+                                                  time: { min: 0, sec: 0 } },
+                                                { text: 'He stops to stroke his beard.',
+                                                  time: { min: 0, sec: 0 } } ] } ] },
+                                      { camType: 'CU',
+                                        camSource: { root: 'OLD', path: [ 'FACE' ] },
                                         camTarget: { root: 'OLD', path: [ 'FACE' ] },
+                                        camMovement: null,
                                         time: { min: 0, sec: 4 },
+                                        activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                         actions: 
-                                         [ { type: 'action',
-                                             lines: [ { text: 'We see the old man\\'s white beard.' } ] } ] } ] } } },
-                           { type: 'control',
-                             conditions: 
-                              [ { type: 'exp',
-                                  op: 'TOUCH',
-                                  rhs: 
-                                   { type: 'exp',
-                                     op: 'EQT',
-                                     rhs: 
-                                      { type: 'selector',
-                                        root: 'OLD_BAPTIST_CHURCH',
-                                        path: [ 'FRONT', 'DOOR' ] } } } ],
+                                         [ { lines: 
+                                              [ { text: 'We see the old man\\'s white beard.',
+                                                  time: { min: 0, sec: 0 } } ] } ] } ] } } },
+                           { condition: 
+                              { op: 'TOUCH',
+                                time: { min: 0, sec: 0 },
+                                rhs: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT', 'DOOR' ] } },
                              child: 
                               Unit {
-                                type: 'unit',
                                 parent: [Circular],
                                 decorators: [],
                                 scene: 
-                                 { type: 'scene',
-                                   scenePlacement: 'EXT',
-                                   sceneName: 'Old Baptist Church, Kentucky ',
+                                 { scenePlacement: 'EXT',
+                                   sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                    sceneTime: 'NOON',
                                    shots: 
-                                    [ { type: 'shot',
-                                        camType: 'LONG SHOT',
+                                    [ { camType: 'EWS',
+                                        camSource: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                        camTarget: { root: 'OLD BAPTIST CHURCH', path: [ 'FRONT' ] },
+                                        camMovement: null,
+                                        time: { min: 1, sec: 51 },
+                                        activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                                        actions: [] },
+                                      { camType: 'LONG',
+                                        camSource: { root: 'SHOT', path: [] },
                                         camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                                        camMovement: null,
                                         time: { min: 0, sec: 4 },
+                                        activeObjects: [ 'BUSH' ],
                                         actions: 
-                                         [ { type: 'action',
-                                             lines: [ { text: 'The long church doors tower above a wraparound porch.' } ] },
-                                           { type: 'control',
-                                             conditions: 
-                                              [ { type: 'exp',
-                                                  op: 'TOUCH',
-                                                  rhs: 
-                                                   { type: 'exp',
-                                                     op: 'EQT',
-                                                     rhs: { type: 'selector', root: 'BUSH', path: [] } } } ],
+                                         [ { lines: 
+                                              [ { text: 'The long church doors tower above a wraparound porch.',
+                                                  time: { min: 0, sec: 0 } } ] },
+                                           { condition: 
+                                              { op: 'TOUCH',
+                                                time: { min: 0, sec: 0 },
+                                                rhs: { root: 'BUSH', path: [] } },
                                              child: 
                                               Unit {
-                                                type: 'unit',
                                                 parent: [Circular],
                                                 decorators: [],
                                                 scene: 
-                                                 { type: 'scene',
-                                                   scenePlacement: 'EXT',
-                                                   sceneName: 'Old Baptist Church, Kentucky ',
+                                                 { scenePlacement: 'EXT',
+                                                   sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                                                    sceneTime: 'NOON',
                                                    shots: 
-                                                    [ { type: 'shot',
-                                                        camType: 'LONG SHOT',
+                                                    [ { camType: 'LONG',
+                                                        camSource: { root: 'SHOT', path: [] },
+                                                        camTarget: { root: 'CHURCH', path: [ 'FRONT' ] },
+                                                        camMovement: null,
+                                                        time: { min: 0, sec: 4 },
+                                                        activeObjects: [ 'BUSH' ],
+                                                        actions: [] },
+                                                      { camType: 'LONG SHOT',
                                                         camSource: { root: 'BUSH', path: [] },
                                                         camTarget: { root: 'MAN', path: [] },
+                                                        camMovement: null,
                                                         time: { min: 0, sec: 4 },
+                                                        activeObjects: [ 'BUSH' ],
                                                         actions: 
-                                                         [ { type: 'action',
-                                                             lines: 
-                                                              [ { text: 'The bush sways in a light breeze.' },
-                                                                { text: 'The man paces between them.' } ] } ] } ] } } } ] } ] } } },
-                           { type: 'control',
-                             conditions: 
-                              [ { type: 'exp',
-                                  op: 'AWAIT',
-                                  rhs: 
-                                   { type: 'exp',
-                                     op: 'TOUCH',
-                                     rhs: 
-                                      { type: 'exp',
-                                        op: 'EQT',
-                                        rhs: { type: 'selector', root: 'MAN', path: [] } } } } ] } ] } ] } },
+                                                         [ { lines: 
+                                                              [ { text: 'The bush sways in a light breeze.',
+                                                                  time: { min: 0, sec: 0 } },
+                                                                { text: 'The man paces between them.',
+                                                                  time: { min: 0, sec: 0 } } ] } ] } ] } } } ] } ] } } } ] } ] },
+                await: 
+                 { op: 'AND',
+                   time: undefined,
+                   lhs: 
+                    { op: 'TOUCH',
+                      time: { min: 0, sec: 0 },
+                      lhs: undefined,
+                      rhs: { root: 'FOOZ', path: [] } },
+                   rhs: 
+                    { op: 'AND',
+                      time: undefined,
+                      lhs: 
+                       { op: 'TOUCH',
+                         time: { min: 0, sec: 0 },
+                         lhs: undefined,
+                         rhs: { root: 'FOOZ', path: [] } },
+                      rhs: 
+                       { op: 'TOUCH',
+                         time: { min: 0, sec: 4 },
+                         lhs: undefined,
+                         rhs: { root: 'GAG', path: [] } } } } },
              decorators: [],
              scene: 
-              { type: 'scene',
-                scenePlacement: 'EXT',
-                sceneName: 'Old Baptist Church, Kentucky ',
+              { scenePlacement: 'EXT',
+                sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                 sceneTime: 'NOON',
                 shots: 
-                 [ { type: 'shot',
-                     camType: 'EWS',
+                 [ { camType: 'EWS',
+                     camSource: { root: 'CHURCH', path: [] },
                      camTarget: { root: 'CHURCH', path: [] },
+                     camMovement: null,
                      time: { min: 0, sec: 2 },
-                     actions: 
-                      [ { type: 'action',
-                          lines: [ { text: 'The man coughs violently.' } ] } ] },
-                   { type: 'shot',
-                     camType: 'MEDIUM SHOT',
-                     camTarget: { root: 'MAN', path: [ 'RIGHT' ] },
+                     activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                     actions: [ { lines: [ { text: 'The man coughs violently.', time: { min: 0, sec: 0 } } ] } ] },
+                   { camType: 'MEDIUM',
+                     camSource: { root: 'SHOT', path: [] },
+                     camTarget: { root: 'OLD MAN', path: [ 'RIGHT' ] },
+                     camMovement: null,
                      time: { min: 0, sec: 2 },
+                     activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                      actions: 
-                      [ { type: 'action',
-                          lines: [ { text: 'The man wipes his brow and looks up.' } ] },
-                        { type: 'control',
-                          conditions: 
-                           [ { type: 'exp',
-                               op: 'AWAIT',
-                               rhs: 
-                                { type: 'exp',
-                                  op: 'UP',
-                                  rhs: 
-                                   { type: 'exp',
-                                     op: 'EQT',
-                                     rhs: { type: 'selector', root: 'MAN_FOO', path: [] } } } } ] } ] } ] } },
+                      [ { lines: 
+                           [ { text: 'The man wipes his brow and looks up.',
+                               time: { min: 0, sec: 0 } } ] } ] } ] },
+             await: 
+              { op: null,
+                time: { min: 0, sec: 0 },
+                lhs: undefined,
+                rhs: { root: 'FOON', path: [] } } },
           decorators: [],
           scene: 
-           { type: 'scene',
-             scenePlacement: 'EXT',
-             sceneName: 'Old Baptist Church, Kentucky ',
+           { scenePlacement: 'EXT',
+             sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
              sceneTime: 'NOON',
              shots: 
-              [ { type: 'shot',
-                  camType: 'MCU',
-                  camTarget: { root: 'MAN', path: [] },
+              [ { camType: 'MCU',
+                  camSource: { root: 'OLD MAN', path: [] },
+                  camTarget: { root: 'OLD MAN', path: [] },
+                  camMovement: null,
                   time: { min: 0, sec: 2 },
+                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                   actions: 
-                   [ { type: 'action',
-                       lines: 
-                        [ { text: 'He looks up at us.' },
-                          { text: 'The church\\'s cross drapes a shadow over his face.' } ] },
-                     { type: 'dialogue',
-                       speaker: 'Man',
-                       lines: [ { text: 'hmph.' } ] },
-                     { type: 'control',
-                       conditions: 
-                        [ { type: 'exp',
-                            op: 'UP',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'EQT',
-                               rhs: { type: 'selector', root: 'Man', path: [] } } } ],
+                   [ { lines: 
+                        [ { text: 'He looks up at us.', time: { min: 0, sec: 0 } },
+                          { text: 'The church\\'s cross drapes a long shadow over his face.',
+                            time: { min: 0, sec: 0 } } ] },
+                     { speaker: 'Old Man',
+                       lines: [ { text: 'hmph.', time: { min: 0, sec: 0 } } ] },
+                     { condition: 
+                        { op: 'TOUCH',
+                          time: { min: 0, sec: 0 },
+                          rhs: { root: 'Old Man', path: [] } },
                        child: 
                         Unit {
-                          type: 'unit',
                           parent: [Circular],
                           decorators: [],
                           scene: 
-                           { type: 'scene',
-                             scenePlacement: 'EXT',
-                             sceneName: 'Old Baptist Church, Kentucky ',
+                           { scenePlacement: 'EXT',
+                             sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
                              sceneTime: 'NOON',
                              shots: 
-                              [ { type: 'shot',
-                                  camType: 'LOW ANGLE',
+                              [ { camType: 'MCU',
+                                  camSource: { root: 'OLD MAN', path: [] },
+                                  camTarget: { root: 'OLD MAN', path: [] },
+                                  camMovement: null,
+                                  time: { min: 0, sec: 2 },
+                                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
+                                  actions: [] },
+                                { camType: 'LOW ANGLE',
                                   camSource: { root: 'MAN', path: [] },
                                   camTarget: { root: 'CHURCH', path: [] },
+                                  camMovement: null,
                                   time: { min: 0, sec: 2 },
+                                  activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                                   actions: 
-                                   [ { type: 'action',
-                                       lines: [ { text: 'We see the silhouette of the cross.' } ] } ] } ] } } },
-                     { type: 'control',
-                       conditions: 
-                        [ { type: 'exp',
-                            op: 'AWAIT',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'EQT',
-                               rhs: { type: 'selector', root: 'FOO', path: [] } } } ] } ] } ] } },
+                                   [ { lines: 
+                                        [ { text: 'We see the silhouette of the cross cast against the bright sky.',
+                                            time: { min: 0, sec: 0 } } ] } ] } ] } } } ] } ] },
+          await: 
+           { op: 'TOUCH',
+             time: { min: 0, sec: 0 },
+             lhs: undefined,
+             rhs: { root: 'Old Man', path: [] } } },
        decorators: [],
        scene: 
-        { type: 'scene',
-          scenePlacement: 'EXT',
-          sceneName: 'Old Baptist Church, Kentucky ',
+        { scenePlacement: 'EXT',
+          sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
           sceneTime: 'NOON',
           shots: 
-           [ { type: 'shot',
-               camType: 'HIGH ANGLE',
+           [ { camType: 'HIGH',
+               camSource: { root: 'ANGLE', path: [] },
                camTarget: { root: 'MAN', path: [ 'RIGHT' ] },
+               camMovement: null,
                time: { min: 0, sec: 2 },
+               activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
                actions: 
-                [ { type: 'action',
-                    lines: 
-                     [ { text: 'He almost looks up but shrugs and huffs.' },
-                       { text: 'He kicks a pebble.' } ] },
-                  { type: 'control',
-                    conditions: 
-                     [ { type: 'exp',
-                         op: 'AWAIT',
-                         rhs: 
-                          { type: 'exp',
-                            op: 'TOUCH',
-                            rhs: 
-                             { type: 'exp',
-                               op: 'EQT',
-                               rhs: { type: 'selector', root: 'CHURCH', path: [ 'DOOR' ] } } } } ] } ] } ] } },
+                [ { lines: 
+                     [ { text: 'He almost looks up but shrugs and huffs.',
+                         time: { min: 0, sec: 0 } },
+                       { text: 'He kicks a pebble.', time: { min: 0, sec: 0 } } ] } ] } ] },
+       await: 
+        { op: 'TOUCH',
+          time: { min: 0, sec: 0 },
+          lhs: undefined,
+          rhs: { root: 'CHURCH', path: [ 'DOOR' ] } } },
     decorators: [],
     scene: 
-     { type: 'scene',
-       scenePlacement: 'EXT',
-       sceneName: 'Old Baptist Church, Kentucky ',
+     { scenePlacement: 'EXT',
+       sceneName: 'OLD BAPTIST CHURCH, KENTUCKY',
        sceneTime: 'NOON',
        shots: 
-        [ { type: 'shot',
-            camType: 'FULL',
+        [ { camType: 'FULL',
             camSource: { root: 'CHURCH', path: [ 'DOOR' ] },
+            camTarget: { root: 'CHURCH', path: [ 'DOOR' ] },
             camMovement: 'EASE IN',
             time: { min: 0, sec: 5 },
+            activeObjects: [ 'OLD MAN', 'OLD BAPTIST CHURCH', 'BUSH' ],
             actions: 
-             [ { type: 'action',
-                 lines: [ { text: 'We ease into the sanctuary.' } ] } ] } ] } } ]
+             [ { lines: 
+                  [ { text: 'We ease into the sanctuary.',
+                      time: { min: 0, sec: 0 } } ] } ] } ] } } ]
 `
