@@ -28,9 +28,7 @@ class Unit {
 	constructor(parent) {
 		this.parent = null
 		this.decorators = []
-		this.scene= ({
-			type: 'scene'
-		})
+		this.scene= {}
 		if(parent){
 			this.parent = parent
 			this.scene = Object.assign({},parent.scene)
@@ -52,36 +50,45 @@ class Unit {
 
 	//post-processing statements
 	ingestStmt(stmt){
-		let obj = {}
+		let isArray = stmt.result.length
+		let obj = isArray ? stmt.result : Object.assign({}, stmt.result)
 		switch (stmt.rule) {
 			case 'comment':
 				obj = {
-					text: stmt.result.join('')
+					text: obj.join('')
 				}
 				this.decorators.push(obj)
 				break
 			case 'activeObjects':
-				this.lastShot.activeObjects = stmt.result.map(d=>d.trim())
+				this.lastShot.activeObjects = obj.map(d=>d.trim())
 				break
 			case 'sceneHeading':
-				this.scene = Object.assign(stmt.result, this.scene)
+				this.scene = Object.assign(obj, this.scene)
 				this.scene.shots = []
 				break
 			case 'shot':
-				obj = Object.assign(obj, stmt.result)
+				//active objects declaration
 				if (this.parent && this.parent.lastShot.activeObjects) {
 					obj.activeObjects = this.parent.lastShot.activeObjects.slice()
 				} else {
 					obj.activeObjects = []
 				}
+
+				//action declaration
 				obj.actions = []
+
+				//camera source/target
+				if (!obj.camSource || obj.camSource.root === '') {
+					obj.camSource = obj.camTarget
+				} else if (!obj.camTarget || obj.camTarget.root === '') {
+					obj.camTarget = obj.camSource
+				}
 				this.scene.shots.push(obj)
 				break
 			case 'exp':
 				this.copyLastShotFromParentIfHaveNone()
 				obj = {
-					type: 'control',
-					condition: stmt.result,
+					condition: obj,
 					child: this
 				}
 				this.parent.lastShot.actions.push(obj)
@@ -99,31 +106,26 @@ class Unit {
 							lhs,
 							rhs
 						})
-					} else if( stmt && stmt.result ) {
+					} else if (stmt && stmt.result) {
 						return stmt.result
 					}
 					return stmt
 				}
-				let time = stmt.result.time ? stmt.result.time : stmt.result.rhs.time //hoist the time into the await
-				this.await = ({
-					type: stmt.rule,
-					time: time,
-					condition: stmtToConditions(stmt.result.rhs)
-				})
+				this.await = stmtToConditions(obj.rhs)
 				break;
 			case 'dialogue':
 				this.copyLastShotFromParentIfHaveNone()
-				this.lastShot.actions.push(stmt.result)
+				this.lastShot.actions.push(obj)
 				break
 			case 'action':
 				this.copyLastShotFromParentIfHaveNone()
-				this.lastShot.actions.push(stmt.result)
+				this.lastShot.actions.push(obj)
 				break
 			case 'transition':
-				this.scene[stmt.rule] = stmt.result
+				this.scene[stmt.rule] = obj
 				break
 			default:
-				this[stmt.rule] = stmt.result
+				this[stmt.rule] = obj
 				break
 		}
 	}
