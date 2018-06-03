@@ -7,80 +7,83 @@
 'use strict'
 exports[`helloTest.js TAP readScriptFile: ../scripts/hello.imp... hello parsed... > hello 1`] = `
 [ Unit {
-    type: 'unit',
     parent: null,
-    decorators: [ { type: 'comment', text: 'comment' } ],
+    decorators: [ { text: 'comment' } ],
     scene: 
-     { type: 'scene',
-       scenePlacement: 'INT',
-       sceneName: 'WALL, WALL ',
+     { scenePlacement: 'INT',
+       sceneName: 'WALL, WALL',
        sceneTime: 'DUSK',
-       transition: { type: 'transition', transitionType: 'FADE IN' },
+       transition: { transitionType: 'FADE IN' },
        shots: 
-        [ { type: 'shot',
-            camType: 'EWS',
+        [ { camType: 'EWS',
             camSource: { root: 'MAN', path: [ 'UP', 'EAST' ] },
             camTarget: { root: 'WALL', path: [ 'EAST', 'UP' ] },
-            time: { sec: 1 },
+            camMovement: null,
+            time: { min: null, sec: 11 },
+            activeObjects: [],
             actions: 
-             [ { type: 'action',
-                 lines: 
-                  [ { text: 'Aaa.', time: { sec: 2 } },
-                    { text: 'AAA.', time: { sec: 3 } } ] },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'TAP',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'EQT',
-                         rhs: { type: 'selector', root: 'FOO', path: [] } } } ],
+             [ { lines: 
+                  [ { text: 'Aaa.', time: { min: null, sec: 21 } },
+                    { text: 'AAA.', time: { min: null, sec: 31 } } ] },
+               { condition: 
+                  { op: null,
+                    time: { min: 0, sec: 0 },
+                    rhs: { root: 'TAP FOO', path: [] } },
                  child: 
                   Unit {
-                    type: 'unit',
                     parent: [Circular],
                     decorators: [],
                     scene: 
-                     { type: 'scene',
-                       scenePlacement: 'INT',
-                       sceneName: 'WALL, WALL ',
+                     { scenePlacement: 'INT',
+                       sceneName: 'WALL, WALL',
                        sceneTime: 'DUSK',
                        shots: 
-                        [ { type: 'shot',
-                            camType: 'MCU',
+                        [ { camType: 'EWS',
+                            camSource: { root: 'MAN', path: [ 'UP', 'EAST' ] },
+                            camTarget: { root: 'WALL', path: [ 'EAST', 'UP' ] },
+                            camMovement: null,
+                            time: { min: null, sec: 11 },
+                            activeObjects: [],
+                            actions: [] },
+                          { camType: 'MCU',
                             camSource: { root: 'WALL', path: [] },
+                            camTarget: { root: 'WALL', path: [] },
                             camMovement: 'EASE IN',
-                            time: { sec: 5 },
-                            actions: [ { type: 'action', lines: [ { text: 'Ccc.' } ] } ] } ] } } },
-               { type: 'control',
-                 conditions: 
-                  [ { type: 'exp',
-                      op: 'TAP',
-                      rhs: 
-                       { type: 'exp',
-                         op: 'EQT',
-                         rhs: { type: 'selector', root: 'BAR', path: [] } } } ],
+                            time: { min: null, sec: 51 },
+                            activeObjects: [],
+                            actions: [ { lines: [ { text: 'Ccc.', time: { min: 0, sec: 0 } } ] } ] } ] } } },
+               { condition: 
+                  { op: null,
+                    time: { min: 0, sec: 0 },
+                    rhs: { root: 'TAP BAR', path: [] } },
                  child: 
                   Unit {
-                    type: 'unit',
                     parent: [Circular],
                     decorators: [],
                     scene: 
-                     { type: 'scene',
-                       scenePlacement: 'INT',
-                       sceneName: 'WALL, WALL ',
+                     { scenePlacement: 'INT',
+                       sceneName: 'WALL, WALL',
                        sceneTime: 'DUSK',
                        shots: 
-                        [ { type: 'shot',
-                            camType: 'LONG SHOT',
+                        [ { camType: 'EWS',
+                            camSource: { root: 'MAN', path: [ 'UP', 'EAST' ] },
+                            camTarget: { root: 'WALL', path: [ 'EAST', 'UP' ] },
+                            camMovement: null,
+                            time: { min: null, sec: 11 },
+                            activeObjects: [],
+                            actions: [] },
+                          { camType: 'LONG SHOT',
                             camSource: { root: 'WALL', path: [] },
+                            camTarget: { root: 'WALL', path: [] },
                             camMovement: 'EASE IN',
-                            time: { sec: 5 },
-                            actions: [ { type: 'action', lines: [ { text: 'Ddd.' } ] } ] } ] } } } ] },
-          { type: 'shot',
-            camType: 'CU',
+                            time: { min: null, sec: 51 },
+                            activeObjects: [],
+                            actions: [ { lines: [ { text: 'Ddd.', time: { min: 0, sec: 0 } } ] } ] } ] } } } ] },
+          { camType: 'CU',
             camSource: { root: 'WALL', path: [] },
+            camTarget: { root: 'WALL', path: [] },
             camMovement: 'EASE IN',
-            time: { sec: 5 },
-            actions: [ { type: 'action', lines: [ { text: 'Bbb.' } ] } ] } ] } } ]
+            time: { min: null, sec: 5 },
+            activeObjects: [],
+            actions: [ { lines: [ { text: 'Bbb.', time: { min: 0, sec: 0 } } ] } ] } ] } } ]
 `
