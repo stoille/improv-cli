@@ -4,48 +4,18 @@
 	"patterns": [
 		{
 			"include": "#keywords"
-		},
-		{
-			"include": "#strings"
 		}
 	],
 	"repository": {
 		"keywords": {
 			"patterns": [
 			{
-				"match": "(AWAIT )?(TOUCH|TAP|PRESS|UP|DOWN|LEFT|RIGHT|ZIGZAG|CIRCLE|CUSTOM)(.*)",
-				"captures": {
-					"1": { "name":"constant.other"},
-					"2": { "name":"keyword.operator.new"},
-					"3": { "name":"constant.language"}
-				}
-			},
-			{
-				"match": "(AWAIT)( [A-Za-z]+)",
-				"captures": {
-					"1": {
-						"name": "constant.other"
-					},
-					"2": {
-						"name": "constant.language"
-					}
-				}
-			},
-			{
-				"name": "keyword.operator.logical",
-				"match": "(TRUE|FALSE|AND|OR)"
-			},
-			{
 				"name": "constant.numeric",
 				"match": "(DAWN|DUSK|SUNRISE|SUNSET|DAY|NIGHT|MORNING|NOON|AFTERNOON|EVENING|MOMENTS|LATER|CONTINUOUS|UNKNOWN)"
 			},
 			{
-				"name":"constant.character",
-				"match": "([ ][-][ ]|[ ][-]|[-][ ])"
-			},
-			{
 				"name": "constant.numeric",
-				"match": "([0-9][0-9]:[0-9][0-9])"
+				"match": "([0-9]?[0-9]?:?[0-9]?[0-9])"
 			},
 			{
 				"match": "(INT.|EXT.|I/E.|E/I.)[ ]([A-Za-z,' ]+)",
@@ -58,11 +28,11 @@
 				"match": "(BCU|CA|CU|ECU|ESTABLISHING SHOT|ESTABLISHING|FULL SHOT|FULL|EWS|EXTREME LONG SHOT|EXTREME|EYE|LEVEL|EYE LEVEL|FS|HAND HELD|HIGH ANGLE|HIGH|LONG LENS SHOT|LONG|LONG SHOT|LOW ANGLE|LOW|MCU|MED|MEDIUM LONG SHOT|MEDIUM SHOT|MEDIUM|MID SHOT|MID|MWS|NODDY|NODDY SHOT|POV|PROFILE|PROFILE SHOT|REVERSE|REVERSE SHOT|OSS|BEV|TWO SHOT|TWO|VWS|WEATHER SHOT|WEATHER|WS)([ ]?[-][ ]?)([A-Za-z-'/. ]+)(,[ ]?[A-Za-z-'/. ]+)?",
 				"captures": {
 					"1": { "name":"entity.name.function"},
-					"2": { "name":"constant.character"},
+					"2": { "name":"comment"},
 					"3": { "name":"string.quoted"},
 					"4": { "name":"string.quoted"},
 					"5": { "name":"entity.name.function"},
-					"6": { "name":"constant.language"},
+					"6": { "name":"comment"},
 					"7": { "name":"constant.numeric"}
 				}
 			},
@@ -77,30 +47,72 @@
 					"2": { "name":"keyword.control.transition" }
 				}
 			},
-			{ 
-				"match": "(^|\t)([A-Za-z\\-'. ]+:)(.*)",
+			{
+				"match": "(AWAIT)([ ]?[-][ ]?)([A-Za-z_'/ ]+[\n])?",
 				"captures": {
-					"1": { "name":"constant.language" },
-					"2": { "name":"constant.language" },
-					"3": { "name":"meta.type.annotation" }
+					"1": {
+						"name": "constant.character"
+					},
+					"2": {
+						"name": "comment"
+					},
+					"3": {
+						"name": "meta.selector"
+					}
+				}
+			},
+			{
+				"match": "([A-Za-z_]+)([ ]?[-][ ]?)([A-Za-z_/ ]+)",
+				"captures": {
+					"1": {
+						"name": "constant.language"
+					},
+					"2": {
+						"name": "comment"
+					},
+					"3": {
+						"name": "meta.selector"
+					}
+				}
+			},
+			{
+				"match": "([ ]?[-]?[ ])?(AND|OR)([ ][-]?[ ]?)?",
+				"captures": {
+					"1": {
+						"name": "comment"
+					},
+					"2": {
+						"name": "keyword.operator.logical"
+					},
+					"3": {
+						"name": "comment"
+					}
+				}
+			},
+			{
+				"match": "([ ]?[-][ ]?)",
+				"captures": {
+					"1": {
+						"name": "comment"
+					}
+				}
+			},
+			{ 
+				"match": "([A-Za-z\\-'. ]+:)(.*)",
+				"captures": {
+					"1": { "name":"string.quoted" },
+					"2": { "name":"comment" }
 				}
 			},
 			{
 				"name":"comment.block",
 				"match": "([#]?[A-Za-z,-]+)"
+			},
+			{
+				"name": "meta.selector",
+				"match": "\\[.*\\]"
 			}
 		]
-		},
-		"strings": {
-			"name": "string.quoted.double.imp",
-			"begin": "\"",
-			"end": "\"",
-			"patterns": [
-				{
-					"name": "constant.character.escape.imp",
-					"match": "\\\\."
-				}
-			]
 		}
 	},
 	"scopeName": "source.imp"
