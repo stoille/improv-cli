@@ -70,8 +70,8 @@ name -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %}
 nameWS -> [a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
 
-dialogue -> .:* ":" sentence:+ {% ([speaker, _, text]) => { 
-	return rule('dialogue', {speaker: speaker.join(''), lines: text}) } %}
+dialogue -> nameWS ":" sentence:+ {% ([speaker, _, text]) => { 
+	return rule('dialogue', {speaker: speaker, lines: text}) } %}
 
 await -> ("AWAIT" SEP) exp SEP:? timeSpan:? {% ([op, rhs, _, time]) => { return rule('await', {time:generateTime(time), rhs}) } %}
 
