@@ -204,36 +204,30 @@ TOUCH - CARVING
 	OSS - NER, ANAT - PED UP - 00:12
 	With Ner's back to us, Anat taunts in front of him and is confused why he stopped chasing. The dog swirls around her and barks. She sticks out her tongue and walks over to him. The eagle swoops down to the fruit. The dogstands at attention.
 	
-	TOUCH - FRUIT
-	MID SHOT - NER/FRONT/LEFT, ANAT - TRACKING - 00:07
-	From the grass we see the pair look confused. Ner points. The dog barks and the boy clamps its mouth shut and pushes it into the floor.
-	
-	LONG SHOT - TREE/EAST, LEVI - PULL FOCUS - 00:07
-	We see Levi and Attendant sleeping. The eagle eats the fruit on the floor.
-	
-	TOUCH - EAGLE
-		HIGH ANGLE - PUDDLE/SOUTH/EAST - 00:04
-		We see the eagle guard and peck the fruit.
-		
-		MID SHOT - NER/FRONT/LEFT, ANAT - 00:11
-		The children look to each other smiling but, when the eagle suddenly croaks at them, the dog breaks free and runs towards the eagle. They hide in the brush.
+AWAIT - TOUCH - FRUIT
 
-	AWAIT - TOUCH - EAGLE
+MID SHOT - NER/FRONT/LEFT, ANAT - TRACKING - 00:07
+From the grass we see the pair look confused. Ner points. The dog barks and the boy clamps its mouth shut and pushes it into the floor.
 
-AWAIT -
-:fruit
+LONG SHOT - TREE/EAST, LEVI - PULL FOCUS - 00:07
+We see Levi and Attendant sleeping. The eagle eats the fruit on the floor.
+
+TOUCH - EAGLE
+	HIGH ANGLE - PUDDLE/SOUTH/EAST - 00:04
+	We see the eagle guard and peck the fruit.
+	
+	MID SHOT - NER/FRONT/LEFT, ANAT - 00:11
+	The children look to each other smiling but, when the eagle suddenly croaks at them, the dog breaks free and runs towards the eagle. They hide in the brush.
+
 HIGH ANGLE - PUDDLE/SOUTH/EAST - 00:17
 We see the eagle leave the fruit and caw at the approaching figures and fly off to its nest the dog arrives and sniffs around the fruit then slurps from the puddle.
-#if $from == $tree
-#skip figures
-#if $from == $figures
-#skip nest
-:nest
-CU - NEST/FRONT - 00:04
-The black bird lands on its nest, then blinks and caws.
-LONG LENS SHOT - EAGLE.BACK.RIGHT, NER - 00:14
-We see the eagle caw in protest at Anat, Ner and the dog.
-#if $from == $tree
+
+UP - TREE
+	CU - NEST/FRONT - 00:04
+	The black bird lands on its nest, then blinks and caws.
+	LONG LENS SHOT - EAGLE.BACK.RIGHT, NER - 00:14
+	We see the eagle caw in protest at Anat, Ner and the dog.
+
 AWAIT - TOUCH - NER
 #skip figures
 #skip puddle
@@ -248,69 +242,86 @@ While Anat hides behind the brush, Ner lowers his mask and runs ahead.
 :Anatreaches
 She unsuccessfully reaches for him.
 #skip nest
-AWAIT -
-:puddle
-HIGH ANGLE - PUDDLE/SOUTH/EAST - EASE IN - 00:10
-The boy picks up the fruit and lifts the hide covering his face to take a bite. Chewing, he looks at his masked reflection, distorted by a silvery ink which swirls in the puddle surface but turns away.
-MEDIUM SHOT - NER, TREE - 00:08
-Levi and Attendant fast asleep. Levi clutches his flute in one hand and the tipped over jug in the other, Attendant slumps over his drum.
+TOUCH - puddle
+	HIGH ANGLE - PUDDLE/SOUTH/EAST - EASE IN - 00:10
+	The boy picks up the fruit and lifts the hide covering his face to take a bite. Chewing, he looks at his masked reflection, distorted by a silvery ink which swirls in the puddle surface but turns away.
+	
+	MEDIUM SHOT - NER, TREE - 00:08
+	Levi and Attendant fast asleep. Levi clutches his flute in one hand and the tipped over jug in the other, Attendant slumps over his drum.
+	
+TOUCH - FLUTE
+	MCU - FLUTE/FRONT - 00:04
+	We see Levi's hands folded over the bone flute.
+
+	CU - NER/FRONT, EYES - 00:02
+	Ner squints.
+
+	MEDIUM SHOT - TREE/SOUTH/EAST, NER - 00:05
+	Ner makes his way towards the tree when he stops, intrupted by Anat hissing, and turns over his shoulder.
+
+	MEDIUM SHOT - NER, ANAT - 00:02
+	Anat calls upon us to return.
+
+	MEDIUM SHOT - TREE/SOUTH/EAST, NER - 00:04
+	Ner shrugs her off and continues for the tree.
+
 AWAIT - TOUCH - FLUTE
-MCU - FLUTE/FRONT - 00:04
-We see Levi's hands folded over thebone flute.
-CU - NER/FRONT, EYES - 00:02
-Ner squints.
-MEDIUM SHOT - TREE.SE, NER - 00:05
-Ner makes his way towards the tree whenhe stops, intrupted by Anat hissing, and turns over his shoulder.
-MEDIUM SHOT - NER, ANAT - 00:02
-Anat calls upon us to return.
-MEDIUM SHOT - TREE.SE, NER - 00:04
-Ner shrugs her off and continues forthe tree.
-MEDIUM SHOT - NER.R, SHADOW - EASE OUT - 00:28
-:sneak
-The boy steps onto clearings betweenthe men's legs while his shadow drapesitself over their sleeping faces. Hepasses Attendant and then stops, hovering over Levi.
-#if #press clearings
-#play step
-AWAIT -
-:step
-Ner sneaks between clearings betweenthe obstacles formed by puddles andtheir legs.
-#if Ner #near Levi
-#skip
-#skip sneak
-We track up Levi's legs and ease out to see the masked boy walk on screenhuddled under the canopy. As he turnstowards us, we see the whites of hiseyes through the holes of the mask. Hegestures for the girl to come along.
+
+MEDIUM SHOT - NER/RIGHT, SHADOW - EASE OUT - 00:28
+The boy steps onto clearings between the men's legs while his shadow drapes itself over their sleeping faces. He passes Attendant and then stops, hovering over Levi.
+
+PRESS - CLEARINGS
+	Ner sneaks between clearings between the obstacles formed by puddles and their legs.
+
+AWAIT - PRESS - CLEARINGS
+
+We track up Levi's legs and ease out to see the masked boy walk on screen huddled under the canopy. As he turns towards us, we see the whites of his eyes through the holes of the mask. He gestures for the girl to come along.
+
 LONG LENS SHOT - NER, ANAT - 00:02
-We see Anat shaking her head no
+We see Anat shaking her head no.
+
 MEDIUM SHOT - NER/FRONT - 00:04
-Ner is frustrated by her inaction andhe turns back to Levi.
+Ner is frustrated by her inaction and he turns back to Levi.
+
 MCU - FLUTE/FRONT - 00:02
 We see the flute in Levi's hands
-CU - KISH/FRONT - 00:02
-We see a pale blue eye blinking.
+
 EWS - TREE/SOUTH - 00:14
 Levi's flute sparkles in the distance.
-#IF TOUCH - FLUTE
-We see Ner's hand reaching for the flute
-#if hand #near flute
-#skip
-AWAIT -
+
+REACH - FLUTE - 5
+	We see Ner's hand reaching for the flute
+
+AWAIT - REACH - FLUTE
+
 As the eagle croaks, he stops suddenly.
+
 CU - NER, EAGLE
 We see the eagle croak.
+
 MEDIUM SHOT - TREE/EAST, NER - 00:04
-Ner turns and hisses at the bird to bequiet. He turns back.
+Ner turns and hisses at the bird to be quiet. He turns back.
+
 MCU - HAND - FOCUS - 00:05
-Levi grabs Ner's hand forcibly as hestruggles to get free. The dog barks.
-AWAIT - #TAP NER 5
+Levi grabs Ner's hand forcibly as he struggles to get free. The dog barks.
+
+AWAIT - TAP - NER - 5
+
 LONG SHOT - TREE/EAST, NER - 00:07
-Ner stands, finding himself in a fightfor survival, and struggles to breakfree of the tangle from the awning. Thetwo men raucously laugh.
+Ner stands, finding himself in a fight for survival. He struggles to break free of the tangle from the awning. The two men raucously laugh.
+
 MEDIUM SHOT - DOG/FRONT - 00:02
 The dog bolts off towards them.
+
 MEDIUM SHOT - ANAT/FRONT - 00:02
 Anat gasps in surprise.
+
 LONG SHOT - TREE/EAST, NER - 00:12
 Ner continues to struggle.
-AWAIT - #TAP NER 5
+
+AWAIT - TAP - NER - 5
 As the boy frees himself he struggles to pull something from his pocket
-AWAIT - #TAP NER 5
+AWAIT - TAP - NER - 5
 He whips out a knife and adjusts his mask. The dog jumps out from the side and growls visciously.
 TWO SHOT - TREE/EAST, LEVI - 00:07
 Levi and Attendant exchange grave looks. They both yield, raising their hands.
@@ -385,7 +396,7 @@ LOW ANGLE - LEVI/FRONT - 00:14
 Levi furrows
 AWAIT - TOUCH - #LEFT
 He looks to his left and gestures for the children run away. While he isn't looking, Ner crawls over the ridge and quiets his dog down. Levi tries to pull him down.
-#if #tap Levi 5
+#if tap - Levi 5
 #skip
 AWAIT -
 But is unsuccessful.
@@ -401,7 +412,7 @@ LOW ANGLE - NER/FRONT - 00:11
 Levi and Attendant exchange mortified looks. They nod at each other and look to Anat.
 AWAIT - #TRACE #LEFT LEVI
 Anat acknowledges their signal.
-AWAIT - #TAP NER 5
+AWAIT - TAP - NER 5
 She pulls Ner but he refuses to leave.
 LONG SHOT - TREE/SOUTH - STEADICAM - 00:31
 Anat pulls at Ner
@@ -422,7 +433,7 @@ Levi tries to pull him away.
 AWAIT -
 LOW ANGLE - NER/FRONT - EASE IN - 00:07
 Levi pulls Ner
-AWAIT - #TAP NER 5
+AWAIT - TAP - NER 5
 But he resists and point. Out onto the field. Levi stops and gawks.
 LONG LENS SHOT - LEVI, ARK - ZOOM - 00:17
 We see The Ark carried by eight colored slaves whose dirty bodies perspire under loin clothes. Four on each side carry the load on their backs led by goliath, a mediterranean bearded giant, who cracks a whip over them with his massive woolly arms. Farmers push down their slaves to lie prostrate and bow as it passes them by. We zoom in on his fingers, of which there are six on each hand.
@@ -434,7 +445,7 @@ CU - EAGLE/FRONT - 00:02
 The eagle croaks again and flies off
 CU - ROCKS - 00:02
 Rocks hit the ground.
-LONG SHOT - ARK.R, GOLIATH - TRUCKING - 00:11
+LONG SHOT - ARK/RIGHT, GOLIATH - TRUCKING - 00:11
 The commander orders the men to stop. Silence. Wind. Eagle croak. Barking. Tense. An archer crouches and point. To our left, besides goliath who searches in the distance. We follow him behind The Ark and track towards him. The slaves pant heavily.
 LONG LENS SHOT - LEVI, GOLIATH - ZOOM - 00:10
 Goliath's missing eye and burly clamped jaw scowl at us as we zoom out all the way to the hill where Levi cowers with Ner. Ner begins to rise. while press Ner
@@ -1279,7 +1290,7 @@ AWAIT - TOUCH - MIRROR
 Light from the hallway pours throughthe door's cavities. Patches ofmoonlight shined through a makeshiftceiling.
 FS - LANTERN/FRONT - FOLLOW - 00:22
 We see darkness except a small surfacelit by moonlight. A nearby flame lightsand goes out. Another flame lightswithin a lantern and it emits a softlight
-AWAIT - #TAP LANTERN 5
+AWAIT - TAP - LANTERN 5
 As she places the lantern down at a rickety little table. She walks off. Then comes back with a cup and spills its contents three coins on thetable. She sits down to rest her headagainst her arm, playing with thechange looking at them in the flame.
 AWAIT - TOUCH - CHANGE
 MEDIUM SHOT - TABLE, DINAH - 00:11
@@ -1423,7 +1434,7 @@ Levi stops drinking and looksmesmerized. He tears up as herecognizes the song.
 Dinah.OS: like showers on young growth, like Droplets on the grass may my discourse come down as the Rain, my speech distils as the dew
 MEDIUM SHOT - STAGE, DINAH - 00:38
 Dinah looks up angelically singingunder a skylight. She mysteriouslygazes into the distance above theaudience of empty chairs andrhythmically sways.
-#if #tap Dinah
+#if tap - Dinah
 #if $Dinahtap == 0 $Dinahtap = $Dinahtap + 1
 Dinah: ask your father, he will inform you
 #elseif $Dinahtap == 1 $Dinahtap = $Dinahtap + 1
@@ -1441,7 +1452,7 @@ EYE LEVEL - HANNAH/FRONT - 00:10
 Dinah, just noticing his emotion, frowns in confusion and lets her voicetrail off gracefully, Dinah: like when an eagle who rouses its nestlings, glides down to its young
 POV - HANNAH, BAR - ZOOM - 00:14
 We control the view as Levi sobs. Wesee Attendant hugging Levi formoral support and patting him on theback, glancing around occasionally.
-AWAIT - #TAP LEVI 6
+AWAIT - TAP - LEVI 6
 Levi nods that he is ok and wipes his tears away sipping his drink and smiles at her.
 AWAIT - TOUCH - LEVI
 EYE LEVEL - HANNAH/FRONT - 00:08
@@ -1467,7 +1478,7 @@ EYE LEVEL - CAMERA C - 00:02
 She sighs despondently and sits up
 EXTREME LONG SHOT - STAGE, DOOR
 The pair continues clapping as shestuffs her instrument into a knapsack, and hops off stage
-#if #tap Dinah 6
+#if tap - Dinah 6
 gracefully landing and histrionicallybowing to the pair as Levi whistles
 #elseif
 And stumbles blushing
@@ -1781,7 +1792,7 @@ Levi: Surprised Fate?
 Dinah: Mmhmm. Don't think too much into it! %nn Do you think our choices in life matter or is it all planned for us already?
 Levi: I don't think anyone can say, do you?
 Dinah walks over to Levi
-#if #tap Levi
+#if tap - Levi
 She provocatively makes her points with a shoot of straw on his chest.
 He backs away cautiously as she exhales and rolls her eyes in frustration at his evasion of her pass. She turns and slowly walks away.
 LONG LENS SHOT - ISLE END - EASE IN - 01:47
@@ -1996,7 +2007,7 @@ AWAIT -
 She picks up the lyre several piecesof music notes written on parchmentlay exposed.
 AWAIT - TOUCH - NOTES
 #skip notes
-#if #tap lyre
+#if tap - lyre
 #play strum
 AWAIT -
 :strum
@@ -2089,7 +2100,7 @@ AWAIT - TOUCH - THIGH
 CI - ANKLE/FRONT - TRACK IN - 00:07
 We see a glimpse of her feet.
 Levi: Legs... Feet...
-#if #tap feet
+#if tap - feet
 #skip
 #skip prev
 CI - FEET/FRONT - 00:07
@@ -2148,7 +2159,7 @@ Dinah: Yes?
 :Mirror
 MID SHOT - MIRROR/FRONT - 00:11
 The mirror angle shows their clotheson the ground.
-#if #tap clothes
+#if tap - clothes
 The mirror shifts towards light and asilk cloth drops.
 #else
 #skip prev
@@ -2293,11 +2304,11 @@ POV - LEVI, DINAH - TRACKING
 Dinah pets the ass and exchangesfarewells a final time before headingnorthbound.
 LONG SHOT - MIRROR, BED - 00:07
 Levi chuckles to himself and returns tothe bed.
-#if #tap flute
+#if tap - flute
 Picks up his flute
 MEDIUM SHOT - LEVI/FRONT - 00:12
 Levi leans up against the wall andholds the flute to his mouth.
-#if #tap flute
+#if tap - flute
 Levi plays Dinah's tune and gets groggy
 Levi nods off and naps.
 DISSOLVE TO:
@@ -2336,7 +2347,7 @@ We swing around as she approaches theexit. The white light blinds us.
 AWAIT - DINAH #NEAR EXIT
 LONG SHOT - BACKER.BACK.RIGHT - 00:30
 Dinah hesitates outside of the cave.
-#if #tap Dinah
+#if tap - Dinah
 She runs, trying to catch up with mrBecker
 #if Dinah #near Becker
 #skip
@@ -2362,7 +2373,7 @@ EXT. LEVI'S PORCH, Ephraim
 POV - LEVI, TOWN - STEADICAM - 00:08
 Levi looks out the window onto the town. He calls out for her as the sunsets. Villagers pass by. He calls out to them.
 MEDIUM SHOT - WINDOW/FRONT, LEVI - 00:12
-#if #tap villagers
+#if tap - villagers
 Levi calls from the window
 Levi: Dinah? %nn Dinah!
 We see Attendant below us
@@ -2404,7 +2415,7 @@ He looks around the well. Everywhere we see shrouded women bathing, their childr
 AWAIT - TOUCH - SCARF
 FS - LEVI/FRONT - FOLLOW - 00:21
 Levi parts through the crowd jogging over to her scarf. He hangs his head somberly
-#if #tap Levi
+#if tap - Levi
 Levi: Dinah! %nn Dinah!
 #if Levi #near scarf
 Levi picks up the scarf and smells it. We ease in to is face as he looks around everywhere.
@@ -2712,7 +2723,7 @@ We see abiel frown.
 Abdiheba: Where is she? Bethlehem did you say?
 MWS - LEVI/FRONT/LEFT, ATTENDANT - 00:11
 Levi's shoulders slump indisillusionment.
-#if #tap shoulders
+#if tap - shoulders
 Attendant pats his back and rubshis shoulder in support.
 #else
 MWS - ABDIHEBA/FRONT, PHINEAS - 00:12
@@ -2808,7 +2819,7 @@ LONG SHOT - LEVI, MOON - 00:02
 We see the moon.
 MCU - MIRROR, LEVI - EASE IN - 00:14
 Night's chirping chorus resumes. Attendant snores next to the bed.
-AWAIT - #TAP ATTENDANT 5
+AWAIT - TAP - ATTENDANT 5
 Levi turns to him and shakes him awake.
 //Whispering
 Levi: Let us go.
@@ -3747,9 +3758,9 @@ Dinah: This is quite the welcome! Are you sure you do not want to be next?
 Levi: No thank you. Though we do appreciate the offer. We will wash ourselves over here in the basin. Thank you.
 MEDIUM SHOT - BASIN, LEVI - 00:08
 Levi and his Attendant cup Water in their hands and wash in a nearby basin besides the door.
-#if #tap Levi
+#if tap - Levi
 Levi splashes water on his face
-#elseif #tap Attendant
+#elseif tap - Attendant
 Attendant splashes water on his face
 He and the Attendant exchange puzzled looks and glance over their shoulder.
 LOW ANGLE - OLD MAN/FRONT - 00:07
@@ -4030,7 +4041,7 @@ MEDIUM SHOT - ATTENDANT/FRONT.RIGHT - 00:17
 The Attendant looks around anxiously.
 AWAIT - #TRACE #UP ATTENDANT
 The Attendant attempts to stand, but met with a blade to his throat, the giant's arm reaches around and firmly lowers him back down onto the bench.
-AWAIT - #TAP ATTENDANT 3
+AWAIT - TAP - ATTENDANT 3
 The Attendant instinctively struggles but the giant reaffirms his grip. He shakes his goonish head and bears his gums, uttering a glottal disapproval.
 MID SHOT - MIRROR/FRONT.RIGHT - 00:05
 Ashtar and Chemosh disinterestedly shrug and part ways, they continue to rummage quietly.
@@ -4110,7 +4121,7 @@ Old Man: You must not! Please, my friends, do not commit such a foul act. 2 Sinc
 The sound of flowing water dampens the voices behind Ner as he sneaks into the bathtub under Anat's window.
 MEDIUM SHOT - NER.BACK.RIGHT - 00:10
 Ner peaks back at us over the edge of the bathtub.
-AWAIT - #TAP CABIN. WINDOW 3
+AWAIT - TAP - CABIN. WINDOW 3
 He taps. Anat cracks open its shutters and peeks out. She shuts the shade in his face and opens it a moment later with a remorseful look.
 AWAIT - TOUCH - DINAH
 MCU - NER, DINAH - 00:04
@@ -4165,11 +4176,11 @@ Kish watches Dinah and Levi hold hands across the table and smiles.
 Kish: But as your offer stands. It is reasonable. Let the girl perform instead for us then!
 MEDIUM SHOT - KISH, DINAH - 00:04
 Chemosh rips Dinah out of her seat.
-#if #tap Dinah 3
+#if tap - Dinah 3
 Dinah struggles against him, kicking and screaming.
 CU - KISH, DINAH.HAND - 00:05
 Levi's hand clutches onto hers but the grip is slipping.
-#if #tap LeviHand
+#if tap - LeviHand
 Levi's grips harder
 Their grip breaks
 MID SHOT - DINAH, LEVI - 00:05
