@@ -320,115 +320,152 @@ LONG SHOT - TREE/EAST, NER - 00:12
 Ner continues to struggle.
 
 AWAIT - TAP - NER - 5
-As the boy frees himself he struggles to pull something from his pocket
+
+As the boy frees himself he struggles to pull something from his pocket.
+
 AWAIT - TAP - NER - 5
+
 He whips out a knife and adjusts his mask. The dog jumps out from the side and growls visciously.
+
 TWO SHOT - TREE/EAST, LEVI - 00:07
 Levi and Attendant exchange grave looks. They both yield, raising their hands.
 Levi throws the flute on the ground.
+
 MEDIUM SHOT - ANAT/FRONT - 00:02
 Anat gasps and covers her mouth.
+
 LONG SHOT - TREE/EAST, NER - 00:05
 Ner holds the knife trembling
+
 AWAIT - TOUCH - FLUTE
+ 
 Ner moves towards the flute.
+
 TWO SHOT - TREE/EAST, LEVI - 00:07
 Levi looks to Attendant.
+
 AWAIT - TOUCH - ATTENDANT
+
 Attendant whistles loudly and claps.
+
 LOW ANGLE - DONKEY/FRONT - 00:02
 The nearby donkeys rear.
+
 MEDIUM SHOT - TREE/EAST, NER - 00:10
 As the dog runs away, Ner is momentarily startled.
+
 AWAIT - TOUCH - NER
+
 Levi grabs and strikes him. The boy trips back while cowering and drops the fruit into the mud.
+
 LOW ANGLE - KNIFE.BACK, NER - PULL FOCUS - 00:21
-Ner backs away in a muddy puddle. The knife plunges into the ground next toLevi's foot. The fruit rolls towards his foot and stops against the knife.
-AWAIT - TOUCH - KNIFE
-Levi picks up the knife and then the fruit.
-#skip knife
-#ELSEIF TOUCH - FRUIT
-Levi picks up the fruit and then the knife.
-#skip Anathiding
-AWAIT -
-:knife
+Ner backs away in a muddy puddle. The knife plunges into the ground next to Levi's foot. The fruit rolls towards his foot and stops against the knife.
+
+TOUCH - KNIFE
+	Levi picks up the knife and then the fruit.
+
+TOUCH - FRUIT
+	Levi picks up the fruit and then the knife.
+
+AWAIT - TOUCH - KNIFE OR TOUCH - FRUIT
+
 CU - KNIFE - 00:05
 We see the knife glimmer in the sun.
-AWAIT - #TRACE #LEFT KNIFE
-:Anathiding
-LONG LENS SHOT - TREE/SOUTH - STEADICAM - 00:05
-Anat hides in a nearby bush.
-AWAIT - TOUCH - #LEFT
-Anat runs out from hiding
-MEDIUM SHOT - LEVI, ANAT - 00:04
-Anat cradles Ner and fearfully looks at us. The dog cowers in the background.
-MID SHOT - TREE/EAST, LEVI - 00:21
-Levi looks gravely at Attendant then back at the kids. He holds the fruit in one hand and knife in the other.
-AWAIT - TOUCH - KNIFE
-Levi observes the knife again then Shakes his head.
-$Throwknife = true
-#ELSEIF TOUCH - FRUIT
-$throwfruit = true
-AWAIT -
-Levi tosses the fruit on the floor.
-#if $throwknife
-LOW ANGLE - KNIFE.BACK, NER - PUSH FOCUS - 00:07
-The knife plunges into the foreground, Splitting the children in two, who come Into focus.
-#elseif $throwfruit
-MEDIUM SHOT - TREE/EAST, NER - - 00:08
-The fruit rolls over to Ner and Anat. Anat grabs it, splits it in two and Gorges on her half. She passes the Other half to Ner.
+
+TRACE - LEFT - KNIFE
+
+	LONG LENS SHOT - TREE/SOUTH - STEADICAM - 00:05
+	Anat hides in a nearby bush.
+
+	AWAIT - TOUCH - ANAT
+	Anat runs out from hiding
+
+	MEDIUM SHOT - LEVI, ANAT - 00:04
+	Anat cradles Ner and fearfully looks at us. The dog cowers in the background.
+
+	MID SHOT - TREE/EAST, LEVI - 00:21
+	Levi looks gravely at Attendant then back at the kids. He holds the fruit in one hand and knife in the other.
+	
+	TOUCH - KNIFE
+		Levi observes the knife again then Shakes his head.
+
+		LOW ANGLE - KNIFE.BACK, NER - PUSH FOCUS - 00:07
+		The knife plunges into the foreground, splitting the children in two, whose shockek faces come into focus.
+
+	TOUCH - FRUIT
+		Levi tosses the fruit on the floor.
+
+		MEDIUM SHOT - TREE/EAST, NER - - 00:08
+		The fruit rolls over to Ner and Anat. Anat grabs it, splits it in two and Gorges on her half. She passes the Other half to Ner.
+	
 MID SHOT - TREE/EAST, LEVI - 00:08
-Levi chuckles silently and turns hisattention to something he hears in thedistance.
+Levi chuckles silently and turns his attention to something he hears in the distance.
+
 AWAIT - TOUCH - LEVI
 Levi turns.
+
 EWS - TREE/SOUTH - - 00:07
 We see the silhouette of the children mousily get up and dust each other off. The dog runs up to the edge of the hill.
-CU - KISH/FRONT - 00:02
-We see a pale blue eye blinking.
+
 LONG SHOT - TREE.S, LEVI - STEADICAM - 00:20
-We see Ner carefully bite into the fruit and nod at Anat. She takes a bite too. Levi gently hands the knife back to Ner who timidly accepts the blade. Suddenly, we hear the blaring horns and drums of an approaching army over the ridge. The dog start growling.
+We see Ner carefully bite into the fruit and nod at Anat. She takes a bite too. Levi gently hands the knife back to Ner who timidly accepts it. Suddenly, we hear the blaring horns and drums of an approaching army over the ridge. The dog begins to growl.
+
 AWAIT - TOUCH - RIDGE
+
 Levi turns towards the ridge and rushes to put on his shirt as Attendant unties the donkeys and gathers the rucksack. The children hide in a nearby bush.
-CU - KISH/FRONT - DEFOCUS - 00:04 A PALE BLUE EYE TRACKS THE CHILDREN'SMOVEMENT AND RECEDES INTO DEFOCUS.
-OSS - LEVI.B - HAND HELD - 00:14
-Levi and Attendant crawl and peakover the crest of the ridge. Masses ofwounded soldiers march across thefarmfields while the farmhands stopswinging their sickles to watch them.The dog barks as he ducks with his backturned to the army palpitating withterror. He unsuccessfully tries tosubdue the dog.
+
+OSS - LEVI/BACK - HAND HELD - 00:14
+Levi and Attendant crawl and peak over the crest of the ridge. A brigade of defeated Hebrew soldiers march across the wheat fields where the field hands pause the swinging of their sickles to watch the men walk by. The dog barks and Levi ducks with his back turned to the army, palpitating with terror. He unsuccessfully tries to subdue the dog.
+
 LOW ANGLE - LEVI/FRONT - 00:14
 Levi furrows
-AWAIT - TOUCH - #LEFT
+
+AWAIT - TOUCH - LEFT
 He looks to his left and gestures for the children run away. While he isn't looking, Ner crawls over the ridge and quiets his dog down. Levi tries to pull him down.
-#if tap - Levi 5
-#skip
-AWAIT -
-But is unsuccessful.
+
+TAP - Levi - 5
+	But is unsuccessful.
+
 LOW ANGLE - NER/FRONT - 00:07
 We see the children peaking over the ridge mesmerized. Levi and Attendant now pops his head over.
-AWAIT - #DOWN
+
+AWAIT - CLIFF/DOWN
+
 MEDIUM SHOT - LEVI, FEET - 00:02
 We see the sandals of marching soldiers
+
 MEDIUM SHOT - LEVI, SPEARS - 00:02
 We see the spears of marching soldiers
-CU - LEVI, FARM - ZOOM - 00:14 A LEGION OF OLIVE SKINNED GIANTS DRESSED IN BATTLE WORN LEATHER ARMOR MARCH THROUGH THE TILLED FIELDS. SOME blow into ram horns while others hit drums and symbols. Besides them, field slaves fall to the floor and grovel. A passing soldier pushes one of them into the ground with his boot. Another whips him.
+
+CU - LEVI, FARM - ZOOM - 00:14 
+A legion of olive skinned giants dressed in battle worn leather armor march through the tilled fields. Some blow into ram horns while others hit drums and symbols. Besides them, field slaves fall to the floor and grovel. A passing soldier pushes one of them into the ground with his boot. Another whips him.
+
 LOW ANGLE - NER/FRONT - 00:11
 Levi and Attendant exchange mortified looks. They nod at each other and look to Anat.
-AWAIT - #TRACE #LEFT LEVI
-Anat acknowledges their signal.
-AWAIT - TAP - NER 5
-She pulls Ner but he refuses to leave.
-LONG SHOT - TREE/SOUTH - STEADICAM - 00:31
-Anat pulls at Ner
-AWAIT - TOUCH - ANAT
-Anat runs off screen right
-$anatRuns = true
-AWAIT - TOUCH - DONKEYS
-Attendant gathers the donkeys
-$donkeys = true
-AWAIT - TOUCH - RUCKSACK
-Attendant takes the rucksack
-$rucksacks = true
-#if $rucksacks && $donkeys && $Anatruns
-Attendant pulls Levi along with the Donkeys. Levi huddles by Ner.
-$warnNer = true
-#elseif $warnNer
+
+TRACE - LEFT - LEVI
+	Anat acknowledges their signal.
+
+	AWAIT - TAP - NER - 5
+		She pulls Ner but he refuses to leave.
+
+		LONG SHOT - TREE/SOUTH - STEADICAM - 00:31
+
+		Anat pulls at Ner
+
+		AWAIT - TOUCH - ANAT
+			Anat runs off screen right
+	
+TOUCH - DONKEYS
+	Attendant gathers the donkeys
+
+	AWAIT - TOUCH - RUCKSACK
+	Attendant takes the rucksack
+	$rucksacks = true
+	#if $rucksacks && $donkeys && $Anatruns
+	Attendant pulls Levi along with the Donkeys. Levi huddles by Ner.
+	$warnNer = true
+	#elseif $warnNer
 Levi tries to pull him away.
 AWAIT -
 LOW ANGLE - NER/FRONT - EASE IN - 00:07
@@ -439,7 +476,7 @@ LONG LENS SHOT - LEVI, ARK - ZOOM - 00:17
 We see The Ark carried by eight colored slaves whose dirty bodies perspire under loin clothes. Four on each side carry the load on their backs led by goliath, a mediterranean bearded giant, who cracks a whip over them with his massive woolly arms. Farmers push down their slaves to lie prostrate and bow as it passes them by. We zoom in on his fingers, of which there are six on each hand.
 LOW ANGLE - NER/FRONT - 00:07
 Levi rises in shock to leave
-AWAIT - #TRACE #LEFT LEVI
+AWAIT - TRACE - LEFT - LEVI
 The eagle caws and the dog barks at it. Levi momentarily slips.
 CU - EAGLE/FRONT - 00:02
 The eagle croaks again and flies off
@@ -806,7 +843,7 @@ The slaves join Levi's side and pullhim back by his shoulder. They hold upscimit
 Now look here! This young man is Medling with our affairs! He ought to Mind his own business!
 MEDIUM SHOT - PHINEAS/FRONT - 00:11
 Phineas tries to push through thecrowd.
-AWAIT - #PRESS PHINEAS
+AWAIT - PRESS PHINEAS
 Phineas successfully breaks throughthe crowd.
 Phineas: Now hold on!
 LONG SHOT - LEVI.BACK.LEFT, PHINEAS - - 00:15
@@ -990,11 +1027,11 @@ Phineas frowns and nods.
 Levi: Yes. I believe so.
 MID SHOT - CAMERA I - 00:08
 Phineas helps straighten out Levi'sattire and nods in approval.
-AWAIT - #DOWN LEVI 5 PHINEAS: THERE.
+AWAIT - DOWN LEVI 5 PHINEAS: THERE.
 FS - CAMERA J - FOLLOW - 00:20
 They walk towards the barn. Phineaslooks back towards the road wherecarriage rode off and then around as heholds Levi parentally, speaking in ahushed tone.
 Levi scans the ground and thinks hard, resting his chin on his hand. Phineasinvites Levi to continue walking and, as he does, he puts his arm around him.
-AWAIT - TOUCH - #LEFT LEVI
+AWAIT - TOUCH - LEFT LEVI
 Phineas.OS: Your mother's health declined very Rapidly...
 MID SHOT - CAMERA A - 00:05
 //confused
@@ -1024,7 +1061,7 @@ TWO SHOT - DINAH, MEN - 00:04
 Abdiheba and his slave look at herfrom a distance.
 CU SHOT - DINAH.LEFT - EASE IN - 00:07
 She cautiously ignores them andcontinues smoking, looking back to thebarn
-AWAIT - #UP
+AWAIT - UP
 LONG SHOT - DINAH, BARN - ZOOM - 00:18
 An old donkey sits in the shadows andflinches from the crashing of furniturethrown below. Attendant yells atLevi who yells back at him and throws out his mother's flowing skirts. TheAttendant throws up his arms and shakeshis head. Phineas marches up fromLevi's and scans Becker, a goulish manwearing a dark cloak. The crowd coversethem for a moment and he dissapears. Asillouette walks in front of our viewfrom screen right.
 BCU - DINAH.LEFT - TRACKING - 00:02
@@ -1249,7 +1286,7 @@ POV - CAMERA F - 00:07
 Phineas holds Levi's shoulders and gestures pedantically while Abdiheba nods. He looks up at us. Phineas does too.
 MCU - CAMERA G - 00:07
 She is startled and puzzled by their intaction. Dinah walks off screenright.
-AWAIT - #TRACE #RIGHT DINAH
+AWAIT - TRACE #RIGHT DINAH
 EXTREME LONG SHOT - GATE, ROAD
 We see her back up against the view andwalking away down a twisty dimly litalley where children play in thedistance. Hold shot. if press Dinah
 Dinah walks down the road.
@@ -1276,7 +1313,7 @@ Across the hall, a note is posted onher doorway which she rips off andreads
 AWAIT - TOUCH - NOTE
 BCU - HANNAH, NOTE - 00:05
 eviction notice. Pay in full or submitself to slavery
-AWAIT - #TRACE #DOWN NOTE
+AWAIT - TRACE #DOWN NOTE
 MCU - DINNAH.BACK.RIGHT - 00:08
 Flustered, she unties the curtain hiding the entrance to her dingy littlestudio and unlocks a wooden door thatonly covers part of it.
 AWAIT - TOUCH - DOOR
@@ -1295,12 +1332,12 @@ As she places the lantern down at a rickety little table. She walks off. Then co
 AWAIT - TOUCH - CHANGE
 MEDIUM SHOT - TABLE, DINAH - 00:11
 The humping from the couple outsidegets louder and bangs against the wall. Foot steps approach and an argumentbreaks out between the couple andanother man. She looks back.
-AWAIT - #DOWN
+AWAIT - DOWN
 MCU - DINAH, DOORLIGHT - 00:05
 We see the shadows of their footsteps. They yell and throw plates on theground.
 MEDIUM SHOT - TABLE, DINAH - 00:14
 She cries, resting her elbows on thetable, and holds her head in her hands.
-AWAIT - #UP DINAH: SHUT - UP!
+AWAIT - UP DINAH: SHUT - UP!
 She looks up with tears in her eyes.Moonlight casts down on her face as shedries her tears.
 MEDIUM SHOT - CAMERA D - 00:04
 We see the moon through a hole in a theroof.
@@ -1422,7 +1459,7 @@ AWAIT -
 Attendant smiles in gratitude.
 LONG SHOT - LEVI/FRONT/LEFT, GLASSES - CRAB - 00:08
 Several beer and shot glasses linethe table. A lyre plays in the background. Levi grabs a short shotglass next to a beer.
-AWAIT - #TRACE #UP LEVI
+AWAIT - TRACE #UP LEVI
 MEDIUM SHOT - LEVI/FRONT - 00:11
 Levi tosses back the shot and slams itdown then smokes, engrossed with the performance as she finishes. He smilesand claps
 Dinah.OS: Remember the days of old, consider the Years of ages past.
@@ -1493,7 +1530,7 @@ Coolly she shifts her weight againstthe counter, tapping her feet. In theforegro
 AWAIT - TOUCH - DINAH
 MEDIUM SHOT - COUNTER, DINAH - 00:08
 She takes a hand rolled jointut ofher knapsack. While scanning for alight she notices something on thecounter.
-AWAIT - #TRACE #DOWN SOMETHING
+AWAIT - TRACE #DOWN SOMETHING
 CU - DINAH, COUNTER - STEADICAM - 00:02
 The reflection of a prism on the bar
 MEDIUM SHOT - CAMERA I - 00:02
@@ -1503,7 +1540,7 @@ AWAIT - TOUCH - LANTERN
 MEDIUM SHOT - CAMERA I - 00:08
 DINAH: HEY - CAN YOU PASS THE LIGHT?
 Long pause. She frowns and flicks hisshoulder for attention.
-AWAIT - #TRACE #RIGHT DINAH
+AWAIT - TRACE #RIGHT DINAH
 POV - DINAH, DRUNKARD - STEADICAM - 00:08
 Dinah.OS: Hey!
 The 'old man' slowly turns to her witha vacant eyes and pauses, Stay touch 'old man'
@@ -1558,7 +1595,7 @@ We see the barn. Chickens roost andwaddle around its entrance. On itssecond stor
 AWAIT - TOUCH - BARN
 MCU - DINAH.LEFT - 00:05
 Dinah thinks to herself for a moment, then looks over her shoulder to Levi
-AWAIT - #TRACE #RIGHT DINAH
+AWAIT - TRACE #RIGHT DINAH
 LONG SHOT - HANNAH, LEVI - STEADICAM - 00:12
 Who runs his hands through his hair and rubs his eyes. He looks over to theAttendant who is obliterated and steals his shot. Levi drinks and slams the shot down, startling Attendant, then rests his forehead against his folded hands. He then rests his chin on it and looks directly at Dinah.
 MCU - DINAH.LEFT - 00:15
@@ -1668,7 +1705,7 @@ CU - PORCH.S, DINAH - 00:04
 As Dinah smiles and follows it acrossthe sky with her finger
 EXTREME LONG SHOT - PORCH.W, EAGLE
 The eagle circles above the road
-AWAIT - #TRACE #CIRCLE EAGLE
+AWAIT - TRACE #CIRCLE EAGLE
 MID SHOT - PORCH, HANNAH - FOLLOW - 00:07
 They exchange amused glances when theold drunkard walks into the foregroundand blows it a kiss, smiling with atoothless grin, EXTREME LONG SHOT - PORCH.S, ROAD
 The eagle flies down the road cutting into the mountainside and off into theclouds.
@@ -1722,7 +1759,7 @@ Levi prys open his mouth and we see his rotted black tongue.
 TWO SHOT - ATTENDANT, LEVI - 00:22
 Dinah covers her mouth and gasps.
 Levi: Poor fool had his toungue cut out by his last master. %nn He was still fighting off the infection when we bought him. %nn Hasn't said a word since. You said you had a farm?
-AWAIT - #TRACE #RIGHT LEVI
+AWAIT - TRACE #RIGHT LEVI
 Dinah turns to her left and walks off
 Dinah: Oh, yes. Some goats, sheep mostly.
 Levi: Whereabouts?
@@ -1764,13 +1801,13 @@ Dinah nods.
 Dinah: Don't I know it.
 Levi gestures to her large dufflebag which rests up against a post to his right.
 Levi: So how did you end up here?
-AWAIT - #TRACE #CIRCLE
+AWAIT - TRACE #CIRCLE
 Dinah clicks her tongue with an exaggerated a wink and shrugs. Levi looks flustered.
 Levi: %1 You play very well...
 Dinah chuckles to herself.
 Dinah: Thanks. Again.
 Dinah hears a wheezing to her left
-#if #trace #left Dinah
+#if TRACE - LEFT - Dinah
 #skip
 AWAIT -
 She turns.
@@ -1841,7 +1878,7 @@ MEDIUM SHOT - LEVI/FRONT/LEFT - EASE IN - 00:18
 Levi shrugs and attempts to smooth things over after realizing she feels embarrassed.
 Levi: Don't worry about offending me. %nn I still have this place which is more than a lot of people can say.
 Levi glances over his shoulder and smirks. He gestures Dinah to come over and point. To Attendant over his left shoulder on screen right
-AWAIT - #TRACE #RIGHT
+AWAIT - TRACE #RIGHT
 MEDIUM LONG SHOT - LEVI, ATTENDANT - 00:04
 To the servant who licks his chops and hugs a bale of hay.
 TWO SHOT - ATTENDANT, LEVI - 00:18
@@ -1901,7 +1938,7 @@ AWAIT - TOUCH - LEVI
 Dinah walks up and pecks him on thecheek.
 AWAIT - TOUCH - LEVI
 He flinches confused and blushes. Thenagain on his lips.
-AWAIT - #TRACE #CIRCLE LEVI
+AWAIT - TRACE #CIRCLE LEVI
 He closes his eyes as we spin aroundthem.
 MCU - DINAH.BACK.RIGHT - 00:17
 Now with his back to the entrance. Sheplayfully shoves him and gestures tothe ladder
@@ -1913,10 +1950,10 @@ She searches around towards us. Levifollows nearby. She points to theAttendant a
 Dinah: Look! He's already got company so why don't you?
 MEDIUM LONG SHOT - DINAH, ATTENDANT - 00:05
 They laugh looking at Attendantcuddled beside the donkey, snoring.
-AWAIT - #DOWN
+AWAIT - DOWN
 MID SHOT - ATTENDANT, DINAH - 00:07
 They laugh while Dinah looks at Levifrom the corner of her eye, Nervouslyawaiting the right moment.
-AWAIT - #TRACE #DOWN DINAH
+AWAIT - TRACE #DOWN DINAH
 CU - LEVI, HANDS - 00:02
 She takes his hand.
 MCU - HANNAH, LEVI - HAND HELD - 00:30
@@ -2026,9 +2063,9 @@ Levi: Oh no!
 Dinah picks up notes she finds on thebed under the lyre. Curiously, shepages through its loose papers.
 POV - DINAH, NOTES - STEADICAM - 00:18
 Dinah holds the notes.
-#if #trace #left notes
+#if TRACE - LEFT - notes
 She thumbs through pages of cuniform music
-#if #trace #left notes
+#if TRACE - LEFT - notes
 And turns it over to a sketch of theten sefirot over the human body withnotes next to each.
 AWAIT -
 BCU - DINAH, CHABAD - 00:04
@@ -2121,7 +2158,7 @@ TWO SHOT - DINAH/FRONT/LEFT, LEVI - STEADICAM - 01:10
 Dinah sticks out her head and closes her eyes in thought.
 Dinah: Really? Then what am I thinking?//confused
 Levi closes hiseyes and mimics her deep thought face. Levi runs his index along her forehead.
-AWAIT - #TRACE #ZIGZAG DINAH
+AWAIT - TRACE #ZIGZAG DINAH
 LEVI: I SEEEE - ONLY - VERY SERIOUS THOUGHTS.
 Dinah rolls her eyes and jokinglyshoves him.
 Dinah: Sigh It is just that if we cannot see that side of people, how can we ever hope to know them?
@@ -2238,7 +2275,7 @@ MID SHOT - MIRROR/FRONT - 00:25
 Dinah surveys her image and preens heroutfit.
 Dinah: Look at this lothesome pair. Feeling sorry for the sad sad lives we lead.
 She pouts and grabs the silk by themirror, wraps it around her head andjokingly poses while flirtatiouslybatting her eyes. They speak throughtheir reflection as Levi slyly sauntersover and places his pendant around herneck. She curls with exuberance. Hehugs around her SHOULDER AND RESTS HISHEAD ON IT - CHEEK TO CHEEK. HERREFLECTION PETS THE PENDANTFLATTERINGLY.
-AWAIT - #TRACE #CIRCLE
+AWAIT - TRACE #CIRCLE
 CU - PENDANT/FRONT - 00:02
 Dinah pets the pendant.
 TWO SHOT - DINAH.BACK.LEFT, REFLECTION - 00:20
@@ -2449,7 +2486,7 @@ We see bonfires spread along the vale.After a while the wagon's backsidesuddenly
 LONG SHOT - CART.BACK.RIGHT, BECKER - FOLLOW - 00:05
 Dinah peaks out from under the cloth.Becker looks back.
 AWAIT - TOUCH - BECKER
-MEDIUM SHOT - BECKER/FRONT/LEFT, CART.B - 00:18
+MEDIUM SHOT - BECKER/FRONT/LEFT, CART/BACK- 00:18
 Becker drives the cart.
 Becker: I hope you don't mind the height. %nn Oh, no need to panic. I spotted you running away from those two back in town.
 Dinah: I'm sorry.
@@ -2530,21 +2567,21 @@ Dinah: Well, I suppose I can see how someone would see it that way.
 MID SHOT - CART/FRONT/LEFT - 00:22
 Becker: Yet that is the miracle you seek every time you wish that something about the world change.
 Dinah shakes her head in disagreement.
-AWAIT - #TRACE #ZIGZAG
+AWAIT - TRACE #ZIGZAG
 Dinah: Oh but that is not the same. Our needs are so small in comparison.
 Becker: Are you so sure?
 		MCU - DINAH/FRONT/LEFT
 Dinah ponders to herself
-AWAIT - #TRACE #UP DINAH
+AWAIT - TRACE #UP DINAH
 Dinah looks up at the sky in awe.
 LONG SHOT - DINAH, MOON - STEADICAM - 00:02
 We see the moon in the night sky.
 MID SHOT - CART.BACK, DINAH - 00:17
 Dinah faces the front of the cart
 Becker: By my estimation granting the full sum of man's high hopes seems a feat far beyond any other.
-AWAIT - #TRACE #RIGHT DINAH
+AWAIT - TRACE #RIGHT DINAH
 Dinah turns around and slumps into thecart. She yawns and looks down
-AWAIT - #TRACE #DOWN DINAH
+AWAIT - TRACE #DOWN DINAH
 Remniscantly smiling at her pendant.She listens over her shoulder.
 CU - PENDANT/FRONT - 00:04
 We see the pendant sparkle in themoonlight.
@@ -2565,7 +2602,7 @@ MCU - DINAH/FRONT/LEFT - 00:14
 We see Dinah looking up, frightened andhear the rustling of leaves in thebreeze. Crickets.
 		Becker.OS: How overwhelming it all is? %nn How its Voice says... You are alone... We are All alone... Where is the glory?
 Becker's voice trails off.
-AWAIT - #TRACE #UP DINAH
+AWAIT - TRACE #UP DINAH
 LONG SHOT - DINAH, TREES - 00:05
 We see the sky hidden behind the treecanopy, which close over it like blacktendrils.
 MID SHOT - DINAH, LEAF - EASE IN - 00:32
@@ -2580,12 +2617,12 @@ MOUNTAINS, CU - CAMERA K - 00:02
 WIND IN GRASS, CU - CAMERA M - 00:02
 GRASS MOVING UNDER A FLOWING STREAM, BCU - DINAH/FRONT/LEFT - 00:05
 Dinah's forlorn face looking all aroundher. She scowls
-AWAIT - #TRACE #DOWN DINAH
+AWAIT - TRACE #DOWN DINAH
 MID SHOT - CART/FRONT/LEFT - 00:20
 Dinah and Becker lower their gaze andexchange glances. Becker smiles broadlyand starts the carriage back on itsjourney. She turns back into the cartto sleep
 Dinah: Forgive me mr. Becker but I am tired and need to rest. %nn Good night.
 She yawns, sinking into the jostlinghaystack. Its sticks shift and crackleunder her sleeping weight.
-AWAIT - #TRACE #UP BECKER
+AWAIT - TRACE #UP BECKER
 Becker looks up
 LONG SHOT - BECKER, EAGLE - TRACKING - 00:05
 The eagle is perched above a treebranch and its sillouette hovers underthe moon in a night breeze.
@@ -2613,7 +2650,7 @@ Rackfocus
 Crowd in immediate foreground. TheLevite looks down and pounds a nearbyrock in frustration. He leans in totalk over the crowd, Levi: I've given it time but... %nn It doesn't add up....
 #if #trace #up Attendant and #trace #down Attendant
 Attendant nods his head yes
-#elseif #trace #right Attendant and #trace #left theAttendant
+#elseif #trace #right Attendant and TRACE - LEFT - theAttendant
 Attendant shakes his head no
 Attendant sips from a cup. He makeshis move. Levi wobbles drunkenly.
 Levi: A man cannot tie up a woman's heart and expect her to love him! %nn That's what these idiots here don't get!
@@ -2659,7 +2696,7 @@ MWS - ABDIHEBA/FRONT, PHINEAS - 00:07
 The magistrate gets offended by hisrudeness and squints. He glances atPhineas as his slave serves themdrinks.
 HIGH ANGLE - BOARD - DUTCH TILT - 00:11
 We see the game board overhead
-AWAIT - #TRACE #DOWN BOARD
+AWAIT - TRACE #DOWN BOARD
 We see Levi make his move.
 		Crowd.OS
 Whisper I saw her ride away with the grave Digger!
@@ -2693,7 +2730,7 @@ MWS - LEVI/FRONT/LEFT, ATTENDANT - 00:21
 Levi looks confused and soliliquizes.
 Levi: She left so suddenly. She must be with her father.
 Crowd.OS: A whore's a whore boy. You oughta' learn Better.
-AWAIT - #TRACE #UP LEVI
+AWAIT - TRACE #UP LEVI
 Levi leaps from his seat and knocksover the table with his fists clenched.Board 'game pieces' fall onto thefloor.
 Levi: Who said that?!
 CU - PIECES/FRONT - 00:07
@@ -2743,7 +2780,7 @@ Attendant moves out of the way asPhineas rushes out onto the patio.
 Phineas: Had you been there for your mother when she needed you she would have been ashamed!
 Levi: Yeh well, too bad she's dead!
 Phineas pulls Levi by the arm
-AWAIT - #TRACE #ZIGZAG LEVI
+AWAIT - TRACE #ZIGZAG LEVI
 They struggle with each other, but thenPhineas slaps him. Attendant, shocked, peeks around the doorway.Phineas point. Forcibly at Levi.
 Phineas: Go home and sober up. %nn Leave for Bethlehem in the morning when it is safe to travel. |I will see that your livestock is tended to.
 Phineas straightens out Levi's clothing, if press Levi
@@ -2954,7 +2991,7 @@ Dinah turns around and curtsies
 Dinah: Behold his great wisdom. 3|2 %nn No secret is hidden from you. 1 Is it father? 3| %nn
 Obed: Not from this old man. 3 So I hear that he is regarded as somewhat of a 2 religious man... 3 A %i Levite 1 I believe?
 Dinah: That is none of his business and exactly the sort of gossip that drove me away from this place.
-AWAIT - #TRACE #RIGHT DINAH
+AWAIT - TRACE #RIGHT DINAH
 Dinah walks back to the table.
 MID SHOT - TABLE/FRONT, DINAH - 00:12
 Several pieces of dirty dish ware lay scattered on the table.
@@ -2988,7 +3025,7 @@ EWS - FIELD, HOUSE - 00:10
 The birds outside hop between reeds, chirping in the rising sun. We hear thedistant froth of a wash and see Dinah working far in the distance next to thecottage on a hill.
 CU - BUCKET/FRONT/LEFT - 00:08
 Dinah's delicate hands wrings out clothes over a frothy bucket.
-AWAIT - #TRACE #ZIGZAG BUCKET
+AWAIT - TRACE #ZIGZAG BUCKET
 Thrust back down, her milky arms submerge a handful of garments into the turbid wash.
 MID SHOT - DINAH/FRONT/LEFT - 00:12
 Curled wisps poke out beneath the handkerchief tied over her head. They waver in the breeze as she works over the tub forcibly heaving to and fro. She takes a rest and sighs as she wipes her hands on her sides. Her modest attire sops up stray suds. Her modestattire sops up stray suds.
@@ -3059,9 +3096,9 @@ Below its skylight, the four of them converse over a table Near a glowing hearth
 AWAIT - TOUCH - TABLE
 WS - HEARTH INSIDE, TABLE - 00:20
 The glowing hearth door is closed in fron of us
-AWAIT - #TRACE #DOWN HEARTH DOOR
+AWAIT - TRACE #DOWN HEARTH DOOR
 Obed opens the hearth door
-AWAIT - #TRACE #UP BREAD
+AWAIT - TRACE #UP BREAD
 Pulls steaming loaves of bread out of the hearth with a wood peel and carefully places them at the far end of the table. He breathes in their aroma and wafts it over to the others. Attendant shuffles in on screen left with a bunch of dishes and places them on the table. Obed tears off a piece of bread and shoves it in Attendant's mouth. Levi helps Dinah lift an overflowing pot of stew off the stove and over the table. They laugh.
 CU - LIVING ROOM, DRUM - PAN - 00:04
 We PAN to the right while Attendant plays the drum along with Levi's flute and Dinah on the lyre. They perform in front of small smokey pit fire.
@@ -3096,14 +3133,14 @@ CUT TO:
 EXT. SWAMPLANDS, BETHLEHEM - AFTERNOON
 MCU - DINAH/FRONT - 00:04
 Dinah cups water in her palms and pours it down her glistening chest.
-AWAIT - #TRACE #DOWN DINAHCHEST
+AWAIT - TRACE #DOWN DINAHCHEST
 MID SHOT - DINAH.BACK - 00:07
 The length of her spine peaks out in pearly intervals along its arch.
-AWAIT - #TRACE #UP DINAHSPINE
+AWAIT - TRACE #UP DINAHSPINE
 At its crest, her head tilts back to bask in the aura of a sun ray.
 CU - LEVI, POND - EASE OUT - 00:07
 Nearby Levi washes his face. Ripples pass through his image and dissipate under the caustic reflection of his companion.
-AWAIT - #TRACE #DOWN DINAHHAIR
+AWAIT - TRACE #DOWN DINAHHAIR
 Her posture tilts off center to wring out her hair. Wading over, he smiles and they embrace.
 CUT TO:
 EXT. POND, BETHLEHEM - AFTERNOON
@@ -3168,7 +3205,7 @@ Levi: Why, 2 it must be your nerves talking. 2 How could anyone know a thing lik
 Dinah sobs as Levi nods to himself in realization.
 Dinah: This is why I live the way I do. 2 Without a family to call my own... 3
 Levi: I see...
-AWAIT - #TRACE #UP FLOWER
+AWAIT - TRACE #UP FLOWER
 We focus on a flower.
 BCU - LEVI.FACE - 00:02
 Levi looks up, searching in anguish.
@@ -3353,7 +3390,7 @@ Above a flight of wooden block stairs leading, rain drizzles on Dinah as she app
 EXTREME LONG SHOT - DINAH, CITY - TRACKING
 //sm0ked a b0wl w/neighbor
 We see a flight of stairs.
-AWAIT - #TRACE #UP
+AWAIT - TRACE #UP
 We follow the stairs down into the city where pockets of fires roar amid the screams of women and children. A Wagon full of girls passes by.
 //glad I left EA. yeh yeh yeh -6hrs to the strip
 AWAIT - TOUCH - WAGON
@@ -3433,7 +3470,7 @@ MEDIUM SHOT - LEVI, ABDIHEBA - 00:04
 Abdiheba looks around and reluctantly waves us towards us.
 LONG SHOT - ROAD, LEVI - 00:05
 The guard releases Dinah and she scowls at him while cradling her wrist. Levi looks around.
-AWAIT - #TRACE #DOWN LEVI
+AWAIT - TRACE #DOWN LEVI
 And he pushes the spear out of the way and heads towards us.
 LONG SHOT - ROAD, LEVI - 00:10
 Levi runs through the view and sloshes over to Abdiheba through the muddy road. Holding his robe overhead, he yells above the storm.
@@ -3465,7 +3502,7 @@ TWO SHOT - LEVI.BACK.LEFT - 00:07
 Abdiheba breathes and returns glance to Dinah and then at Levi.
 Abdiheba: I %i see.
 A parade of three wagons approach.
-AWAIT - #TRACE #LEFT LEVI
+AWAIT - TRACE - LEFT - LEVI
 Levi turns
 LONG SHOT - ROAD/EAST, GROUP - 00:07
 A parade of three wagons pass in front of us transporting the girls. Guards marching next to them.
@@ -3510,7 +3547,7 @@ LONG SHOT - LEVI, CARRIAGE - 00:04
 Abdiheba pulls off down the road as a faint thunder rumbles.
 EWS - TREE.TOP, GROUP - 00:12
 Levi and Dinah depart while the Attendant pauses momentarily behind, studying the dark clouds flashing over the city.
-AWAIT - #TRACE #RIGHT ATTENDANT
+AWAIT - TRACE #RIGHT ATTENDANT
 He runs To catch up trailing the other donkey behind him.
 DISSOLVE:
 EXT. MAIN ROAD, GEBA - SUNSET
@@ -3527,26 +3564,26 @@ HIGH ANGLE - DINAH.BACK.OVERHEAD, PENDANT - FOCUS - 00:04
 She threads the pendant back into a necklace.
 CUT IN - PENDANT - 00:04
 We move the thread through her pendant. It shines brightly.
-AWAIT - #TRACE #CUSTOM
+AWAIT - TRACE #CUSTOM
 HIGH ANGLE - DINAH.BACK.OVERHEAD, PENDANT - 00:05
 Dinah looks down at the pendant.
-AWAIT - #TRACE #UP DINAH
+AWAIT - TRACE #UP DINAH
 She removes her hood
-AWAIT - #TRACE #DOWN DINAH
+AWAIT - TRACE #DOWN DINAH
 She puts the pendant on
-AWAIT - #TRACE #UP DINAH
+AWAIT - TRACE #UP DINAH
 Then looks up at us, squinting as a light drizzle hits her face.
 LOW ANGLE - DINAH, RAIN - 00:02
 We see the rain.
 HIGH ANGLE - DINAH.BACK.OVERHEAD, PENDANT - 00:07
 She flinches in the drizzle and yawns.
-AWAIT - #TRACE #UP DINAH
+AWAIT - TRACE #UP DINAH
 Stretches and rubs her eyes, holding out her hand to watch droplets form in her palm.
 FS - ROAD.CENTER, LEVI - FOLLOW - 00:05
 We see Levi and his Attendant guide the team by foot and notice the faint drumming growing nearer.
 MEDIUM SHOT - LEVI/FRONT - FOLLOW - 00:04
 They search for the sound and exchange tense glances.
-AWAIT - #TRACE #UP LEVI
+AWAIT - TRACE #UP LEVI
 Levi looks up.
 LONG SHOT - LEVI, TREE.TOP - FOLLOW - 00:07
 The irregular outline of the surrounding forest canopy occludes the sky's desaturated backdrop. Like a network of massive sea corals, they glide past us against a gloomy selenium sea.
@@ -3565,7 +3602,7 @@ They exchanges relieved sighs
 Dinah: Look!
 FS - ROAD.CENTER, LEVI - FOCUS - 00:02
 Dinah points out to her left.
-AWAIT - #TRACE #RIGHT DINAH
+AWAIT - TRACE #RIGHT DINAH
 POV - DINAH, HAG - STEADICAM - 00:05
 A robbed hag sits on a windowsill watching the party's approach with indifference.
 AWAIT - TOUCH - HAG
@@ -3608,7 +3645,7 @@ CUT TO:
 EXT. ANAT'S HOME, GEBA - EVENING
 EWS - CABIN/FRONT, LEVI, OLD MAN - PED DOWN TRACKING - 00:15
 They arrive at the mouth of the wilderness where a dimly lit cabin puffs smoke up into a sunny drizzle. A short flight of steps leads to its entrance, where a large bull hide hangs under the large roofed patio. Besides the home a small stream flows down into a densely vegetated canyon. Anat, a young girl sits at one of the open windows. Behind them a vast wilderness rustles in the breeze below the mountains.
-AWAIT - #TRACE #ZIGZAG LEVI
+AWAIT - TRACE #ZIGZAG LEVI
 Levi waves to Anat.
 MEDIUM SHOT - ANAT/FRONT - 00:12
 Anat squints at Levi and looks surprised at the name Kish, looking in the distance as something catches her eye.
@@ -3727,7 +3764,7 @@ We see Dinah nervously step onto the patio and look around.
 Old Man: Allow your husband to bathe his feet.
 Levi: No sir please, allow my wife to first. She is not used to travel.
 The Old Man smiles politely and nods.
-AWAIT - #TRACE #DOWN DINAH
+AWAIT - TRACE #DOWN DINAH
 She looks down at Anat And cracks a smile.
 POV - DINAH, ANAT - HAND HELD - 00:08
 Anat's pale face bows behind knotted tangles which brush against the patio's dirty floor. Her slender fingers carefully push the Pan forward as she lay prostrate.
@@ -3830,7 +3867,7 @@ MCU - FIREPIT/SOUTH - 00:02
 We see the fire.
 CU - STEW.S.W - 00:04
 We see a bubbling pot of stew.
-AWAIT - #TRACE #UP STEW
+AWAIT - TRACE #UP STEW
 LONG SHOT - STEW.S.W, SKYLIGHT - 00:04
 The fire bellows smoke up into the roof's skylight.
 NODDY SHOT - OLD MAN/FRONT - 00:12
@@ -3914,16 +3951,16 @@ NODDY SHOT - OLD MAN/FRONT - 00:15
 As the Old Man huffs in frustration, a knock wraps at the front door. The Old Man tries to ignore it, waving it off while taking a swig.
 Old Man: Not now merchants. It is too late for business.
 But the knock continues, louder this time.
-AWAIT - #TRACE #DOWN OLD MAN
+AWAIT - TRACE #DOWN OLD MAN
 MEDIUM SHOT - ANAT/FRONT - 00:04
 We see Anat turn to us, terrified.
-AWAIT - #TRACE #RIGHT ANAT
+AWAIT - TRACE #RIGHT ANAT
 MEDIUM SHOT - DINAH.S/EAST - 00:07
 We see Dinah sense that something is wrong by Anat's demeanor. The knocking continues.
-AWAIT - #TRACE #RIGHT DINAH
+AWAIT - TRACE #RIGHT DINAH
 MEDIUM SHOT - DINAH, LEVI - 00:07
 We see Levi exchange nervous glances with the others. He turns to the Old Man. The knocking continues.
-AWAIT - #TRACE #RIGHT LEVI
+AWAIT - TRACE #RIGHT LEVI
 NODDY SHOT - OLD MAN/FRONT - 00:11
 The Old Man forces an amused reaction to his guests. He addresses Levi sternly.
 Old Man: Your woman has strong opinions. Just a moment!
@@ -3944,7 +3981,7 @@ Levi.OOV: Still, 2 we are in his %i fucking home! 2 You're going to get us kille
 Dinah.OOV: That does not give him license to lack common decency, that hick. Was he not rude?
 MID SHOT - DINAH, DOOR - 00:11
 The Old Man overhears their banter as he makes his way towards the incessant knocking. He unlocks the door.
-AWAIT - #TRACE #UP CABINDOOR
+AWAIT - TRACE #UP CABINDOOR
 Old Man: Just a moment. Just a moment! This better be good!
 CU - KISH/FRONT/LEFT - 00:15
 Kish, a young freckled bandit with penetrating blue eyes and wild albino curls, talks against the door. We only see his mouth. Outside we hear dramatic tribunal drums.
@@ -3966,7 +4003,7 @@ MEDIUM SHOT - MOLOCH/FRONT/LEFT - 00:05
 Moloch, a toothless balding dark giant plays a large drum harnessed around his waist.
 MID SHOT - CAMERA KISH/FRONT - 00:10
 Kish steps aside.
-AWAIT - #TRACE #LEFT KISH
+AWAIT - TRACE - LEFT - KISH
 Ner, the costumed boy, shyly steps forward disguised in his hooded cape and mask.
 AWAIT - TOUCH - MASK
 BCU - NER/FRONT - 00:05
@@ -4039,7 +4076,7 @@ TWO SHOT - ASHTAR.BACK.LEFT - EASE IN - 00:07
 We see Chemosh hugging around Ashtar in front of a mirror the way Levi did with Dinah. We see Dinah quaking with terror at the table.
 MEDIUM SHOT - ATTENDANT/FRONT.RIGHT - 00:17
 The Attendant looks around anxiously.
-AWAIT - #TRACE #UP ATTENDANT
+AWAIT - TRACE #UP ATTENDANT
 The Attendant attempts to stand, but met with a blade to his throat, the giant's arm reaches around and firmly lowers him back down onto the bench.
 AWAIT - TAP - ATTENDANT 3
 The Attendant instinctively struggles but the giant reaffirms his grip. He shakes his goonish head and bears his gums, uttering a glottal disapproval.
@@ -4085,7 +4122,7 @@ CU - LEVI/FRONT.DOWN - 00:02
 A puddle forms under Levi's chair.
 MEDIUM SHOT - LEVI/FRONT - 00:05
 He bows his head and weeps with shame. Dinah's mouth drops in horror.
-AWAIT - #TRACE #RIGHT LEVI
+AWAIT - TRACE #RIGHT LEVI
 MEDIUM SHOT - OLD MAN/FRONT/LEFT - 00:21
 The Old Man pleads.
 Old Man: Dear countrymen, if you do not mind? My guests have come a long way, and it would be presumptive to believe that tjeu would be ready to entertain us after such a long journey. 4
@@ -4151,7 +4188,7 @@ LONG SHOT - KISH, NER - 00:04
 Ner looks at us and looks down, embarrassed at the suggestion.
 LONG SHOT - KISH/FRONT/LEFT, TABLE - 00:04
 In the foreground Kish smirks as Ashtar pulls Anat into the living room. She kicks and screams.
-AWAIT - #TRACE #UP KISH
+AWAIT - TRACE #UP KISH
 Kish: We tend to like our chicken with a little more meat on the bone. Perhaps next spring after she fattens up a little!
 Kish turns indoors laughing. The bandits holler and whistle raucously. Ashtar lets go of the girl and she hides.
 MEDIUM SHOT - KISH, DINAH - 00:02
@@ -4337,15 +4374,15 @@ AWAIT - TOUCH - BLURRYFIGURE
 As we focus on the distant figure, a door slams. It walks forward.
 LONG SHOT - PHINEAS.BACK.RIGHT, ABDIHEBA/FRONT - EASE OUT - 00:20
 He wakes and his eyes fix on the remains still in front of him. The prophet Phineas arrives.
-AWAIT - #TRACE #UP ABDIHEBA.
+AWAIT - TRACE #UP ABDIHEBA.
 Abdiheba rises
-AWAIT - #TRACE #DOWN ABDIHEBA.
+AWAIT - TRACE #DOWN ABDIHEBA.
 And he bows
 Abdiheba: Father.
 Phineas: All tribes, save Benjamin, have reported receiving a similar message. 2 Rather coincidental timing 3 wouldn't you say?
 Abdiheba: How so?
 Phineas: It was rumored that you nephew was the cause of this %i atrocity that was just commited in Gibeah. 3 Do you mean to deny this?
-AWAIT - #TRACE #DOWN ABDIHEBA
+AWAIT - TRACE #DOWN ABDIHEBA
 Abdiheba shakes his head and lowers himself into his seat, quietly sobbing into his hands.
 Abdiheba: We've encouraged the boy to straighten out but nothing seems to curb his appetites. That foul nature of his. His father is well known, Abiel, the mayor of Gibeon.
 Phineas: I know. We today spoke in likewise capacity.
@@ -4395,10 +4432,10 @@ CUT TO:
 I/E. JAIL, MIZPAH - MOMENTS LATER
 POV - NER, LEVI - STEADICAM - 00:10
 We see the outside of jail's entrance with its partially exposed cross bars brightly standing against the darkness. Inside, Levi stares at the warped stone wall of his cell.
-AWAIT - #TRACE #UP LEVI
+AWAIT - TRACE #UP LEVI
 LONG SHOT - LEVI.BACK.RIGHT - PAN LEFT - 00:10
 The inside of the cell is dank and cold. We move towards the frightened Levite who listlessly pounds against the far wall and mumbles to himself. The jail cell entrance casts crucifix shadows down on the beaten flesh of its captive's back. The visitor's silhouette appears in the entrance.
-AWAIT - #TRACE #RIGHT LEVI
+AWAIT - TRACE #RIGHT LEVI
 Levi looks up towards the entrance.
 POV - LEVI, NER - STEADICAM - 00:05
 Ner's shadowy face comes in and out of focus.
@@ -4667,15 +4704,15 @@ Beside a vineyard, tall wooden structures adorned by garland stand erect and pun
 :tentLeft
 LONG SHOT - TENT.LEFT, VINEYARD
 The white tent's canvas flaps in gusts of wind.
-#if #trace #left rope
+#if TRACE - LEFT - rope
 #skip valleyNorthW
 #elseif #trace #up rope
 #skip vineyardTop
-#elseif #trace #left rope
+#elseif TRACE - LEFT - rope
 :vineyardTop
 LONG SHOT - VINEYARD.TOP, TENTS - PED DOWN - 00:10
 Above the field of wooden beams hang a glowing latticework of lanterns strung together by twine. They flicker and jangle in the crisp flow of sweeping gales.
-AWAIT - #TRACE #DOWN POLE
+AWAIT - TRACE #DOWN POLE
 We pan down. Below them, a league of savage men skulk between the vineyard's trellises and their twisting adumbrations. Some linger propped up, while others recline. The whites of their eyes pop against the dim light, excitedly panning for motion in the canopies. A hush lulls over the vacantly gawking mob as the sun dissolves into a foreboding dusk. Kish sits amongst them patiently waiting. rubbing the bandaged wounds around his limbs.
 AWAIT - TOUCH - TENT
 WS - ANATTENT.BOTTOM/FRONT - 00:10
@@ -4774,7 +4811,7 @@ HIGH ANGLE - PHINEAS, EAGLE - 00:03
 He prods a dead eagle with his staff.
 EXTREME LONG SHOT - PHINEAS.BACK.RIGHT, ANAT - DEEPFOCUS
 Phineas watches the festival.
-AWAIT - #TRACE #UP PHINEAS
+AWAIT - TRACE #UP PHINEAS
 He looks up at the sky and the view follows him.
 Phineas: Where is the glory?
 Grasshoppers chirp. Birds croak. The wind sways and stars shimmer, as a glistening half crescent hangs fixed above the festival of Shiloh.
