@@ -1,75 +1,91 @@
-FADE IN:
-EXT. OLD BAPTIST CHURCH, KENTUCKY - NOON
-EWS - OLD BAPTIST CHURCH/FRONT - 05 
-Over the dense hiss and buzz of a humid summer afternoon we watch an old man pace in front of an old baptist church.
+predicates = {
+'FADE IN',
+'EXT',
+'NOON',
+'EWS',
+'TOUCH',
+'ONCE',
+[0-9][0-9]:?[ ]:?(,[ ]:?[0-9][0-9]:?):?,
 
-TOUCH - OLD MAN
+FADE IN
+EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON
+EWS - OLD BAPTIST CHURCH FRONT - 15
+Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church. - 5
+
+TOUCH - MAN - ONCE - 5,10
 	The man pauses to speak.
 	Old Man: Hello?
 
-TOUCH - OLD MAN/CAP
+He clears his throat and coughs.
+
+TOUCH - MAN CAP - AFTER - TOUCH - MAN
 	He anxiously brushes through his hair and crumples his cap while he paces. He pauses in contemplation and strokes his beard.
 	
-	CU - OLD/FACE - 00:04
+	CU - MAN FACE - 00:04
 	We see the old man's wrinkled face.
 
-	AFTER - OLD BAPTIST CHURCH/FRONT
+	AFTER - VISITED - OLD BAPTIST CHURCH FRONT - FIRST - DIALOGUE
 		Old Man: Is there anybody out there?
-	AFTER - OLD BAPTIST CHURCH/DOOR
+	AFTER - VISITED - OLD BAPTIST CHURCH DOOR - FIRST - DIALOGUE
 		Old Man: Is there anybody in there?
-	AFTER - OLD MAN/OLD BAPTIST CHURCH/FRONT
+	AFTER - VISITED - MAN OLD BAPTIST CHURCH FRONT - FIRST - DIALOGUE
 		Old Man: Is there anybody in there?
-	AFTER - OLD MAN/CAP
+	AFTER - VISITED - MAN CAP - FIRST - DIALOGUE
 		Old Man: Hmph...
 
-AFTER - TOUCH - OLD MAN/CAP - OR - TOUCH - OLD MAN
-	ONCE - TOUCH - OLD BAPTIST CHURCH/DOOR
-		LONG SHOT - CHURCH/FRONT - 00:04
+AFTER - TOUCH - OLD BAPTIST CHURCH DOOR - TOUCH - MAN CAP
+AFTER - TOUCH - OLD BAPTIST CHURCH DOOR - TOUCH - MAN CAP
+	TOUCH - MAN - AFTER
+		LONG SHOT - CHURCH FRONT - 00:04
 		The long church doors tower above a wraparound porch. A glimmer in the bush catches our eye.
 		AWAIT - TOUCH - BUSH
 			LONG SHOT - MAN, BUSH - 00:04
 			A light breeze picks up as we notice a key in the bush.
+			
 			AWAIT - PICKUP - KEY
 				The man bends down to investigate.
-				CU - OLD/FACE - 00:04
+				CU - MAN FACE - 00:04
 				We see an old key in the palm of his cracked hands.
 
-AWAIT - PICKUP - KEY - AND - TOUCH - OLD MAN/CAP
+STATE - HOLD
+	He paces back and forth.
+
+AWAIT - PICKUP - KEY - TOUCH - MAN CAP
 
 EWS - CHURCH - 00:02
 
 The man coughs violently. He looks at the key in his hand.
 
-MEDIUM SHOT - OLD MAN/RIGHT - 00:02
+MEDIUM SHOT - MAN RIGHT - 00:02
 
 The man wipes his brow and looks up.
 
-MCU - OLD MAN - 00:02
+MCU - MAN - 00:02
 
 He looks up at us. The church's cross drapes a long shadow over his face.
 
 Old Man: hmph.
 
-TOUCH - OLD BAPTIST CHURCH/DOOR
+TOUCH - OLD BAPTIST CHURCH DOOR
 	The Old Man shuffles over to the door.
 
-	CU - MAN/HAND - 00:02
+	CU - MAN HAND - 00:02
 	As the Old Man approaches the door with his hand extended, the key flies out of it into the keyhole. The door swings open with a bang.
 
 	LOW ANGLE - MAN, CHURCH - 00:02
 
 	Bats burst out of the door. They fly across the silhouette of the cross cast against the bright sky. We hear church bells.
 
-AWAIT - TOUCH - Old Man
+AWAIT - TOUCH - Man
 
-HIGH ANGLE - MAN/RIGHT - 00:02
+HIGH ANGLE - MAN RIGHT - 00:02
 
 The man cowers. 
 
-AWAIT - TOUCH - CHURCH/DOOR
+AWAIT - TOUCH - CHURCH DOOR
 
 He eases up and huffs. Kicking a pebble, he shuffles into the sancturary.
 
-FULL - CHURCH/DOOR - EASE IN - 00:05
+FULL - CHURCH DOOR - EASE IN - 00:05
 
 We ease into the sanctuary.
