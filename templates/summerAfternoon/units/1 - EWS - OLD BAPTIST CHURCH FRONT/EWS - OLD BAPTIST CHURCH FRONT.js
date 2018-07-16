@@ -50,23 +50,27 @@ async function loadUnitFromScript(scriptPath){
 //TODO: restructure units using this definition
 const Unit = {
 	init({ conditionals, holdConditional, nextUnit }) {
-		this.conditionals = conditionals.map(({condition, unit}) => ConditionalUnit(condition, unit))
-		this.holdConditional = ConditionalUnit({holdConditional, nextUnit})
+		this.conditionals = conditionals.map(({ condition, unit }) => Conditional(condition, unit))
+		this.holdConditional = Conditional({holdConditional, nextUnit})
 	},
 	props: {
 		state: UnitState({state:UnitState.PLAY, value: 0})
 	},
 	methods:{
-		run(){
-			if (this.state === UnitState.BACKGROUND && this.state === UnitState.INACTIVE){
-				return
+		evalConditionals(){
+			if (this.state === UnitState.BACKGROUND || this.state === UnitState.INACTIVE){
+				return false
 			}
 			let activeConditional = this.conditionals.find(conditional => conditional.eval())
 			if(activeConditional){
 				this.giveControlTo(activeConditional.unit, UnitState.BACKGROUND)
-			} else if (this.state === UnitState.HOLD && this.holdConditional.eval()) {
-				this.giveControlTo(this.holdConditional.unit, UnitState.INACTIVE)
+				return true
 			}
+			if (this.state === UnitState.HOLD && this.holdConditional.eval()) {
+				this.giveControlTo(this.holdConditional.unit, UnitState.INACTIVE)
+				return true
+			}
+			return false
 		},
 		giveControlTo(unit, state){
 			unit.activate()
@@ -91,36 +95,86 @@ const UnitState = compose({
 	}
 })
 
-const ConditionalUnit = compose({
-	init({ condition, unit }) {
-		this.condition = Exp(condition)
-		this.unit = Unit(unit)
-	}
-})
-
-const Exp = compose({
-	init({ op, lhs, rhs }) {
-		this.op = op 
-		this.lhs = lhs.map( exp => Exp(exp))
-		this.rhs = rhs.map( exp => Exp(exp))
+const Conditional = compose({
+	init({conditonalText, parent, child}) {
+		this.child = child
+		this.preds = conditonalText.reduce( (preds, verb, idx, conds) => { 
+			let pred = Predicates.GetPredicate(verb)
+			if(pred){
+				let args = conds.GetArgs(preds, idx)
+				let predInst = pred.create({ verb: verb, args, scope:parent})
+				return [...preds, predInst]
+			}
+			return preds
+		}, [])
 	},
 	methods: {
 		eval(){
-			return this.op(lhs.eval(), rhs.eval())
+			return this.preds.find( p => !p.eval() ) ? false : true
 		}
+	}
+})
+
+const Predicate = compose({
+	statics: {
+		GetPredicate(verb){
+			return Predicate._preds[verb]
+		},
+		AddPredicate(pred){
+			Predicate._preds[pred.verb] = pred
+		}
+	},
+	init({ verb, args, scope }) {
+		this.verb = verb
+		this.args = args
+		this.scope = scope
+	},
+	//TODO: add more predicates via AddPredicate
+	//TODO: override eval(), GetArgs() methods with specific behavior
+	methods: {
+		Eval(){
+			return true
+		},
+		GetArgs(rhsText, idx) {
+			return rhsText.slice(idx)
+		}
+	}
+})
+
+const ShotState = compose(UnitState,{
+	statics: {
+		PLAY: 'PLAY',
+		STOP: 'STOP'
 	}
 })
 
 //shot as a unit
 const Shot = compose(Unit,{
 	props: {
-		time: Time({ms:0}) 
+		time: Time({ms:0}),
+		actionIndex: 0
 	},
 	init({ transition, sceneHeading, shotHeading, actions }) {
 		this.transition = Transition(transition)
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
 		this.actions = actions.map(action => Action(action))
+	},
+	methods:{
+		play(){
+			if(this.state === ShotState.STOP){
+				return false
+			}
+			if(this.evalConditions()){
+				return false
+			}  
+			if (this.activeAction.isDone()) {
+				this.actionIndex += 1
+				this.activeAction = this.actions[this.actionIndex]
+				this.activeAction.start()
+			}
+			return true
+		}
 	}
 })
 
@@ -210,7 +264,7 @@ const Predicate = compose({
 })
  
 const Unit = compose({
-	properties: {
+	props: {
 		runCondition,
 		awaitCondition,
 		actions
