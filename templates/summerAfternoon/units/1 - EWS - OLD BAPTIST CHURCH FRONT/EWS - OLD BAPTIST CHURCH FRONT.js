@@ -51,7 +51,7 @@ async function loadUnitFromScript(scriptPath){
 const Unit = {
 	init({ conditionals, holdConditional, nextUnit }) {
 		this.conditionals = conditionals.map(({ condition, unit }) => Conditional(condition, unit))
-		this.holdConditional = Conditional({holdConditional, nextUnit})
+		this.holdConditional = Conditional({conditonalText: holdConditional, parent: nextUnit, child: this})
 	},
 	props: {
 		state: UnitState({state:UnitState.PLAY, value: 0})
