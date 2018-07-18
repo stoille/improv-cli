@@ -31,10 +31,10 @@ const Unit = {
 			return false
 		},
 		giveControlTo(unit, state){
-			unit.activate()
+			unit.start()
 			this.state = state
 		},
-		activate(){
+		start(){
 			this.state = State.ACTIVE
 		}
 	}
@@ -45,7 +45,8 @@ const UnitState = compose({
 		BACKGROUND: 'BACKGROUND',
 		ACTIVE: 'ACTIVE',
 		INACTIVE: 'INACTIVE',
-		HOLD: 'HOLD'
+		HOLD: 'HOLD',
+		DONE: 'DONE'
 	},
 	init({state, value}){
 		this.state = state
@@ -106,7 +107,8 @@ const Predicate = compose({
 const ShotState = compose(UnitState,{
 	statics: {
 		PLAY: 'PLAY',
-		STOP: 'STOP'
+		STOP: 'STOP',
+		BACKGROUND: 'BACKGROUND'
 	}
 })
 
@@ -123,19 +125,36 @@ const Shot = compose(Unit,{
 		this.actions = actions.map(action => Action(action))
 	},
 	methods:{
-		play(){
-			if(this.state === ShotState.STOP){
-				return false
-			}
-			if(this.evalConditions()){
-				return false
-			}  
+		updateConditionals(){
+			
+			return ShotState.PLAY
+		},
+		updateActions() {
 			if (this.activeAction.isDone()) {
 				this.actionIndex += 1
+				if (this.actionIndex > this.actions.length) {
+					this.state = UnitState.DONE
+					return true
+				}
+				this.activeAction.stop()
 				this.activeAction = this.actions[this.actionIndex]
 				this.activeAction.start()
+			} 
+			this.activeAction.update()
+			return false
+		},
+		update(){
+			if (this.state !== UnitState.ACTIVE 
+				&& this.state !== UnitState.HOLD) {
+				return
 			}
-			return true
+			if (this.evalConditions() && this.state === UnitState.BACKGROUND){
+				return
+			}
+			if (this.updateActions() && this.state === UnitState.DONE) {
+				return
+			}
+			this.onUpdate()
 		}
 	}
 })
