@@ -148,7 +148,7 @@ const Shot = compose(Unit,{
 				&& this.state !== UnitState.HOLD) {
 				return
 			}
-			if (this.evalConditions() && this.state === UnitState.BACKGROUND){
+			if (this.evalConditionals() && this.state === UnitState.BACKGROUND){
 				return
 			}
 			if (this.updateActions() && this.state === UnitState.DONE) {
