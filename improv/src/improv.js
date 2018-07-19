@@ -12,40 +12,79 @@ const Unit = {
 		this.holdConditional = Conditional({conditonalText: holdConditional, parent: nextUnit, child: this})
 	},
 	props: {
-		state: UnitState({state:UnitState.PLAY, value: 0})
+		state: State({state:State.PLAY, value: 0}),
+		transition: Transition({})
 	},
 	methods:{
-		evalConditionals(){
-			if (this.state === UnitState.BACKGROUND || this.state === UnitState.INACTIVE){
-				return false
+		updateControl(){
+			if (this.state === State.DONE 
+				|| this.state === State.PAUSE
+				|| this.state === State.PRELOAD){
+				return
 			}
 			let activeConditional = this.conditionals.find(conditional => conditional.eval())
 			if(activeConditional){
-				this.giveControlTo(activeConditional.unit, UnitState.BACKGROUND)
-				return true
+				this.transitionTo(activeConditional.unit)
+				return
 			}
-			if (this.state === UnitState.HOLD && this.holdConditional.eval()) {
-				this.giveControlTo(this.holdConditional.unit, UnitState.INACTIVE)
-				return true
+			if (this.state === State.HOLD && this.holdConditional.eval()) {
+				this.transitionTo(this.holdConditional.unit)
+				return
 			}
-			return false
 		},
-		giveControlTo(unit, state){
-			unit.start()
+		updateTransition(){
+			if(this.transition.isDone === false){
+				this.transition.update()
+				if (this.transition.isDone){
+					this.transition.unload()
+				}
+			}
+		},
+		transitionTo(unit){
+			unit.transition()
 			this.state = state
 		},
-		start(){
-			this.state = State.ACTIVE
+		transition(){
+			this.state = State.TRANSITION
+			this.transition.start()
+		},
+		load(){
+			this.state = State.LOAD
+			this.loadAssets()
+		},
+		loadAssets(){
+			//to be overwritten
+		},
+		run(){
+			this.state = State.TRANSITION
+		},
+		hold(){
+			this.state = State.HOLD
 		}
 	}
 }
 
-const UnitState = compose({
+const Transition = compose({
+	methods: {
+		update() {
+			//TODO: drive transitions here
+		}
+	},
+	init({ transitionType, transitionTime }) {
+		this.transitionType = transitionType 
+		this.transitionTime = TimeSpan(transitionTime)
+	}
+})
+
+const State = compose({
 	statics:{
-		BACKGROUND: 'BACKGROUND',
-		ACTIVE: 'ACTIVE',
-		INACTIVE: 'INACTIVE',
+		PRELOAD: 'PRELOAD',
+		LOAD: 'LOAD',
+		TRANSITION: 'TRANSITION',
+		RUN: 'RUN',
 		HOLD: 'HOLD',
+		IDLE: 'IDLE',
+		PAUSE: 'PAUSE',
 		DONE: 'DONE'
 	},
 	init({state, value}){
@@ -104,19 +143,13 @@ const Predicate = compose({
  * MODELS
  * */
 
-const ShotState = compose(UnitState,{
-	statics: {
-		PLAY: 'PLAY',
-		STOP: 'STOP',
-		BACKGROUND: 'BACKGROUND'
-	}
-})
-
 //shot as a unit
 const Shot = compose(Unit,{
 	props: {
+		isFirstUpdate: true,
 		time: Time({ms:0}),
-		actionIndex: 0
+		actionIndex: 0,
+		objects: {}
 	},
 	init({ transition, sceneHeading, shotHeading, actions }) {
 		this.transition = Transition(transition)
@@ -124,45 +157,71 @@ const Shot = compose(Unit,{
 		this.shotHeading = ShotHeading(shotHeading)
 		this.actions = actions.map(action => Action(action))
 	},
-	methods:{
-		updateConditionals(){
-			
-			return ShotState.PLAY
+	statics: {
+		assetLoader: (asset) => {
 		},
-		updateActions() {
+		animLoader: (asset) => {},
+		actionLoader: (asset) => {}
+	},
+	methods:{
+		updateActions(deltaTime) {
 			if (this.activeAction.isDone()) {
 				this.actionIndex += 1
 				if (this.actionIndex > this.actions.length) {
-					this.state = UnitState.DONE
-					return true
+					this.state = State.DONE
+					return
 				}
 				this.activeAction.stop()
 				this.activeAction = this.actions[this.actionIndex]
 				this.activeAction.start()
 			} 
-			this.activeAction.update()
-			return false
+			this.activeAction.update(deltaTime)
 		},
-		update(){
-			if (this.state !== UnitState.ACTIVE 
-				&& this.state !== UnitState.HOLD) {
+		loadAssets(){
+			let load = (assets, loader) => Object.keys(this.assets).forEach( handle => {
+				let assetPath = assets[handle]
+				this.objects[handle] = loader(assetPath)
+			})
+			load(this.assets, Shot.assetLoader)
+			load(this.anims, Shot.animLoader)
+			load(this.actions, Shot.actionLoader)
+		},
+		setupCamera(){
+			//TODO
+		},
+		startAnimations(){
+			//TODO
+		},
+		update(deltaTime){
+			if(	 this.state === State.PAUSE
+				|| this.state === State.DONE){
 				return
 			}
-			if (this.evalConditionals() && this.state === UnitState.BACKGROUND){
+
+			if(this.isFirstUpdate){
+				this.isFirstUpdate = false
+				this.setupCamera()
+				this.startAnimations()
+				this.onFirstUpdate()
+			}
+
+			if(this.state === ShotState.TRANSITION && this.transition.isDone === false){
+				this.transition.update(deltaTime)
+				if(this.transition.isDone){
+					this.transition.unload()
+				}
+			}
+			
+			this.updateControl(deltaTime)
+			if (this.state === State.IDLE){
 				return
 			}
-			if (this.updateActions() && this.state === UnitState.DONE) {
+			this.updateActions(deltaTime)
+			if (this.state === State.DONE) {
 				return
 			}
 			this.onUpdate()
 		}
-	}
-})
-
-const Transition = compose({
-	init({ transitionType, transitionTime }) {
-		this.transitionType = transitionType 
-		this.transitionTime = TimeSpan(transitionTime)
 	}
 })
 
