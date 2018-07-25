@@ -22,29 +22,22 @@ const anims = {
 	actionsPath: `./assets/actions`
 }
 
-const actions = {
-	oldManPath: `./assets/oldMan`,
-	oldManCapPath: `./assets/oldManCap`,
-	oldBaptistChurchKentuckyPath: `./assets/oldBaptistChurchKentucky`,
-	oldBaptistChurchDoorPath: `./assets/oldBaptistChurchDoor`,
-	oldBaptistChurchFrontPath: `./assets/oldBaptistChurchFront`,
-	runConditionPath: `./assets/runCondition`,
-	awaitConditionPath: `./assets/awaitCondition`,
-	actionsPath: `./assets/actions`
-}
-
 export default Shot({
-	props: {
-		assets,
-		anims,
-		actions
+	onLoad: () => {
+		this.loadAssets(shotAssets)
+		this.loadAnimations(shotAnims)
+		this.loadActions(shotActions)
 	},
-	methods: {
-		onFirstUpdate: () => {
-			
-		},
-		onUpdate: () => {
-			//TODO: populate this shot with actions
+	onFirstUpdate: () => {
+		this.setupCamera()
+		this.startAnimations()
+	},
+	onUpdate: () => {
+		//visits all children units and hands over control if their condition is true
+		if(this.evalConditionals()){
+			return
 		}
+		
+		//TODO: populate this shot with actions
 	}
 })

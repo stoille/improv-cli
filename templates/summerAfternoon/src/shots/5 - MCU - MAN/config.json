@@ -1,0 +1,32 @@
+{
+    "assets": {
+        "oldMan": "./assets/oldMan",
+        "oldManCap": "./assets/oldManCap",
+        "oldBaptistChurchKentucky": "./assets/oldBaptistChurchKentucky",
+        "oldBaptistChurchDoor": "./assets/oldBaptistChurchDoor",
+        "oldBaptistChurchFront": "./assets/oldBaptistChurchFront",
+        "runCondition": "./assets/runCondition",
+        "awaitCondition": "./assets/awaitCondition",
+        "actions": "./assets/actions"
+    },
+    "anims": {
+        "oldMan": "./assets/oldMan",
+        "oldManCap": "./assets/oldManCap",
+        "oldBaptistChurchKentucky": "./assets/oldBaptistChurchKentucky",
+        "oldBaptistChurchDoor": "./assets/oldBaptistChurchDoor",
+        "oldBaptistChurchFront": "./assets/oldBaptistChurchFront",
+        "runCondition": "./assets/runCondition",
+        "awaitCondition": "./assets/awaitCondition",
+        "actions": "./assets/actions"
+    },
+    "actions": {
+        "oldMan": "./assets/oldMan",
+        "oldManCap": "./assets/oldManCap",
+        "oldBaptistChurchKentucky": "./assets/oldBaptistChurchKentucky",
+        "oldBaptistChurchDoor": "./assets/oldBaptistChurchDoor",
+        "oldBaptistChurchFront": "./assets/oldBaptistChurchFront",
+        "runCondition": "./assets/runCondition",
+        "awaitCondition": "./assets/awaitCondition",
+        "actions": "./assets/actions"
+    }
+}

@@ -1,7 +1,7 @@
 /**
  * CORE
  * */
-import { compose } from '../../../../../Users/mlacay/Library/Caches/typescript/2.9/node_modules/@types/stampit'
+import { compose } from 'stampit'
 import * as uuid from 'uuid'
 
 //TODO: restructure units using this definition
