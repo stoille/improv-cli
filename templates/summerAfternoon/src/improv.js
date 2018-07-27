@@ -9,19 +9,20 @@ export const Unit = compose({
 	statics: {
 		instances: {}
 	},
-	init({ id, nextUnit }) {
+	init({ id, holdCondition, nextUnit }) {
 		if (id && Unit.instances[id]) {
 			return Unit.instances[id]
 		}
 		this.nextUnit = nextUnit
 		this.id = uuid()
 		Unit.instances[this.id]
+		this.holdCondition = Predicate(holdCondition)
 	},
 	props: {
 		state: State.PRELOAD,
 		conditionals: [],
-		holdConditional: null,
-		transition: Transition({})
+		holdCondition: null,
+		transition: Transition()
 	},
 	methods:{
 		updateControl(){
@@ -35,8 +36,8 @@ export const Unit = compose({
 				this.transitionTo(activeConditional.unit)
 				return
 			}
-			if (this.state === State.HOLD && this.holdConditional.eval()) {
-				this.transitionTo(this.holdConditional.unit)
+			if (this.state === State.HOLD && this.holdCondition.eval()) {
+				this.transitionTo(this.holdCondition.unit)
 				return
 			}
 		},
@@ -69,7 +70,7 @@ export const Unit = compose({
 		run(){
 			this.state = State.TRANSITION
 		},
-		hold(){
+		holdCondition(){
 			this.state = State.HOLD
 		}
 	}
@@ -107,9 +108,9 @@ export const State = compose({
 })
 
 export const Conditional = compose({
-	init({conditonalText, parent, child}) {
+	init({json, parent, child}) {
 		this.child = child
-		this.preds = conditonalText.reduce( (preds, verb, idx, conds) => { 
+		this.preds = json.conditionals.reduce( (	preds, verb, idx, conds) => { 
 			let pred = Predicates.GetPredicate(verb)
 			if(pred){
 				let args = conds.GetArgs(preds, idx)
@@ -168,6 +169,7 @@ export const Shot = compose(Unit,{
 		this.transition = Transition(transition)
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
+		this.conditionals = conditionals.map(conditional => Conditional(conditional))
 		this.actions = actions.map(action => Action(action))
 	},
 	statics: {

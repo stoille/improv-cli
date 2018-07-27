@@ -1,7 +1,7 @@
 /**
  * CORE
  * */
-import { compose } from '../../../../../Users/mlacay/Library/Caches/typescript/2.9/node_modules/@types/stampit'
+import { compose } from 'stampit'
 import * as uuid from 'uuid'
 
 //TODO: restructure units using this definition
@@ -9,67 +9,72 @@ export const Unit = compose({
 	statics: {
 		instances: {}
 	},
-	init({ id, nextUnit }) {
+	init({
+		id,
+		holdCondition,
+		nextUnit
+	}) {
 		if (id && Unit.instances[id]) {
 			return Unit.instances[id]
 		}
 		this.nextUnit = nextUnit
-		this.id = uuid()
+		this.id = uuid.v4()
 		Unit.instances[this.id]
+		this.holdCondition = Predicate(holdCondition)
 	},
 	props: {
 		state: State.PRELOAD,
 		conditionals: [],
-		holdConditional: null,
-		transition: Transition({})
+		holdCondition: null,
+		transition: Transition()
 	},
-	methods:{
-		updateControl(){
-			if (this.state === State.DONE 
-				|| this.state === State.PAUSE
-				|| this.state === State.PRELOAD){
+	methods: {
+		updateControl() {
+			if (this.state === State.DONE ||
+				this.state === State.PAUSE ||
+				this.state === State.PRELOAD) {
 				return
 			}
 			let activeConditional = this.conditionals.find(conditional => conditional.eval())
-			if(activeConditional){
+			if (activeConditional) {
 				this.transitionTo(activeConditional.unit)
 				return
 			}
-			if (this.state === State.HOLD && this.holdConditional.eval()) {
-				this.transitionTo(this.holdConditional.unit)
+			if (this.state === State.HOLD && this.holdCondition.eval()) {
+				this.transitionTo(this.holdCondition.unit)
 				return
 			}
 		},
-		updateTransition(){
-			if(this.transition.isDone === false){
+		updateTransition() {
+			if (this.transition.isDone === false) {
 				this.transition.update()
-				if (this.transition.isDone){
+				if (this.transition.isDone) {
 					this.transition.unload()
 				}
 			}
 		},
-		transitionTo(unit){
+		transitionTo(unit) {
 			unit.transition()
 			this.state = state
 		},
-		transition(){
+		transition() {
 			this.state = State.TRANSITION
 			this.transition.start()
 		},
-		load(){
+		load() {
 			this.state = State.LOAD
 			this.loadAssets()
 		},
 		loadConditionals() {
 			//to be overwritten
 		},
-		loadAssets(){
+		loadAssets() {
 			//to be overwritten
 		},
-		run(){
+		run() {
 			this.state = State.TRANSITION
 		},
-		hold(){
+		holdCondition() {
 			this.state = State.HOLD
 		}
 	}
@@ -81,14 +86,17 @@ export const Transition = compose({
 			//TODO: drive transitions here
 		}
 	},
-	init({ transitionType, transitionTime }) {
-		this.transitionType = transitionType 
+	init({
+		transitionType,
+		transitionTime
+	}) {
+		this.transitionType = transitionType
 		this.transitionTime = TimeSpan(transitionTime)
 	}
 })
 
 export const State = compose({
-	statics:{
+	statics: {
 		PRELOAD: 'PRELOAD',
 		LOAD_CONDITIONALS: 'LOAD_CONDITIONALS',
 		LOAD_ASSETS: 'LOAD_ASSETS',
@@ -100,42 +108,57 @@ export const State = compose({
 		PAUSE: 'PAUSE',
 		DONE: 'DONE'
 	},
-	init({state, value}){
+	init({
+		state,
+		value
+	}) {
 		this.state = state
 		this.value = value
 	}
 })
 
 export const Conditional = compose({
-	init({conditonalText, parent, child}) {
+	init({
+		json,
+		parent,
+		child
+	}) {
 		this.child = child
-		this.preds = conditonalText.reduce( (preds, verb, idx, conds) => { 
+		this.preds = json.conditionals.reduce((preds, verb, idx, conds) => {
 			let pred = Predicates.GetPredicate(verb)
-			if(pred){
+			if (pred) {
 				let args = conds.GetArgs(preds, idx)
-				let predInst = pred.create({ verb: verb, args, scope:parent})
+				let predInst = pred.create({
+					verb: verb,
+					args,
+					scope: parent
+				})
 				return [...preds, predInst]
 			}
 			return preds
 		}, [])
 	},
 	methods: {
-		eval(){
-			return this.preds.find( p => !p.eval() ) ? false : true
+		eval() {
+			return this.preds.find(p => !p.eval()) ? false : true
 		}
 	}
 })
 
 export const Predicate = compose({
 	statics: {
-		GetPredicate(verb){
+		GetPredicate(verb) {
 			return Predicate._preds[verb]
 		},
-		AddPredicate(pred){
+		AddPredicate(pred) {
 			Predicate._preds[pred.verb] = pred
 		}
 	},
-	init({ verb, args, scope }) {
+	init({
+		verb,
+		args,
+		scope
+	}) {
 		this.verb = verb
 		this.args = args
 		this.scope = scope
@@ -143,7 +166,7 @@ export const Predicate = compose({
 	//TODO: add more predicates via AddPredicate
 	//TODO: override eval(), GetArgs() methods with specific behavior
 	methods: {
-		Eval(){
+		Eval() {
 			return true
 		},
 		GetArgs(rhsText, idx) {
@@ -157,76 +180,83 @@ export const Predicate = compose({
  * */
 
 //shot as a unit
-export const Shot = compose(Unit,{
+export const Shot = compose(Unit, {
 	props: {
 		isFirstUpdate: true,
-		time: Time({ms:0}),
-		actionIndex: 0,
+		time: Time({
+			ms: 0
+		}),
+		actionLineIndex: 0,
 		objects: {}
 	},
-	init({ transition, sceneHeading, shotHeading, actions }) {
+	//init takes in a json definition
+	init({
+		transition,
+		sceneHeading,
+		shotHeading,
+		actionLines
+	}) {
 		this.transition = Transition(transition)
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
-		this.actions = actions.map(action => Action(action))
+		this.conditionals = conditionals.map(conditional => Conditional(conditional))
+		this.actionLines = actionLines.map(actionLine => Action(actionLine))
 	},
 	statics: {
-		assetLoader: (asset) => {
-		},
+		assetLoader: (asset) => {},
 		animLoader: (asset) => {},
-		actionLoader: (asset) => {}
+		actionLineLoader: (asset) => {}
 	},
-	methods:{
-		updateActions(deltaTime) {
-			if (this.activeAction.isDone()) {
-				this.actionIndex += 1
-				if (this.actionIndex > this.actions.length) {
+	methods: {
+		updateActionLines(deltaTime) {
+			if (this.activeActionLine.isDone()) {
+				this.actionLineIndex += 1
+				if (this.actionLineIndex > this.actionLines.length) {
 					this.state = State.DONE
 					return
 				}
-				this.activeAction.stop()
-				this.activeAction = this.actions[this.actionIndex]
-				this.activeAction.start()
-			} 
-			this.activeAction.update(deltaTime)
+				this.activeActionLine.stop()
+				this.activeAction = this.actionLines[this.actionLineIndex]
+				this.activeActionLine.start()
+			}
+			this.activeActionLine.update(deltaTime)
 		},
-		loadAssets(){
-			let load = (assets, loader) => Object.keys(this.assets).forEach( handle => {
+		loadAssets() {
+			let load = (assets, loader) => Object.keys(this.assets).map(handle => {
 				let assetPath = assets[handle]
-				this.objects[handle] = loader(assetPath)
+				return loader(assetPath)
 			})
 			load(this.assets, Shot.assetLoader)
 			load(this.anims, Shot.animLoader)
-			load(this.actions, Shot.actionLoader)
 		},
-		setupCamera(){
+		setupCamera() {
 			//TODO
 		},
-		startAnimations(){
+		startAnimations() {
 			//TODO
 		},
-		update(deltaTime){
-			if(	 this.state === State.PAUSE
-				|| this.state === State.DONE){
+		update(deltaTime) {
+			if (this.state === State.PAUSE ||
+				this.state === State.DONE) {
 				return
 			}
 
-			if(this.isFirstUpdate){
+			if (this.isFirstUpdate) {
 				this.isFirstUpdate = false
 				this.setupCamera()
 				this.startAnimations()
 				this.onFirstUpdate()
 			}
 
-			if(this.state === ShotState.TRANSITION && this.transition.isDone === false){
+			if (this.state === ShotState.TRANSITION && this.transition.isDone === false) {
 				this.transition.update(deltaTime)
-				if(this.transition.isDone){
+				if (this.transition.isDone) {
 					this.transition.unload()
 				}
 			}
-			
+
 			this.updateControl(deltaTime)
-			if (this.state === State.IDLE){
+			if (this.state === State.IDLE) {
 				return
 			}
 			this.updateActions(deltaTime)
@@ -239,8 +269,13 @@ export const Shot = compose(Unit,{
 })
 
 export const SceneHeading = compose({
-	init({ setting, sceneName, sceneLocation, sceneLength }) {
-		this.setting = setting 
+	init({
+		setting,
+		sceneName,
+		sceneLocation,
+		sceneLength
+	}) {
+		this.setting = setting
 		this.sceneName = sceneName
 		this.sceneLocation = sceneLocation
 		this.sceneTime = TimeSpan(sceneLength)
@@ -249,231 +284,246 @@ export const SceneHeading = compose({
 
 //shotheading
 export const ShotHeading = compose({
-	init({ cameraType, cameraSource, cameraTarget, timeSpan }) {
-		this.cameraType = cameraType 
+	init({
+		cameraType,
+		cameraSource,
+		cameraTarget,
+		timeSpan
+	}) {
+		this.cameraType = cameraType
 		this.cameraSource = cameraSource
-		this.cameraTarget = cameraTarget 
+		this.cameraTarget = cameraTarget
 		this.timeSpan = timeSpan
 	}
 })
 
 //time
 export const Time = compose({
-	init({ ms }) {
+	init({
+		ms
+	}) {
 		this.time = ms
 	}
 })
 
 export const Text = compose({
-	init({ text }) {
+	init({
+		text
+	}) {
 		this.text = text
 	}
 })
 
 //length
 export const TimeSpan = compose({
-	init({ start, end }) {
+	init({
+		start,
+		end
+	}) {
 		this.from = Time(from)
 		this.to = Time(to)
 	}
 })
-//actions
+//actionLines
 export const Action = compose({
-	init({ text, length }) {
+	init({
+		text,
+		length
+	}) {
 		this.text = Text(text)
 		this.length = TimeSpan(length)
 	}
 })
 ////////
 function* mainLoop(unit) {
-	let lastUnit = unit
-	while(unit = unit.next()){
-		if (lastUnit !== unit){
-			if(DEBUG){
-				console.log(`changed to Unit: ${unit}`)
-				yield unit.loadAssets()
-				yield lastUnit.unloadAssets()
+		let lastUnit = unit
+		while (unit = unit.next()) {
+			if (lastUnit !== unit) {
+				if (DEBUG) {
+					console.log(`changed to Unit: ${unit}`)
+					yield unit.loadAssets()
+					yield lastUnit.unloadAssets()
+				}
 			}
+			let unitState = yield unit.visit()
+			lastUnit = unit
 		}
-		let unitState = yield unit.visit()
-		lastUnit = unit
-}
 
-/**
- *
+		/**
+		 *
 
- export const Predicate = compose({
- 	methods: {
- 		isTrue: () => {
- 			this.eval(predicate.subjects)
- 		},
- 		eval: (subjects) => {
- 			//TODO
- 		},
- 		run: () => {}
- 		//override and define predicates for TOUCH, AFTER, AWAIT, PICKUP
- 		//if its a unit
- 		//this.giveControlTo(cond.body)
- 		//if its an action or dialogue
- 		//this.addAction(cond.body)
- 	}
- })
+		 export const Predicate = compose({
+		 	methods: {
+		 		isTrue: () => {
+		 			this.eval(predicate.subjects)
+		 		},
+		 		eval: (subjects) => {
+		 			//TODO
+		 		},
+		 		run: () => {}
+		 		//override and define predicates for TOUCH, AFTER, AWAIT, PICKUP
+		 		//if its a unit
+		 		//this.giveControlTo(cond.body)
+		 		//if its an actionLine or dialogue
+		 		//this.addAction(cond.body)
+		 	}
+		 })
 
- export const Unit = compose({
- 	props: {
- 		runCondition,
- 		awaitCondition,
- 		actions
- 	},
- 	methods: {
- 		loadAssets: async (depth) => {
- 			if (depth > 1) {
- 				return null
- 			}
- 			let sceneObjects = await this.loadSceneObjects(sceneUnit, sceneSubjects)
- 			this.children = this.children.map(child = new Unit(child))
- 			for (let i = 0; i < unit.length; ++i) {
- 				let loadStatus = await this.children[i].loadAssets(depth + 1)
- 				console.log(loadStatus)
- 			}
- 			return ({
- 				status: loaded
- 			})
- 		},
- 		evalPredicates: () => {
- 			for (let predicate in this.predicates) {
- 				if (predicate.isTrue()) {
- 					predicate.run(this)
- 					break
- 				}
- 			}
- 		},
- 		giveControlTo: (unit) => {
- 			Unit.activeUnit = unit
- 			Unit.history.push(unit.nextLine)
- 		},
- 		condition() {
- 			//TODO: evaluate condition
- 			return true
- 		},
- 		onUnload: () => {
- 			this.unloadAssets()
- 			this.unloaAnimations()
- 			this.unloadActions()
- 		},
- 		async loadSceneObjects() {
- 			if (isSceneObjectsLoaded) {
- 				return sceneObjects
- 			}
- 			//load scene objects
- 			return sceneObjects
- 		},
- 		async loadUnits() {
- 			if (isSceneObjectsLoaded) {
- 				return sceneObjects
- 			}
- 			//load scene objects
- 			return sceneObjects
- 		},
- 		async unloadSceneObjects() {
- 			if (isSceneObjectsLoaded) {
- 				return sceneObjects
- 			}
- 			//unload scene objects
- 			return sceneObjects
- 		},
- 		async unloadUnits() {
- 			if (isSceneObjectsLoaded) {
- 				return sceneObjects
- 			}
- 			//unload scene objects
- 			return sceneObjects
- 		}
- 	},
- 	initializers: [function ({}) {
- 		this.runCondition = runCondition,
- 			this.awaitCondition = awaitCondition,
- 			this.actions = actions
- 	}]
- })
- export default Unit
+		 export const Unit = compose({
+		 	props: {
+		 		runCondition,
+		 		awaitCondition,
+		 		actionLines
+		 	},
+		 	methods: {
+		 		loadAssets: async (depth) => {
+		 			if (depth > 1) {
+		 				return null
+		 			}
+		 			let sceneObjects = await this.loadSceneObjects(sceneUnit, sceneSubjects)
+		 			this.children = this.children.map(child = new Unit(child))
+		 			for (let i = 0; i < unit.length; ++i) {
+		 				let loadStatus = await this.children[i].loadAssets(depth + 1)
+		 				console.log(loadStatus)
+		 			}
+		 			return ({
+		 				status: loaded
+		 			})
+		 		},
+		 		evalPredicates: () => {
+		 			for (let predicate in this.predicates) {
+		 				if (predicate.isTrue()) {
+		 					predicate.run(this)
+		 					break
+		 				}
+		 			}
+		 		},
+		 		giveControlTo: (unit) => {
+		 			Unit.activeUnit = unit
+		 			Unit.history.push(unit.nextLine)
+		 		},
+		 		condition() {
+		 			//TODO: evaluate condition
+		 			return true
+		 		},
+		 		onUnload: () => {
+		 			this.unloadAssets()
+		 			this.unloaAnimations()
+		 			this.unloadActions()
+		 		},
+		 		async loadSceneObjects() {
+		 			if (isSceneObjectsLoaded) {
+		 				return sceneObjects
+		 			}
+		 			//load scene objects
+		 			return sceneObjects
+		 		},
+		 		async loadUnits() {
+		 			if (isSceneObjectsLoaded) {
+		 				return sceneObjects
+		 			}
+		 			//load scene objects
+		 			return sceneObjects
+		 		},
+		 		async unloadSceneObjects() {
+		 			if (isSceneObjectsLoaded) {
+		 				return sceneObjects
+		 			}
+		 			//unload scene objects
+		 			return sceneObjects
+		 		},
+		 		async unloadUnits() {
+		 			if (isSceneObjectsLoaded) {
+		 				return sceneObjects
+		 			}
+		 			//unload scene objects
+		 			return sceneObjects
+		 		}
+		 	},
+		 	initializers: [function ({}) {
+		 		this.runCondition = runCondition,
+		 			this.awaitCondition = awaitCondition,
+		 			this.actionLines = actionLines
+		 	}]
+		 })
+		 export default Unit
 
- export const Shot = compose(Unit, {
- 	methods: {
- 		update: async function () {
+		 export const Shot = compose(Unit, {
+		 	methods: {
+		 		update: async function () {
 
- 		},
- 		initialize: () => {
- 			//if DEV_BUILD render the text
- 			this.setupCamera()
- 			this.startAnimations()
- 			//start animations
- 		},
- 		setupCamera: () => {
+		 		},
+		 		initialize: () => {
+		 			//if DEV_BUILD render the text
+		 			this.setupCamera()
+		 			this.startAnimations()
+		 			//start animations
+		 		},
+		 		setupCamera: () => {
 
- 		},
- 		startAnimations: () => {},
- 		loadAssets: (shotAssets) => {},
- 		loadAnimations: (shotAnims) => {},
- 		loadActions: (shotActions) => {
+		 		},
+		 		startAnimations: () => {},
+		 		loadAssets: (shotAssets) => {},
+		 		loadAnimations: (shotAnims) => {},
+		 		loadActions: (shotActions) => {
 
- 		},
- 		shotUpdate: () => {
- 			this.evalconditionals()
+		 		},
+		 		shotUpdate: () => {
+		 			this.evalconditionals()
 
- 			if (this.currentAction.isOver) {
- 				this.setCurrentAction(currentAction.next)
- 			}
- 		},
- 		runOp: (o.branchp) => {
- 			this.setCurrentShot(op.shot)
- 		},
- 		setCurrentAction: (nextAction) => {
- 			Shot.currentAction.stopAnimations()
- 			Shot.currentAction = nextAction
- 			Shot.currentAction.start()
- 		},
- 		setCurrentShot: (nextShot) => {
- 			this.unloadStaleAssets(nextShot, this)
- 			Shot.currentShot = nextShot //static
- 		},
- 	},
- 	initializers: [function ({
- 		shot
- 	}) {
- 		this.shot = shot
- 		shot.onInit()
+		 			if (this.currentActionLine.isOver) {
+		 				this.setCurrentAction(currentActionLine.next)
+		 			}
+		 		},
+		 		runOp: (o.branchp) => {
+		 			this.setCurrentShot(op.shot)
+		 		},
+		 		setCurrentAction: (nextAction) => {
+		 			Shot.currentActionLine.stopAnimations()
+		 			Shot.currentAction = nextAction
+		 			Shot.currentActionLine.start()
+		 		},
+		 		setCurrentShot: (nextShot) => {
+		 			this.unloadStaleAssets(nextShot, this)
+		 			Shot.currentShot = nextShot //static
+		 		},
+		 	},
+		 	initializers: [function ({
+		 		shot
+		 	}) {
+		 		this.shot = shot
+		 		shot.onInit()
 
- 		this.camera = camera
- 		this.animations = animations
- 		this.onInit()
- 	}]
- })
+		 		this.camera = camera
+		 		this.animations = animations
+		 		this.onInit()
+		 	}]
+		 })
 
- export const Action = compose({
- 	methods: {
- 		update: async function () {
+		 export const Action = compose({
+		 	methods: {
+		 		update: async function () {
 
- 		},
- 		start: () => {
- 			//if DEV_BUILD render the text
+		 		},
+		 		start: () => {
+		 			//if DEV_BUILD render the text
 
- 			this.startAnimations()
- 			//start animations
- 		},
- 		setupCamera: () => {
+		 			this.startAnimations()
+		 			//start animations
+		 		},
+		 		setupCamera: () => {
 
- 		},
- 		startAnimations: () => {
+		 		},
+		 		startAnimations: () => {
 
- 		},
- 	},
- 	initializers: [function ({
- 		text,
- 		animations
- 	}) {
- 		this.text = text
- 		this.animations = animations
- 	}]
- })
- */
+		 		},
+		 	},
+		 	initializers: [function ({
+		 		text,
+		 		animations
+		 	}) {
+		 		this.text = text
+		 		this.animations = animations
+		 	}]
+		 })
+		 */
