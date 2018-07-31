@@ -12,53 +12,19 @@ import {
 export default Shot({
 	props:{
 		assets: [],
-		anims: [],
+		anims: {
+			manWalk: '',
+			manPace: '',
+		},
 		selectors: {
-			man: Selector('MAN'),
-			manCap: Selector('MAN CAP'),
-			manFace: Selector('MAN FACE'),
-			oldBaptistChurchDoor: Selector('OLD BAPTIST CHURCH DOOR')
+			man: Selector('MAN', Pos({x:0,y:0,z:0})),
+			manCap: Selector('MAN CAP', Pos({x:0,y:0,z:0})),
+			manFace: Selector('MAN FACE', Pos({x:0,y:0,z:0})),
+			oldBaptistChurchDoor: Selector('OLD BAPTIST CHURCH DOOR', Pos({x:0,y:0,z:0}))
 		}
 	},
 	methods: {
-		loadConditionals: async () => {
-			this.state = State.LOAD_CONDITIONALS
-			this.conditionals.push(await
-					import ('./1 - SELECT - MAN - ONCE')
-					.then(shot => Conditional({
-						condition: OneShot(shot.id).Select(selectors.man).TimeSpan(5000, 10000),
-						child: shot(),
-						parent: this
-					})))
-			this.conditionals.push(await
-					import ('./2 - SELECT - MAN CAP - AFTER - SELECT - MAN')
-					.then(shot => Conditional({
-						condition: Select(selectors.manCap).After(Select(selectors.man)),
-						child: shot,
-						parent: this
-					})))
-			this.conditionals.push(await
-					import ('./3 - AFTER - SELECT - MAN CAP')
-					.then(shot => Conditional({
-						condition: After(Select(selectors.manCap)),
-						child: shot,
-						parent: this
-					})))
-			this.conditionals.push(await
-					import ('./4 - AFTER - SELECT - OLD BAPTIST CHURCH DOOR')
-					.then(shot => Conditional({
-						condition: After(Select(selectors.oldBaptistChurchDoor)),
-						child: shot,
-						parent: this
-					})))
-			this.holdConditional.push(await
-					import ('./5 - AWAIT - Pickup - KEY - SELECT - MAN CAP')
-					.then(shot => Conditional({
-						condition: Await(Pickup(selectors.key).Select(selectors.manCap)),
-						child: shot,
-						parent: this
-					})))
-		},
+		
 		//how are select topics defined?
 		//TODO: finish loading code,
 		//TODO: finish rest of indexes,
@@ -79,25 +45,6 @@ export default Shot({
 			import (`${ROOT}/scenes/kentucky/oldBaptistChurch`)
 				.then(asset => asset.loadAsset())
 			
-			this.scene = await Scene({
-					location: kentucky,
-					setting: oldBaptistChurch,
-					lighting: Lighting(Lighting.EXT, Lighting.NOON)
-				}).loadAssets()
-			//TODO: make this code async friendly
-			this.selectors = {
-				man: SceneObject(),
-				manCap: SceneObject(),
-				oldBaptistChurchDoor: SceneObject(),
-				oldBaptistChurchFront: SceneObject(),
-				key: SceneObject()
-			}
-			this.subject = Transition({
-				target: this.selectors.oldBaptistChurchFront,
-				type: Transition.Type.EaseIn
-			})
-			this.actions = this.actions.map( actionText => Action({text: actionText}))
-
 			this.state = State.READY
 		},
 		onFirstUpdate: () => {
@@ -118,3 +65,46 @@ export default Shot({
 		}
 	}
 })
+
+
+
+/**
+ * loadConditionals: async () => {
+ 	this.state = State.LOAD_CONDITIONALS
+ 	this.conditionals.push(await
+ 		import ('./1 - SELECT - MAN - ONCE')
+ 		.then(shot => Conditional({
+ 			condition: OneShot(shot.id).Select(selectors.man).TimeSpan(5000, 10000),
+ 			child: shot(),
+ 			parent: this
+ 		})))
+ 	this.conditionals.push(await
+ 		import ('./2 - SELECT - MAN CAP - AFTER - SELECT - MAN')
+ 		.then(shot => Conditional({
+ 			condition: Select(selectors.manCap).After(Select(selectors.man)),
+ 			child: shot,
+ 			parent: this
+ 		})))
+ 	this.conditionals.push(await
+ 		import ('./3 - AFTER - SELECT - MAN CAP')
+ 		.then(shot => Conditional({
+ 			condition: After(Select(selectors.manCap)),
+ 			child: shot,
+ 			parent: this
+ 		})))
+ 	this.conditionals.push(await
+ 		import ('./4 - AFTER - SELECT - OLD BAPTIST CHURCH DOOR')
+ 		.then(shot => Conditional({
+ 			condition: After(Select(selectors.oldBaptistChurchDoor)),
+ 			child: shot,
+ 			parent: this
+ 		})))
+ 	this.holdConditional.push(await
+ 		import ('./5 - AWAIT - Pickup - KEY - SELECT - MAN CAP')
+ 		.then(shot => Conditional({
+ 			condition: Await(Pickup(selectors.key).Select(selectors.manCap)),
+ 			child: shot,
+ 			parent: this
+ 		})))
+ },
+ */
