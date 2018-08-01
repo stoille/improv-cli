@@ -46,9 +46,6 @@ export const Unit = compose({
 				return
 			}
 		},
-		updateTransition(transition) {
-			transition.update()
-		},
 		giveControlTo(unit) {
 			this.state = State.OUT_TRANSITION
 			await unit.start()
@@ -253,10 +250,10 @@ export const Shot = compose(Unit, {
 			}
 
 			if (this.state === ShotState.IN_TRANSITION) {
-				this.updateTransition(this.inTransition)
+				this.inTransition.update()
 				return
 			} else if (this.state === ShotState.OUT_TRANSITION) {
-				this.updateTransition(this.outTransition)
+				this.outTransition.update()
 				return
 			}
 
