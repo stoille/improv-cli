@@ -13,7 +13,9 @@ export const Unit = compose({
 		id,
 		conditionals,
 		holdCondition,
-		nextUnit
+		nextUnit,
+		inTransition,
+		outTransition
 	}) {
 		if (id && Unit.instances[id]) {
 			return Unit.instances[id]
@@ -23,12 +25,9 @@ export const Unit = compose({
 		this.conditionals = conditionals.map(cond => Conditional(cond))
 		this.holdCondition = Exp({op: holdCondition.op, args: holdCondition.args, env: this})
 		this.nextUnit = Unit(nextUnit)
-	},
-	props: {
-		state: State.PRELOAD,
-		conditionals: [],
-		holdCondition: null,
-		transition: Transition()
+		this.inTransition = Transition(inTransition)
+		this.outTransition = Transition(outTransition)
+		this.state = State.PRELOAD
 	},
 	methods: {
 		updateControl() {
@@ -39,37 +38,35 @@ export const Unit = compose({
 			}
 			let activeConditional = this.conditionals.find(conditional => conditional.eval())
 			if (activeConditional) {
-				this.transitionTo(activeConditional.unit)
+				this.giveControlTo(activeConditional.unit)
 				return
 			}
 			if (this.state === State.RUN && this.holdCondition.eval()) {
-				this.transitionTo(this.nextUnit)
+				this.giveControlTo(this.nextUnit)
 				return
 			}
 		},
-		updateTransition() {
-			if(this.transition.isDone){
-				return
-			}
-			this.transition.update()
-			if (this.transition.isDone) {
-				this.transition.unload()
-			}
+		updateTransition(transition) {
+			transition.update()
 		},
-		async transitionTo(unit) {
-			this.state = State.TRANSITION
-			await unit.startTransition()
+		giveControlTo(unit) {
+			this.state = State.OUT_TRANSITION
+			await unit.start()
 			this.state = State.DONE
 			Unit.ActiveUnit = unit
+		},
+		start() {
+			this.state = State.IN_TRANSITION
+			await unit.transition.run()
+			this.state = STATE.RUN
 		},
 		async load() {
 			this.state = State.LOAD_ASSETS
 			await this.loadAssets()
+			this.state = State.READY
 		},
-		async startTransition(){
-			this.state = State.TRANSITION
-			await unit.transition.start()
-			this.state = STATE.RUN
+		async loadAssts(){
+			//to be overridden
 		}
 	}
 })
@@ -79,19 +76,28 @@ export const Transition = compose({
 		time: Number.MAX_SAFE_INTEGER
 	},
 	methods: {
-		update() {
-			this.time -= Time.deltaTime
-			//TODO: tick screen transitions here
-		},
-		*start(){
+		run() {
 			this.time = this.transitionTime
-			while(!this.isDone()){
-				yield false
+			this.runPromise = new Promise()
+			return this.runPromise
+		},
+		update() {
+			if(this.isDone()){
+				return
 			}
-			return true
+			this.time -= Time.deltaTime
+			
+			//TODO: tick screen transitions here
+
+			if (this.isDone()) {
+				this.runPromise.resolve(this.unload)
+			}
 		},
 		isDone(){
 			return this.time <= 0
+		},
+		unload(){
+			//TODO
 		}
 	},
 	init({
@@ -108,10 +114,11 @@ export const State = compose({
 		PRELOAD: 'PRELOAD',
 		LOAD_ASSETS: 'LOAD_ASSETS',
 		READY: 'READY',
-		TRANSITION: 'TRANSITION',
+		IN_TRANSITION: 'IN_TRANSITION',
 		RUN: 'RUN',
 		BACKGROUND: 'BACKGROUND',
 		PAUSE: 'PAUSE',
+		OUT_TRANSITION: 'OUT_TRANSITION',
 		DONE: 'DONE'
 	},
 	init({
@@ -214,13 +221,64 @@ export const Shot = compose(Unit, {
 		this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
 	},
 	statics: {
-		deltaTime: 0,
 		//TODO: implement these loaders
 		modelLoader: (asset) => {},
 		animLoader: (asset) => {}
 	},
 	methods: {
-		updateActionLines(deltaTime) {
+		async loadAssets() {
+			this.assets = await load(this.assets, Shot.modelLoader)
+			this.anims = await load(this.anims, Shot.animLoader)
+
+			function load(assets, loader) { 
+				return Object.keys(this.assets).map(handle => {
+					let assetPath = assets[handle]
+					return loader(assetPath)
+				})
+			}
+		},
+		update() {
+			if (this.state === State.PAUSE ||
+					this.state === State.DONE) {
+				return
+			}
+			Shot.deltaTime = Time.deltaTime
+
+			if (this.isFirstUpdate) {
+				this.isFirstUpdate = false
+				this.setupCamera()
+				this.startAnimations()
+				this.onFirstUpdate()
+				return
+			}
+
+			if (this.state === ShotState.IN_TRANSITION) {
+				this.updateTransition(this.inTransition)
+				return
+			} else if (this.state === ShotState.OUT_TRANSITION) {
+				this.updateTransition(this.outTransition)
+				return
+			}
+
+			this.updateControl()
+			if (this.state === State.BACKGROUND) {
+				return
+			}
+
+			this.updateActionLines()
+			if (this.state === State.DONE) {
+				return
+			}
+
+			this.onUpdate()
+		},
+		setupCamera() {
+				//TODO
+		},
+		startAnimations() {
+			//TODO
+		},
+		updateActionLines() {
 			if (this.activeActionLine.isDone()) {
 				this.actionLineIndex += 1
 				if (this.actionLineIndex > this.actionLines.length) {
@@ -231,51 +289,7 @@ export const Shot = compose(Unit, {
 				this.activeAction = this.actionLines[this.actionLineIndex]
 				this.activeActionLine.start()
 			}
-			this.activeActionLine.update(deltaTime)
-		},
-		loadAssetsAndAnims() {
-			let load = (assets, loader) => Object.keys(this.assets).map(handle => {
-				let assetPath = assets[handle]
-				return loader(assetPath)
-			})
-			load(this.assets, Shot.modelLoader)
-			load(this.anims, Shot.animLoader)
-		},
-		setupCamera() {
-			//TODO
-		},
-		startAnimations() {
-			//TODO
-		},
-		update(deltaTime) {
-			if (this.state === State.PAUSE ||
-					this.state === State.DONE) {
-				return
-			}
-			Shot.deltaTime = deltaTime
-
-			if (this.isFirstUpdate) {
-				this.isFirstUpdate = false
-				this.setupCamera()
-				this.startAnimations()
-				this.onFirstUpdate()
-			}
-
-			if (this.state === ShotState.TRANSITION) {
-				this.updateTransition()
-				return
-			}
-
-			this.updateControl(deltaTime)
-			if (this.state === State.BACKGROUND) {
-				return
-			}
-
-			this.updateActionLines(deltaTime)
-			if (this.state === State.DONE) {
-				return
-			}
-			this.onUpdate()
+			this.activeActionLine.update()
 		}
 	}
 })
@@ -352,7 +366,7 @@ export const ActionLine = compose({
 		start(){
 			//TODO
 		},
-		update(deltaTime){
+		update(){
 			//TODO
 		},
 		isDone(){
