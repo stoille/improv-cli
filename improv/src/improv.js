@@ -11,6 +11,7 @@ export const Unit = compose({
 	},
 	init({
 		id,
+		scriptPath,
 		conditionals,
 		holdCondition,
 		nextUnit,
@@ -21,8 +22,9 @@ export const Unit = compose({
 			return Unit.instances[id]
 		}
 		this.id = id
+		this.script = require(scriptPath)
 		Unit.instances[this.id] = this
-		this.conditionals = conditionals.map(cond => Conditional(cond))
+		this.conditionals = conditionals.map(({exps, unit}) => Conditional({exps, env: this, unit}))
 		this.holdCondition = Exp({op: holdCondition.op, args: holdCondition.args, env: this})
 		this.nextUnit = Unit(nextUnit)
 		this.inTransition = Transition(inTransition)
@@ -129,11 +131,13 @@ export const State = compose({
 
 export const Conditional = compose({
 	init({
-		exps,
+		exp,
+		env,
 		unit
 	}) {
-		this.exps = exps.map(exp => Exp(this))
-		this.unit = Unit(unit)
+		this.eval = exp.map(exp => Exp({op:exp.op, args: exp.args, env}))
+		let scriptPath = `${ShotsDir}/${ShotNum} - ${exp.text}`
+		this.unit = Unit({unit, scriptPath})
 	},
 	methods: {
 		eval() {
@@ -144,7 +148,7 @@ export const Conditional = compose({
 /**
  * conditional parsing logic:
  * this.exps = json.conditionals.reduce((exps, op, idx, conds) => {
- 	let exp = Exps.GetExp(op)
+ 	let exp = Exps.GetOp(op)
  	if (exp) {
  		let args = conds.GetArgs(exps, idx)
  		let expInst = exp.create({
@@ -160,10 +164,10 @@ export const Conditional = compose({
 
 export const Exp = compose({
 	statics: {
-		GetExp(op) {
+		GetOp(op) {
 			return Exp.exps[op]
 		},
-		AddExp(exp) {
+		AddOp(exp) {
 			Exp.exps[exp.op] = exp
 		}
 	},
@@ -175,8 +179,9 @@ export const Exp = compose({
 		this.op = op
 		this.args = args
 		this.env = env
+		this.eval = Exp.GetOp(op)(args, env)
 	},
-	//TODO: add more exps via AddExp
+	//TODO: add more exps via AddOp
 	//TODO: override eval(), GetArgs() methods with specific behavior
 	methods: {
 		eval() {
@@ -245,7 +250,9 @@ export const Shot = compose(Unit, {
 				this.isFirstUpdate = false
 				this.setupCamera()
 				this.startAnimations()
-				this.onFirstUpdate()
+
+				//run user script first update
+				this.script.onFirstUpdate()
 				return
 			}
 
@@ -267,7 +274,10 @@ export const Shot = compose(Unit, {
 				return
 			}
 
-			this.onUpdate()
+			this.updateSelectors()
+
+			//run user script updates
+			this.script.onUpdate()
 		},
 		setupCamera() {
 				//TODO
@@ -287,6 +297,9 @@ export const Shot = compose(Unit, {
 				this.activeActionLine.start()
 			}
 			this.activeActionLine.update()
+		},
+		updateSelectors(){
+			//TODO
 		}
 	}
 })
