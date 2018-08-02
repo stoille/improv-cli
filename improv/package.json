@@ -5,6 +5,7 @@
   "license": "BSD0",
   "dependencies": {
     "commander": "^2.15.1",
+    "glob": "^7.1.2",
     "inquirer": "^5.1.0",
     "json-beautify": "^1.0.1",
     "lowdb": "^1.0.0",

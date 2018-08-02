@@ -1,6 +1,7 @@
-export let assets = {
+export let models = {
 	kentucky: `${ROOT}/scenes/kentucky`,
-	oldBaptistChurch: `${ROOT}/scenes/kentucky/oldBaptistChurch`
+	oldBaptistChurch: `${ROOT}/scenes/kentucky/oldBaptistChurch`,
+	man: ''
 }
 export let anims = {
 	manWalk: '',

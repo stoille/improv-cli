@@ -2,6 +2,8 @@
  * CORE
  * */
 import { compose } from 'stampit'
+import * as glob from 'glob'
+
 //TODO: restructure units using this definition
 export const Unit = compose({
 	statics: {
@@ -129,6 +131,7 @@ export const State = compose({
 	}
 })
 
+//TODO: define ShotsDir and ShotNum
 export const Conditional = compose({
 	init({
 		exp,
@@ -201,14 +204,10 @@ export const Exp = compose({
 export const Shot = compose(Unit, {
 	props: {
 		isFirstUpdate: true,
-		time: Time({
-			ms: 0
-		}),
-		actionLineIndex: 0,
-		objects: {},
-		assets: [],
-		anims: []
+		time: Time({ ms: 0 }),
+		actionLineIndex: 0
 	},
+
 	//init takes in a json definition
 	init({
 		transition,
@@ -221,6 +220,15 @@ export const Shot = compose(Unit, {
 		this.shotHeading = ShotHeading(shotHeading)
 		this.conditionals = conditionals.map(conditional => Conditional(conditional))
 		this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
+		//TODO: define SceneDir
+		let modelsPath = `${SceneDir}/models`
+		this.models = listFilesWithExt(modelsPath, '.fbx')
+		let animsPath = `${SceneDir}/anims`
+		this.anims = listFilesWithExt(animsPath, '.fbx')
+
+		function listFilesWithExt(path, ext) {
+			return glob.sync(`${path}/*.${ext}`)
+		}
 	},
 	statics: {
 		//TODO: implement these loaders
@@ -229,11 +237,11 @@ export const Shot = compose(Unit, {
 	},
 	methods: {
 		async loadAssets() {
-			this.assets = await load(this.assets, Shot.modelLoader)
+			this.models = await load(this.models, Shot.modelLoader)
 			this.anims = await load(this.anims, Shot.animLoader)
 
 			function load(assets, loader) { 
-				return Object.keys(this.assets).map(handle => {
+				return Object.keys(this.models).map(handle => {
 					let assetPath = assets[handle]
 					return loader(assetPath)
 				})
