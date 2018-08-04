@@ -31,7 +31,7 @@ export const Unit = compose({
 		scriptPath,
 		conditionals,
 		holdCondition,
-		nextUnit,
+		next,
 		inTransition,
 		outTransition
 	}) {
@@ -43,7 +43,7 @@ export const Unit = compose({
 		Unit.Instances[this.id] = this
 		this.conditionals = conditionals.map(({exps, unit}) => Conditional({exps, env: this, unit}))
 		this.holdCondition = Exp({op: holdCondition.op, args: holdCondition.args, env: this})
-		this.nextUnit = Unit(nextUnit)
+		this.next = Unit(next)
 		this.inTransition = Transition(inTransition)
 		this.outTransition = Transition(outTransition)
 		this.state = Unit.State.PRELOAD
@@ -64,22 +64,24 @@ export const Unit = compose({
 				return
 			}
 			if (this.state === Unit.State.RUN && this.holdCondition.eval()) {
-				this.giveControlTo(this.nextUnit)
+				this.giveControlTo(this.next)
 				return
 			}
 		},
-		giveControlTo(unit) {
-			this.state = Unit.State.OUT_TRANSITION
-			await unit.start()
-			await this.stop()
+		async giveControlTo(unit) {
+			this.stop()
 			Unit.ActiveUnit = unit
+			await unit.start()
 		},
-		start() {
+		async start() {
 			this.state = Unit.State.IN_TRANSITION
-			await unit.transition.run()
-			this.state = STATE.RUN
+			await unit.inTransition.run()
+			this.state = Unit.State.RUN
 		},
-		stop(){
+		async stop(){
+			this.state = Unit.State.OUT_TRANSITION
+			await unit.outTransition.run()
+		
 			this.state = Unit.State.DONE
 			if(this.isReadyToUnload()){
 				await this.unload()
@@ -146,8 +148,8 @@ export const Conditional = compose({
 	}) {
 		this.exp = Exp({exp, env})
 		this.eval = this.exp.eval()
-		let scriptPath = `${ShotsDir}/${index} - ${exp.text}`
-		this.unit = Unit({unit, scriptPath})
+		let scriptPath = `${ShotsDir}/${index + 1} - ${exp.text}`
+		this.unit = Unit({unit})
 	}
 })
 /**
@@ -201,7 +203,7 @@ const Op = compose({
 export const Shot = compose(Unit, {
 	props: {
 		isFirstUpdate: true,
-		time: Time({ ms: 0 }),
+		time: TimeSpan({start: Time(), end: Time()}),
 		actionLineIndex: 0
 	},
 
@@ -227,13 +229,13 @@ export const Shot = compose(Unit, {
 	},
 	statics: {
 		//TODO: implement these loaders
-		modelLoader: async (asset) => {},
-		animLoader: async (asset) => {}
+		ModelLoader: async (asset) => {},
+		AnimLoader: async (asset) => {}
 	},
 	methods: {
 		async loadAssets() {
-			this.models = await load(this.models, Shot.modelLoader)
-			this.anims = await load(this.anims, Shot.animLoader)
+			this.models = await load(this.models, Shot.ModelLoader)
+			this.anims = await load(this.anims, Shot.AnimLoader)
 
 			async function load(assets, loader) { 
 				return Promise.all(Object.keys(this.models).map(
@@ -317,18 +319,31 @@ export const ShotHeading = compose({
 	}
 })
 
+//TODO: replace with more robust time library
 export const Time = compose({
+	props:{
+		min: 0,
+		sec: 0,
+		ms: 0
+	},
 	init({
 		min,
-		sec
+		sec,
+		ms
 	}) {
 		this.min = min
 		this.sec = sec
-		this.ms = ((min*60) + sec) * 1000
+		if(!ms){
+			this.ms = ((min*60) + sec) * 1000
+		}
 	}
 })
-
+//TODO: replace with more robust time library
 export const TimeSpan = compose({
+	props:{
+		start: Time(),
+		end: Time()
+	},
 	init({
 		start,
 		end
@@ -440,9 +455,10 @@ let shot = Shot({
 		sceneLocation: 'KENTUCKY'
 	}),
 	shotHeading: ShotHeading({
-		cameraType,
-		cameraSource,
-		cameraTarget,
+		cameraType: Camera.Type.EWS,
+		cameraSource: null,
+		cameraTarget: 'OLD BAPTIST CHURCH FRONT',
+		movement: Camera.Movement.EaseIn({start: 0, end: 2}),
 		timeSpan: TimeSpan({
 			start: Time({
 				min: 0,
@@ -478,24 +494,85 @@ let shot = Shot({
 ],
 	holdCondition: Conditional({
 		exp: Exp({
-			op: Await,
-			args: Pickup({
-				selector: Selector({
-					handle: 'KEY',
-					pos: new Position(0,0,0)
-				})
-			}),
-			env: this
+			op: Pickup({
+				name: 'Pickup',
+				args: [
+					Selector({
+						handle: 'KEY',
+						pos: new Position(0, 0, 0)
+					})
+				],
+				env: this
+			})
 		}),
-		env,
-		unit,
-		index
+		env: this,
+		unit: this,
+		index: 4
 	}),
 	outTransition: Cut(),
-	nextUnit: Shot({
-		cameraType,
-		cameraSource,
-		cameraTarget,
-		timeSpan
+	next: Shot({
+		id: 0,
+		scriptPath: './kentucky',
+		sceneHeading: SceneHeading({
+			timeOfDay: 'NOON',
+			sceneName: 'OLD BAPTIST CHURCH',
+			sceneLocation: 'KENTUCKY'
+		}),
+		shotHeading: ShotHeading({
+			cameraType: Camera.Type.EWS,
+			cameraSource: null,
+			cameraTarget: 'OLD BAPTIST CHURCH FRONT',
+			timeSpan: TimeSpan({
+				start: Time({
+					min: 0,
+					sec: 00
+				}),
+				end: Time({
+					min: 0,
+					sec: 15
+				})
+			})
+		}),
+		inTransition: Cut(),
+		conditionals: [],
+		actionLines: [ActionLine({
+				time: TimeSpan({
+					min: 0,
+					sec: 3
+				}),
+				text: 'Foo.'
+			}),
+			ActionLine({
+				time: TimeSpan({
+					min: 0,
+					sec: 1
+				}),
+				text: 'Bar.'
+			}),
+		],
+		holdCondition: Conditional({
+			exp: Exp({
+				op: Pickup({
+					name: 'Pickup',
+					args: [
+						Selector({
+							handle: 'KEY',
+							pos: new Position(0, 0, 0)
+						})
+					],
+					env: this
+				})
+			}),
+			env: this,
+			unit: this,
+			index: 4
+		}),
+		outTransition: Cut(),
+		next: Shot({
+			cameraType,
+			cameraSource,
+			cameraTarget,
+			timeSpan
+		})
 	})
 })
