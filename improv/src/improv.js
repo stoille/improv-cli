@@ -4,12 +4,27 @@
 import { compose } from 'stampit'
 import * as glob from 'glob'
 
+//TODO: define these
+var SceneDir = './scenes'
+var ShotsDir = './shots'
+
 //TODO: restructure units using this definition
 export const Unit = compose({
 	statics: {
-		instances: {},
+		Instances: {},
 		ActiveUnit: null,
-		history: []
+		History: [],
+		State: {
+			PRELOAD: 'PRELOAD',
+			LOAD_ASSETS: 'LOAD_ASSETS',
+			READY: 'READY',
+			IN_TRANSITION: 'IN_TRANSITION',
+			RUN: 'RUN',
+			BACKGROUND: 'BACKGROUND',
+			PAUSE: 'PAUSE',
+			OUT_TRANSITION: 'OUT_TRANSITION',
+			DONE: 'DONE'
+		}
 	},
 	init({
 		id,
@@ -20,24 +35,27 @@ export const Unit = compose({
 		inTransition,
 		outTransition
 	}) {
-		if (id && Unit.instances[id]) {
-			return Unit.instances[id]
+		if (id && Unit.Instances[id]) {
+			return Unit.Instances[id]
 		}
 		this.id = id
 		this.script = require(scriptPath)
-		Unit.instances[this.id] = this
+		Unit.Instances[this.id] = this
 		this.conditionals = conditionals.map(({exps, unit}) => Conditional({exps, env: this, unit}))
 		this.holdCondition = Exp({op: holdCondition.op, args: holdCondition.args, env: this})
 		this.nextUnit = Unit(nextUnit)
 		this.inTransition = Transition(inTransition)
 		this.outTransition = Transition(outTransition)
-		this.state = State.PRELOAD
+		this.state = Unit.State.PRELOAD
 	},
 	methods: {
+		preUpdate() {
+			//To be overriden
+		},
 		updateControl() {
-			if (this.state === State.DONE ||
-				this.state === State.PAUSE ||
-				this.state === State.PRELOAD) {
+			if (this.state === Unit.State.DONE ||
+				this.state === Unit.State.PAUSE ||
+				this.state === Unit.State.PRELOAD) {
 				return
 			}
 			let activeConditional = this.conditionals.find(conditional => conditional.eval())
@@ -45,37 +63,46 @@ export const Unit = compose({
 				this.giveControlTo(activeConditional.unit)
 				return
 			}
-			if (this.state === State.RUN && this.holdCondition.eval()) {
+			if (this.state === Unit.State.RUN && this.holdCondition.eval()) {
 				this.giveControlTo(this.nextUnit)
 				return
 			}
 		},
 		giveControlTo(unit) {
-			this.state = State.OUT_TRANSITION
+			this.state = Unit.State.OUT_TRANSITION
 			await unit.start()
-			this.state = State.DONE
+			await this.stop()
 			Unit.ActiveUnit = unit
 		},
 		start() {
-			this.state = State.IN_TRANSITION
+			this.state = Unit.State.IN_TRANSITION
 			await unit.transition.run()
 			this.state = STATE.RUN
 		},
+		stop(){
+			this.state = Unit.State.DONE
+			if(this.isReadyToUnload()){
+				await this.unload()
+			}
+		},
 		async load() {
-			this.state = State.LOAD_ASSETS
+			this.state = Unit.State.LOAD_ASSETS
 			await this.loadAssets()
-			this.state = State.READY
+			this.state = Unit.State.READY
 		},
 		async loadAssts(){
 			//to be overridden
+		},
+		isReadyToUnload(){
+			//to be overriden
+		},
+		unload(){
+			//to be overriden
 		}
 	}
 })
 
 export const Transition = compose({
-	props:{
-		time: Number.MAX_SAFE_INTEGER
-	},
 	methods: {
 		run() {
 			this.time = this.transitionTime
@@ -89,6 +116,7 @@ export const Transition = compose({
 			this.time -= Time.deltaTime
 			
 			//TODO: tick screen transitions here
+			this.onUpdate()
 
 			if (this.isDone()) {
 				this.runPromise.resolve(this.unload)
@@ -102,50 +130,24 @@ export const Transition = compose({
 		}
 	},
 	init({
-		transitionType,
 		transitionTime
 	}) {
-		this.transitionType = transitionType
 		this.transitionTime = TimeSpan(transitionTime)
 	}
 })
 
-export const State = compose({
-	statics: {
-		PRELOAD: 'PRELOAD',
-		LOAD_ASSETS: 'LOAD_ASSETS',
-		READY: 'READY',
-		IN_TRANSITION: 'IN_TRANSITION',
-		RUN: 'RUN',
-		BACKGROUND: 'BACKGROUND',
-		PAUSE: 'PAUSE',
-		OUT_TRANSITION: 'OUT_TRANSITION',
-		DONE: 'DONE'
-	},
-	init({
-		state,
-		value
-	}) {
-		this.state = state
-		this.value = value
-	}
-})
-
-//TODO: define ShotsDir and ShotNum
+//TODO: define ShotNum
 export const Conditional = compose({
 	init({
 		exp,
 		env,
-		unit
+		unit,
+		index
 	}) {
-		this.eval = exp.map(exp => Exp({op:exp.op, args: exp.args, env}))
-		let scriptPath = `${ShotsDir}/${ShotNum} - ${exp.text}`
+		this.exp = Exp({exp, env})
+		this.eval = this.exp.eval()
+		let scriptPath = `${ShotsDir}/${index} - ${exp.text}`
 		this.unit = Unit({unit, scriptPath})
-	},
-	methods: {
-		eval() {
-			return this.exps.find(p => !p.eval()) ? false : true
-		}
 	}
 })
 /**
@@ -166,32 +168,27 @@ export const Conditional = compose({
  */
 
 export const Exp = compose({
-	statics: {
-		GetOp(op) {
-			return Exp.exps[op]
-		},
-		AddOp(exp) {
-			Exp.exps[exp.op] = exp
-		}
-	},
 	init({
-		op,
-		args,
+		exp,
 		env
 	}) {
-		this.op = op
-		this.args = args
+		this.ops = exp.map( op => Op({op, env}))
+		this.eval = this.ops.find(op => !op.eval()) ? false : true
+	}
+})
+
+const Op = compose({
+	init({
+		op,
+		env
+	}) {
+		this.name = op.name
+		this.args = op.args
 		this.env = env
-		this.eval = Exp.GetOp(op)(args, env)
 	},
-	//TODO: add more exps via AddOp
-	//TODO: override eval(), GetArgs() methods with specific behavior
 	methods: {
 		eval() {
-			return true
-		},
-		getArgs(rhsText, idx) {
-			return rhsText.slice(idx)
+			//to be overriden
 		}
 	}
 })
@@ -210,7 +207,6 @@ export const Shot = compose(Unit, {
 
 	//init takes in a json definition
 	init({
-		transition,
 		sceneHeading,
 		shotHeading,
 		actionLines
@@ -218,9 +214,8 @@ export const Shot = compose(Unit, {
 		this.transition = Transition(transition)
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
-		this.conditionals = conditionals.map(conditional => Conditional(conditional))
+		this.conditionals = conditionals.map(((conditional, index) => Conditional(conditional, index)))
 		this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
-		//TODO: define SceneDir
 		let modelsPath = `${SceneDir}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
 		let animsPath = `${SceneDir}/anims`
@@ -232,60 +227,47 @@ export const Shot = compose(Unit, {
 	},
 	statics: {
 		//TODO: implement these loaders
-		modelLoader: (asset) => {},
-		animLoader: (asset) => {}
+		modelLoader: async (asset) => {},
+		animLoader: async (asset) => {}
 	},
 	methods: {
 		async loadAssets() {
 			this.models = await load(this.models, Shot.modelLoader)
 			this.anims = await load(this.anims, Shot.animLoader)
 
-			function load(assets, loader) { 
-				return Object.keys(this.models).map(handle => {
-					let assetPath = assets[handle]
-					return loader(assetPath)
-				})
+			async function load(assets, loader) { 
+				return Promise.all(Object.keys(this.models).map(
+					handle => loader(assets[handle])))
 			}
 		},
 		update() {
-			if (this.state === State.PAUSE ||
-					this.state === State.DONE) {
-				return
+			this.preUpdates.forEach(update => update())
+			
+			let stateHandler = {
+				'PAUSE': () => {},
+				'DONE': () => {},
+				'START': () => {
+					this.isFirstUpdate = false
+					this.setupCamera()
+					this.startAnimations()
+
+					//run user script first update
+					this.script.onFirstUpdate()
+				},
+				'IN_TRANSITION': this.inTransition.update(),
+				'OUT_TRANSITION': this.outTransition.update(),
+				'BACKGROUND': this.updateControl(),
+				'RUN': () => {
+					this.updateControl()
+					this.updateActionLines()
+					if(this.state === Unit.State.DONE) {
+						return
+					}
+					this.script.onUpdate()
+				}
 			}
 			Shot.deltaTime = Time.deltaTime
-
-			if (this.isFirstUpdate) {
-				this.isFirstUpdate = false
-				this.setupCamera()
-				this.startAnimations()
-
-				//run user script first update
-				this.script.onFirstUpdate()
-				return
-			}
-
-			if (this.state === ShotState.IN_TRANSITION) {
-				this.inTransition.update()
-				return
-			} else if (this.state === ShotState.OUT_TRANSITION) {
-				this.outTransition.update()
-				return
-			}
-
-			this.updateControl()
-			if (this.state === State.BACKGROUND) {
-				return
-			}
-
-			this.updateActionLines()
-			if (this.state === State.DONE) {
-				return
-			}
-
-			this.updateSelectors()
-
-			//run user script updates
-			this.script.onUpdate()
+			stateHandler[this.state]()
 		},
 		setupCamera() {
 				//TODO
@@ -297,7 +279,7 @@ export const Shot = compose(Unit, {
 			if (this.activeActionLine.isDone()) {
 				this.actionLineIndex += 1
 				if (this.actionLineIndex > this.actionLines.length) {
-					this.state = State.DONE
+					this.state = Unit.State.DONE
 					return
 				}
 				this.activeActionLine.stop()
@@ -305,28 +287,22 @@ export const Shot = compose(Unit, {
 				this.activeActionLine.start()
 			}
 			this.activeActionLine.update()
-		},
-		updateSelectors(){
-			//TODO
 		}
 	}
 })
 
 export const SceneHeading = compose({
 	init({
-		setting,
+		timeOfDay,
 		sceneName,
-		sceneLocation,
-		sceneLength
+		sceneLocation
 	}) {
-		this.setting = setting
+		this.timeOfDay = timeOfDay
 		this.sceneName = sceneName
 		this.sceneLocation = sceneLocation
-		this.sceneTime = TimeSpan(sceneLength)
 	}
 })
 
-//shotheading
 export const ShotHeading = compose({
 	init({
 		cameraType,
@@ -337,45 +313,39 @@ export const ShotHeading = compose({
 		this.cameraType = cameraType
 		this.cameraSource = cameraSource
 		this.cameraTarget = cameraTarget
-		this.timeSpan = timeSpan
+		this.timeSpan = TimeSpan(timeSpan)
 	}
 })
 
-//time
 export const Time = compose({
 	init({
-		ms
+		min,
+		sec
 	}) {
-		this.time = ms
+		this.min = min
+		this.sec = sec
+		this.ms = ((min*60) + sec) * 1000
 	}
 })
 
-export const Text = compose({
-	init({
-		text
-	}) {
-		this.text = text
-	}
-})
-
-//length
 export const TimeSpan = compose({
 	init({
 		start,
 		end
 	}) {
-		this.from = Time(from)
-		this.to = Time(to)
+		this.start = Time(start)
+		this.end = Time(end)
+		this.ms = this.end.ms - this.start.ms
 	}
 })
-//actionLines
+
 export const ActionLine = compose({
 	init({
 		text,
-		length
+		time
 	}) {
 		this.text = text.map( txt => Text(txt))
-		this.length = TimeSpan(length)
+		this.time = TimeSpan(time)
 	},
 	methods: {
 		stop(){
@@ -391,4 +361,141 @@ export const ActionLine = compose({
 			//TODO
 		}
 	}
+})
+
+export const Text = compose({
+	init({
+		text
+	}) {
+		this.text = text
+	}
+})
+
+/**
+ * User Defined Operations
+ */
+
+export const Select = compose(Op, {
+	props: {
+		name: 'Select'
+	},
+	init({
+		handle,
+		unit
+	}) {
+		if (doesUnitHaveSelectors(unit) === false) {
+			initializeSelectors(unit, name)
+		}
+
+		//TODO next
+
+		function doesUnitHaveSelectors(unit){
+			return unit.selectors ? true : false
+		}
+
+		function initializeSelectors(unit, opName){
+			unit.selectors = unit.conditionals
+				.filter(cond => cond.exp.op === opName)
+				.map(cond => cond.exp.args.map(arg => Selector({
+					handle
+				})))
+				.reduce((flatten, array) => [...flatten, ...array], [])
+				.reduce((sels, sel) => {
+					sels[sel.handle] = sel
+					return sels
+				}, {})
+			unit.preUpdates.push(this.updateSelectors)
+		}
+	},
+	methods: {
+		eval() {
+			//TODO: return true if user selection intersects with the handle's anchor
+		}
+	}
+})
+
+export const Selector = compose({
+	init({
+		handle,
+		pos
+	}){
+		this.handle = handle
+		this.pos = pos
+		//TODO: setup a way to reference the handle in the scene
+	},
+	methods: {
+		update(){
+
+		}
+		//TODO: fill in with functions useful to a selectable
+	}
+})
+
+let shot = Shot({
+	id: 0,
+	scriptPath: './kentucky',
+	sceneHeading: SceneHeading({
+		timeOfDay: 'NOON',
+		sceneName: 'OLD BAPTIST CHURCH',
+		sceneLocation: 'KENTUCKY'
+	}),
+	shotHeading: ShotHeading({
+		cameraType,
+		cameraSource,
+		cameraTarget,
+		timeSpan: TimeSpan({
+			start: Time({
+				min: 0,
+				sec: 00
+			}),
+			end: Time({
+				min: 0,
+				sec: 15
+			})
+		})
+	}),
+	inTransition: FadeIn({
+		transitionTime: TimeSpan({
+			min: 0,
+			sec: 3
+		})
+	}),
+	conditionals: Conditional({}),
+	actionLines: [ActionLine({
+		time: TimeSpan({ 
+			min: 0,
+			sec: 3
+		}),
+		text: 'Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church.'
+	}), 
+	ActionLine({
+		time: TimeSpan({
+			min: 0,
+			sec: 1
+		}),
+		text: 'He clears his throat and coughs.'
+	}),
+],
+	holdCondition: Conditional({
+		exp: Exp({
+			op: Await,
+			args: Pickup({
+				selector: Selector({
+					handle: 'KEY',
+					pos: new Position(0,0,0)
+				})
+			}),
+			env: this
+		}),
+		env,
+		unit,
+		index
+	}),
+	outTransition: Cut(),
+	nextUnit: Shot({
+		cameraType,
+		cameraSource,
+		cameraTarget,
+		timeSpan
+	})
 })
