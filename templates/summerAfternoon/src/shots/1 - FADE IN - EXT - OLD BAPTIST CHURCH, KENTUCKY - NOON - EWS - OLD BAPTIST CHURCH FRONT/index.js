@@ -1,21 +1,27 @@
+import { Shot } from '../../improv'
+let shotId = '.' //TODO: figure out how to define this
+let shot = Shot.GetShot(shotId)
+
 export let models = {
 	kentucky: `${ROOT}/scenes/kentucky`,
 	oldBaptistChurch: `${ROOT}/scenes/kentucky/oldBaptistChurch`,
 	man: ''
 }
 export let anims = {
-	manWalk: '',
-	manPace: '',
-}
-export let selectors = {
-	man: Selector('MAN', behavior.selector.man.pos),
-	manCap: Selector('MAN CAP', behavior.selector.manCap),
-	manFace: Selector('MAN FACE', behavior.selector.manFace),
-	oldBaptistChurchDoor: Selector('OLD BAPTIST CHURCH DOOR', behavior.selector.oldBaptistChurchDoor)
+	kentucky: {},
+	man: { 
+		manWalk: 'manWalkPath',
+		manPace: 'manPacePath'
+	}
 }
 		
 export let onFirstUpdate = () => {
 	//TODO
+	shot.selectors.man.anchor = shot.models.man
+	shot.selectors.manCap.anchor = shot.models.manCap
+	shot.selectors.manFace.anchor = shot.models.manFace
+	shot.selectors.oldBaptistChurchDoor.pos =  new Position({x: 0, y: 0, z: 0})
+	 
 }
 
 export let onUpdate = () => {
