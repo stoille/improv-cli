@@ -4,16 +4,12 @@
 import { compose } from 'stampit'
 import * as glob from 'glob'
 
-//TODO: define these
-var SceneDir = './scenes'
-var ShotsDir = './shots'
-
 //TODO: restructure units using this definition
 export const Unit = compose({
 	init({
 		type,
 		inTransition,
-		controllers,
+		conditionalPaths,
 		scriptPath,
 		next,
 		outTransition,
@@ -25,11 +21,12 @@ export const Unit = compose({
 		Unit.TypesRegister[type] = unit
 		unit.type = type
 		unit.inTransition = Transition(inTransition)
-		unit.controllers = controllers.map(({exp, unit, index}) => ConditionalUnit({exp, env: this, unit, index}))
+		unit.conditionalPaths = conditionalPaths.map(({exp, unit, index}) => ConditionalPath({exp, env: this, unit, index}))
+		//scriptPath supplied by parser
+		unit.scriptPath = scriptPath
 		unit.script = require(scriptPath)
 		unit.outTransition = Transition(outTransition)
 		unit.next = next ? unit.next = next : this
-		
 		return unit
 	},
 	statics: {
@@ -38,87 +35,104 @@ export const Unit = compose({
 		History: [],
 		State: {
 			PRELOAD: 'PRELOAD',
-			LOAD_ASSETS: 'LOAD_ASSETS',
+			LOAD: 'LOAD',
 			READY: 'READY',
 			IN_TRANSITION: 'IN_TRANSITION',
 			RUN: 'RUN',
 			BACKGROUND: 'BACKGROUND',
 			PAUSE: 'PAUSE',
 			OUT_TRANSITION: 'OUT_TRANSITION',
-			DONE: 'DONE'
+			DONE: 'DONE',
+			UNLOAD: 'UNLOAD'
 		}
 	},
 	props:{
 		state: Unit.State.PRELOAD,
-		stateUpdaters: {
-			'PAUSE': [() => {}],
-			'DONE': [() => {}],
-			'START': [() => {
-				this.isFirstUpdate = false
-			}],
+		onStateChangeHandlers: {},
+		onStateUpdate: {
 			'IN_TRANSITION': [this.inTransition.update()],
-			'OUT_TRANSITION': [this.outTransition.update()],
-			'BACKGROUND': [this.updateControllers()],
 			'RUN': [() => {
-				this.updateControllers()
+				this.updateConditionalPaths()
 				this.updateSequences()
 				if (this.state === Unit.State.DONE) {
 					return
 				}
-				if(this.isFirstUpdate){
-					this.script.onFirstUpdate()
-				} else {
-					this.script.onUpdate()
+				if (this.script){
+					if (this.isFirstUpdate) {
+						this.script.onFirstUpdate()
+					} else {
+						this.script.onUpdate()
+					}
 				}
-			}]
+			}],
+			'OUT_TRANSITION': [this.outTransition.update()]
 		}
 	},
 	methods: {
 		update() {
-			this.stateUpdaters[this.state].forEach(update => update())
+			let onStateUpdate = this.onStateUpdate[this.state]
+			if(onStateUpdate) {
+				onStateUpdate.forEach(update => update())
+			}
 		},
-		registerStateUpdater(state, updaterFunc){
-			this.stateUpdaters[state].push(updaterFunc)
+		registerStateUpdater(unit, state, updaterFunc){
+			this.onStateUpdate[state].push(updaterFunc)
 		},
-		updateControllers() {
+		deregisterStateUpdater(unit, state, updaterFunc){
+			this.onStateUpdate.splice(this.onStateUpdate[state].indexOf(updaterFunc), 1)
+		},
+		registerStateChangeHandler(unit, state, onStateChange){
+			if (!unit.onStateChangeHandlers[state]) {
+				unit.onStateChangeHandlers[state] = []
+			}
+			unit.onStateChangeHandlers[state].push(updaterFunc)
+		},
+		deregisterStateChangeHandler(unit, state, onStateChange) {
+			unit.onStateChangeHandlers.splice(unit.onStateChangeHandlers[state].indexOf(updaterFunc), 1)
+		},
+		updateConditionalPaths() {
 			if (this.state === Unit.State.DONE ||
 				this.state === Unit.State.PAUSE ||
 				this.state === Unit.State.PRELOAD) {
 				return
 			}
-			let activeConditionalUnit = this.controllers.find(controller => controller.eval())
-			if (activeConditionalUnit) {
-				this.giveControlTo(activeConditionalUnit.unit)
+			let activeConditionalPath = this.conditionalPaths.find(conditionalPath => conditionalPath.eval())
+			if (activeConditionalPath) {
+				this.transitionTo(activeConditionalPath.unit)
 				return
 			}
 			if (this.state === Unit.State.RUN && this.next.eval()) {
-				this.giveControlTo(this.next)
+				this.transitionTo(this.next)
 				return
 			}
 		},
-		async giveControlTo(unit) {
+		async transitionTo(unit) {
 			this.stop()
 			Unit.ActiveUnit = unit
+			Unit.History.push(unit.scriptPath)
 			await unit.start()
 		},
+		setState(state){
+			this.onStateChangeHandlers[state].forEach(stateChangeHandler => stateChangeHandler)
+		},
 		async start() {
-			this.state = Unit.State.IN_TRANSITION
+			this.setState(Unit.State.IN_TRANSITION)
 			await unit.inTransition.run()
-			this.state = Unit.State.RUN
+			this.setState(Unit.State.RUN)
 		},
 		async stop(){
-			this.state = Unit.State.OUT_TRANSITION
+			this.setState(Unit.State.OUT_TRANSITION)
 			await unit.outTransition.run()
 		
-			this.state = Unit.State.DONE
+			this.setState(Unit.State.DONE)
 			if(this.isReadyToUnload()){
 				await this.unload()
 			}
 		},
 		async load() {
-			this.state = Unit.State.LOAD_ASSETS
+			this.setState(Unit.State.LOAD)
 			await this.loadAssets()
-			this.state = Unit.State.READY
+			this.setState(Unit.State.READY)
 		},
 		async loadAssts(){
 			//to be overridden
@@ -126,8 +140,8 @@ export const Unit = compose({
 		isReadyToUnload(){
 			//to be overriden
 		},
-		unload(){
-			//to be overriden
+		async unload(){
+			await this.unloadAssets()
 		}
 	}
 })
@@ -166,8 +180,7 @@ export const Transition = compose({
 	}
 })
 
-//TODO: define ShotNum
-export const ConditionalUnit = compose({
+export const ConditionalPath = compose({
 	init({
 		exp,
 		env,
@@ -175,12 +188,12 @@ export const ConditionalUnit = compose({
 	}) {
 		this.exp = Exp({exp, env})
 		this.eval = this.exp.eval()
-		this.unit = Unit({...unit, scriptPath})
+		this.unit = Unit(unit)
 	}
 })
 /**
- * controller parsing logic:
- * this.exps = json.controllers.reduce((exps, op, idx, conds) => {
+ * conditionalPaths parsing logic:
+ * this.exps = json.conditionalPaths.reduce((exps, op, idx, conds) => {
  	let exp = Exps.GetOp(op)
  	if (exp) {
  		let args = conds.GetArgs(exps, idx)
@@ -214,7 +227,7 @@ const Op = compose({
 		args,
 		env
 	}) {
-		//if 
+		//TODO: NEXT Fix type registration and initialization
 		let op = Op.TypesRegister[type]
 			? Object.create(Op.TypesRegister[type])
 			: this
@@ -249,18 +262,17 @@ export const Shot = compose(Unit, {
 		shotHeading,
 		actionLines
 	}) {
-		this.registerStateUpdater(Unit.State.START, () => {
+		this.onStateChangeHandlers[Unit.State.START].push(() => {
 			this.setupCamera()
 			this.startAnimations()
 		})
 		this.transition = Transition(transition)
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
-		this.controllers = controllers.map(((controller, index) => ConditionalUnit(controller)))
 		this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
-		let modelsPath = `${SceneDir}/models`
+		let modelsPath = `${this.scriptPath}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
-		let animsPath = `${SceneDir}/anims`
+		let animsPath = `${this.scriptPath}/anims`
 		this.anims = listFilesWithExt(animsPath, '.fbx')
 
 		function listFilesWithExt(path, ext) {
@@ -295,7 +307,7 @@ export const Shot = compose(Unit, {
 			if (this.activeActionLine.isDone()) {
 				this.actionLineIndex += 1
 				if (this.actionLineIndex > this.actionLines.length) {
-					this.state = Unit.State.DONE
+					this.setState(Unit.State.DONE)
 					return
 				}
 				this.activeActionLine.stop()
@@ -428,7 +440,7 @@ export const Select = compose(Op, {
 			}
 
 			function initializeSelectables(unit, opType) {
-				unit.selectables = unit.controllers
+				unit.selectables = unit.conditionalPaths
 					.filter(cond => cond.exp.op === opType)
 					.map(cond => cond.exp.args.map(arg => Selectable({
 						handle
@@ -438,7 +450,6 @@ export const Select = compose(Op, {
 						sels[sel.handle] = sel
 						return sels
 					}, {})
-				unit.registerStateUpdater(Unit.State.RUN, this.selectable.update())
 			}
 		}
 	},
@@ -447,8 +458,9 @@ export const Select = compose(Op, {
 			//TODO: return true if user selection intersects with the handle's anchor
 			return true
 		},
-		update() {
+		onUpdate() {
 			//TODO: NEXT: FIX UPDATER LOGIC AND REVALUATE WHETHER IT IS OVERDESIGNED (THINK SO)
+			this.selectable.update()
 		}
 	}
 })
@@ -502,7 +514,7 @@ let shot = Unit({
 			text: 'He clears his throat and coughs.'
 		}),
 	],
-	next: ConditionalUnit({
+	next: ConditionalPath({
 		exp: {
 			ops: [{
 				type: 'Pickup',
@@ -542,7 +554,7 @@ let shot = Unit({
 			inTransition: Transition({
 				type: "Cut"
 			}),
-			controllers: [],
+			conditionalPaths: [],
 			actionLines: [ActionLine({
 					time: TimeSpan({
 						min: 0,
@@ -558,7 +570,7 @@ let shot = Unit({
 					text: 'Bar.'
 				}),
 			],
-			next: ConditionalUnit({
+			next: ConditionalPath({
 				exp: Exp({
 					op: Op({
 						type: 'Pickup',
@@ -590,7 +602,7 @@ let shot = Unit({
 	outTransition: Transition({
 			type: "Cut"
 		}),
-	controllers: ConditionalUnit({
+	conditionalPaths: ConditionalPath({
 		
 	})
 })
