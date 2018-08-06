@@ -15,10 +15,12 @@ export const Unit = compose({
 		outTransition,
 		next
 	}) {
-		let unit = (type && Unit.TypesRegister[type]) ?
-				Object.create(Unit.TypesRegister[type]) :
-				this
-		Unit.TypesRegister[type] = unit
+		//if type is specified from json definition, instantiate from type register, set the type manually, and return unit
+		if(type){
+			let unit = Unit.TypesRegister[type]({args, env})
+			unit.type = type
+			return unit
+		}
 		unit.type = type
 		unit.inTransition = Transition(inTransition)
 		unit.conditionalPaths = conditionalPaths.map(({exp, unit, index}) => ConditionalPath({exp, env: this, unit, index}))
@@ -30,7 +32,10 @@ export const Unit = compose({
 		return unit
 	},
 	statics: {
-		Types: {},
+		TypesRegister: {},
+		RegisterType(type, op) {
+			TypesRegister[type] = op
+		},
 		ActiveUnit: null,
 		History: [],
 		State: {
@@ -220,22 +225,26 @@ export const Exp = compose({
 
 const Op = compose({
 	statics:{
-		Types: []
+		TypesRegister: [],
+		RegisterType(type, op){
+			TypesRegister[type] = op
+		}
 	},
 	init({
 		type,
 		args,
 		env
 	}) {
-		//TODO: NEXT Fix type registration and initialization
-		let op = Op.TypesRegister[type]
-			? Object.create(Op.TypesRegister[type])
-			: this
-		Op.TypesRegister[type] = op
-		op.type = type
-		op.args = args
-		op.env = env
-		return op
+		//if type is specified from json definition, instantiate from type register, set the type manually, and return Op
+		if(type){
+			let op = Op.TypesRegister[type]({args, env})
+			op.type = type
+			return op
+		}
+		this.type = type
+		this.args = args
+		this.env = env
+		return this
 	},
 	methods: {
 		eval() {
@@ -251,11 +260,11 @@ const Op = compose({
 //shot as a unit
 export const Shot = compose(Unit, {
 	props: {
+		type: 'Shot',
 		isFirstUpdate: true,
 		time: TimeSpan({start: Time(), end: Time()}),
 		actionLineIndex: 0
 	},
-
 	//init takes in a json definition
 	init({
 		sceneHeading,
@@ -318,6 +327,7 @@ export const Shot = compose(Unit, {
 		}
 	}
 })
+Unit.RegisterType('Shot', Shot)
 
 export const SceneHeading = compose({
 	init({
@@ -426,20 +436,20 @@ export const Select = compose(Op, {
 	}) {
 		this.handle = handle
 		this.unit = unit
-		setupUnit(unit)
+		initializeSelectables(unit)
 
-		function setupUnit(unit) {
+		function initializeSelectables(unit) {
 			if (doesUnitHaveSelectables(unit) === false) {
-				initializeSelectables(unit, this.type)
+				assignSelectables(unit, this.type)
 			}
 
-			//TODO next
+			this.registerStateUpdater(Unit.State.RUN, this.update)
 
 			function doesUnitHaveSelectables(unit) {
 				return unit.selectables ? true : false
 			}
 
-			function initializeSelectables(unit, opType) {
+			function assignSelectables(unit, opType) {
 				unit.selectables = unit.conditionalPaths
 					.filter(cond => cond.exp.op === opType)
 					.map(cond => cond.exp.args.map(arg => Selectable({
@@ -458,12 +468,12 @@ export const Select = compose(Op, {
 			//TODO: return true if user selection intersects with the handle's anchor
 			return true
 		},
-		onUpdate() {
-			//TODO: NEXT: FIX UPDATER LOGIC AND REVALUATE WHETHER IT IS OVERDESIGNED (THINK SO)
-			this.selectable.update()
+		update() {
+			//TODO
 		}
 	}
 })
+Op.RegisterType('Select', Select)
 
 let shot = Unit({
 	type: 'Shot',
@@ -480,7 +490,7 @@ let shot = Unit({
 		cameraSource: null,
 		cameraTarget: 'OLD BAPTIST CHURCH FRONT',
 		movement: {type: 'Camera.Movement.Type', start: 0, end: 2},
-		timeSpan: TimeSpan({
+		timeSpan: {
 			start: Time({
 				min: 0,
 				sec: 00
@@ -489,15 +499,15 @@ let shot = Unit({
 				min: 0,
 				sec: 15
 			})
-		})
-	}),
-	inTransition: Transition({
+		}
+	},
+	inTransition: {
 		type: 'FadeIn',
 		transitionTime: TimeSpan({
 			min: 0,
 			sec: 3
 		})
-	}),
+	},
 	actionLines: [
 		ActionLine({
 			time: TimeSpan({ 
