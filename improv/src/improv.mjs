@@ -1,68 +1,110 @@
 /**
  * CORE
  * */
-import { compose } from 'stampit'
+import compose from 'stampit'
 import * as glob from 'glob'
 
-//TODO: restructure units using this definition
-export const Unit = compose({
+const State = {
+	PRELOAD: 'PRELOAD',
+	LOAD: 'LOAD',
+	READY: 'READY',
+	IN_TRANSITION: 'IN_TRANSITION',
+	RUN: 'RUN',
+	BACKGROUND: 'BACKGROUND',
+	PAUSE: 'PAUSE',
+	OUT_TRANSITION: 'OUT_TRANSITION',
+	DONE: 'DONE',
+	UNLOAD: 'UNLOAD'
+}
+
+//TODO: replace with more robust time library
+const Time = compose({
+	props:{
+		min: 0,
+		sec: 0,
+		ms: 0
+	},
+	init({
+		min,
+		sec,
+		ms
+	}) {
+		this.min = min
+		this.sec = sec
+		if(!ms){
+			this.ms = ((min*60) + sec) * 1000
+		}
+	}
+})
+export { Time }
+//TODO: replace with more robust time library
+const TimeSpan = compose({
+	props:{
+		start: Time(),
+		end: Time()
+	},
+	init({
+		start,
+		end
+	}) {
+		this.start = Time(start)
+		this.end = Time(end)
+		this.ms = this.end.ms - this.start.ms
+	}
+})
+export { TimeSpan }
+
+var UnitTypesRegister = {}
+
+const Unit = compose({
+	statics: {
+		RegisterType(type, op) {
+			UnitTypesRegister[type] = op
+		},
+		ActiveUnit: null,
+		History: []
+	},
+	props:{
+		state: State.PRELOAD,
+		onStateChangeHandlers: {},
+		onStateUpdate: {}
+	},
 	init({
 		type,
 		inTransition,
 		conditionalPaths,
 		scriptPath,
-		next,
 		outTransition,
 		next
 	}) {
 		//if type is specified from json definition, instantiate from type register, set the type manually, and return unit
 		if(type){
-			let unit = Unit.TypesRegister[type]({args, env})
+			let unit = UnitTypesRegister[type]({
+				inTransition,
+				conditionalPaths,
+				scriptPath,
+				outTransition,
+				next
+			})
 			unit.type = type
 			return unit
 		}
-		unit.type = type
-		unit.inTransition = Transition(inTransition)
-		unit.conditionalPaths = conditionalPaths.map(({exp, unit, index}) => ConditionalPath({exp, env: this, unit, index}))
-		//scriptPath supplied by parser
-		unit.scriptPath = scriptPath
-		unit.script = require(scriptPath)
-		unit.outTransition = Transition(outTransition)
-		unit.next = next ? unit.next = next : this
-		return unit
-	},
-	statics: {
-		TypesRegister: {},
-		RegisterType(type, op) {
-			TypesRegister[type] = op
-		},
-		ActiveUnit: null,
-		History: [],
-		State: {
-			PRELOAD: 'PRELOAD',
-			LOAD: 'LOAD',
-			READY: 'READY',
-			IN_TRANSITION: 'IN_TRANSITION',
-			RUN: 'RUN',
-			BACKGROUND: 'BACKGROUND',
-			PAUSE: 'PAUSE',
-			OUT_TRANSITION: 'OUT_TRANSITION',
-			DONE: 'DONE',
-			UNLOAD: 'UNLOAD'
-		}
-	},
-	props:{
-		state: Unit.State.PRELOAD,
-		onStateChangeHandlers: {},
-		onStateUpdate: {
+		this.type = type
+		this.inTransition = Transition(inTransition)
+		this.conditionalPaths = conditionalPaths.map(({exp, unit, index}) => ConditionalPath({exp, env: this, unit, index}))
+		this.scriptPath = scriptPath
+		this.script = require(scriptPath)
+		this.outTransition = Transition(outTransition)
+		this.next = next ? unit.next = next : this
+		this.onStateUpdate = {
 			'IN_TRANSITION': [this.inTransition.update()],
 			'RUN': [() => {
 				this.updateConditionalPaths()
 				this.updateSequences()
-				if (this.state === Unit.State.DONE) {
+				if (this.state === State.DONE) {
 					return
 				}
-				if (this.script){
+				if (this.script) {
 					if (this.isFirstUpdate) {
 						this.script.onFirstUpdate()
 					} else {
@@ -72,6 +114,7 @@ export const Unit = compose({
 			}],
 			'OUT_TRANSITION': [this.outTransition.update()]
 		}
+		return unit
 	},
 	methods: {
 		update() {
@@ -96,9 +139,9 @@ export const Unit = compose({
 			unit.onStateChangeHandlers.splice(unit.onStateChangeHandlers[state].indexOf(updaterFunc), 1)
 		},
 		updateConditionalPaths() {
-			if (this.state === Unit.State.DONE ||
-				this.state === Unit.State.PAUSE ||
-				this.state === Unit.State.PRELOAD) {
+			if (this.state === State.DONE ||
+				this.state === State.PAUSE ||
+				this.state === State.PRELOAD) {
 				return
 			}
 			let activeConditionalPath = this.conditionalPaths.find(conditionalPath => conditionalPath.eval())
@@ -106,7 +149,7 @@ export const Unit = compose({
 				this.transitionTo(activeConditionalPath.unit)
 				return
 			}
-			if (this.state === Unit.State.RUN && this.next.eval()) {
+			if (this.state === State.RUN && this.next.eval()) {
 				this.transitionTo(this.next)
 				return
 			}
@@ -121,23 +164,23 @@ export const Unit = compose({
 			this.onStateChangeHandlers[state].forEach(stateChangeHandler => stateChangeHandler)
 		},
 		async start() {
-			this.setState(Unit.State.IN_TRANSITION)
+			this.setState(State.IN_TRANSITION)
 			await unit.inTransition.run()
-			this.setState(Unit.State.RUN)
+			this.setState(State.RUN)
 		},
 		async stop(){
-			this.setState(Unit.State.OUT_TRANSITION)
+			this.setState(State.OUT_TRANSITION)
 			await unit.outTransition.run()
 		
-			this.setState(Unit.State.DONE)
+			this.setState(State.DONE)
 			if(this.isReadyToUnload()){
 				await this.unload()
 			}
 		},
 		async load() {
-			this.setState(Unit.State.LOAD)
+			this.setState(State.LOAD)
 			await this.loadAssets()
-			this.setState(Unit.State.READY)
+			this.setState(State.READY)
 		},
 		async loadAssts(){
 			//to be overridden
@@ -150,8 +193,9 @@ export const Unit = compose({
 		}
 	}
 })
+export { Unit }
 
-export const Transition = compose({
+const Transition = compose({
 	methods: {
 		run() {
 			this.time = this.transitionTime
@@ -184,18 +228,21 @@ export const Transition = compose({
 		this.transitionTime = TimeSpan(transitionTime)
 	}
 })
+export { Transition }
 
-export const ConditionalPath = compose({
+const ConditionalPath = compose({
 	init({
 		exp,
 		env,
 		unit
 	}) {
 		this.exp = Exp({exp, env})
+		console.log(this.exp)
 		this.eval = this.exp.eval()
 		this.unit = Unit(unit)
 	}
 })
+export { ConditionalPath }
 /**
  * conditionalPaths parsing logic:
  * this.exps = json.conditionalPaths.reduce((exps, op, idx, conds) => {
@@ -213,21 +260,22 @@ export const ConditionalPath = compose({
  }, [])
  */
 
-export const Exp = compose({
+const Exp = compose({
 	init({
 		exp,
 		env
 	}) {
-		this.ops = exp.map( op => Op({...op, env}))
+		this.ops = exp.ops.map( op => Op({...op, env}))
 		this.eval = this.ops.find(op => !op.eval()) ? false : true
 	}
 })
+export { Exp }
 
+var OpTypesRegister = {}
 const Op = compose({
 	statics:{
-		TypesRegister: [],
 		RegisterType(type, op){
-			TypesRegister[type] = op
+			OpTypesRegister[type] = op
 		}
 	},
 	init({
@@ -237,7 +285,8 @@ const Op = compose({
 	}) {
 		//if type is specified from json definition, instantiate from type register, set the type manually, and return Op
 		if(type){
-			let op = Op.TypesRegister[type]({args, env})
+			console.log(OpTypesRegister)
+			let op = OpTypesRegister[type]({args, env})
 			op.type = type
 			return op
 		}
@@ -252,13 +301,13 @@ const Op = compose({
 		}
 	}
 })
-
+export { Op }
 /**
  * MODELS
  * */
 
 //shot as a unit
-export const Shot = compose(Unit, {
+const Shot = compose(Unit, {
 	props: {
 		type: 'Shot',
 		isFirstUpdate: true,
@@ -271,7 +320,7 @@ export const Shot = compose(Unit, {
 		shotHeading,
 		actionLines
 	}) {
-		this.onStateChangeHandlers[Unit.State.START].push(() => {
+		this.onStateChangeHandlers[State.START].push(() => {
 			this.setupCamera()
 			this.startAnimations()
 		})
@@ -316,7 +365,7 @@ export const Shot = compose(Unit, {
 			if (this.activeActionLine.isDone()) {
 				this.actionLineIndex += 1
 				if (this.actionLineIndex > this.actionLines.length) {
-					this.setState(Unit.State.DONE)
+					this.setState(State.DONE)
 					return
 				}
 				this.activeActionLine.stop()
@@ -327,9 +376,10 @@ export const Shot = compose(Unit, {
 		}
 	}
 })
+export { Shot }
 Unit.RegisterType('Shot', Shot)
 
-export const SceneHeading = compose({
+const SceneHeading = compose({
 	init({
 		timeOfDay,
 		sceneName,
@@ -340,8 +390,9 @@ export const SceneHeading = compose({
 		this.sceneLocation = sceneLocation
 	}
 })
+export { SceneHeading }
 
-export const ShotHeading = compose({
+const ShotHeading = compose({
 	init({
 		cameraType,
 		cameraSource,
@@ -354,43 +405,9 @@ export const ShotHeading = compose({
 		this.timeSpan = TimeSpan(timeSpan)
 	}
 })
+export { ShotHeading }
 
-//TODO: replace with more robust time library
-export const Time = compose({
-	props:{
-		min: 0,
-		sec: 0,
-		ms: 0
-	},
-	init({
-		min,
-		sec,
-		ms
-	}) {
-		this.min = min
-		this.sec = sec
-		if(!ms){
-			this.ms = ((min*60) + sec) * 1000
-		}
-	}
-})
-//TODO: replace with more robust time library
-export const TimeSpan = compose({
-	props:{
-		start: Time(),
-		end: Time()
-	},
-	init({
-		start,
-		end
-	}) {
-		this.start = Time(start)
-		this.end = Time(end)
-		this.ms = this.end.ms - this.start.ms
-	}
-})
-
-export const ActionLine = compose({
+const ActionLine = compose({
 	init({
 		text,
 		time
@@ -413,37 +430,38 @@ export const ActionLine = compose({
 		}
 	}
 })
+export { ActionLine }
 
-export const Text = compose({
+const Text = compose({
 	init({
 		text
 	}) {
 		this.text = text
 	}
 })
-
+export { Text }
 /**
  * User Defined Operations
  */
 
-export const Select = compose(Op, {
+const Select = compose(Op, {
 	props: {
 		type: 'Select'
 	},
 	init({
 		handle,
-		unit
+		env
 	}) {
 		this.handle = handle
-		this.unit = unit
-		initializeSelectables(unit)
+		this.env = env
+		initializeSelectables.apply(this, env)
 
 		function initializeSelectables(unit) {
 			if (doesUnitHaveSelectables(unit) === false) {
 				assignSelectables(unit, this.type)
 			}
 
-			this.registerStateUpdater(Unit.State.RUN, this.update)
+			this.registerStateUpdater(State.RUN, this.update)
 
 			function doesUnitHaveSelectables(unit) {
 				return unit.selectables ? true : false
@@ -473,146 +491,9 @@ export const Select = compose(Op, {
 		}
 	}
 })
+export { Select }
 Op.RegisterType('Select', Select)
 
-let shot = Unit({
-	type: 'Shot',
-	scriptPath: './kentucky',
-	sceneHeading: {
-		type: 'SceneHeading',
-		timeOfDay: 'NOON',
-		sceneName: 'OLD BAPTIST CHURCH',
-		sceneLocation: 'KENTUCKY'
-	},
-	shotHeading: {
-		type: 'ShotHeading',
-		cameraType: 'Camera.Type.EWS',
-		cameraSource: null,
-		cameraTarget: 'OLD BAPTIST CHURCH FRONT',
-		movement: {type: 'Camera.Movement.Type', start: 0, end: 2},
-		timeSpan: {
-			start: Time({
-				min: 0,
-				sec: 00
-			}),
-			end: Time({
-				min: 0,
-				sec: 15
-			})
-		}
-	},
-	inTransition: {
-		type: 'FadeIn',
-		transitionTime: TimeSpan({
-			min: 0,
-			sec: 3
-		})
-	},
-	actionLines: [
-		ActionLine({
-			time: TimeSpan({ 
-				min: 0,
-				sec: 3
-			}),
-			text: 'Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church.'
-		}), 
-		ActionLine({
-			time: TimeSpan({
-				min: 0,
-				sec: 1
-			}),
-			text: 'He clears his throat and coughs.'
-		}),
-	],
-	next: ConditionalPath({
-		exp: {
-			ops: [{
-				type: 'Pickup',
-				args: [
-					Selectable({
-						handle: 'KEY',
-						pos: new Position(0, 0, 0)
-					})
-				],
-				env: this
-			}]
-		},
-		env: this,
-		next: Unit({
-			type: 0,
-			scriptPath: './kentucky',
-			sceneHeading: SceneHeading({
-				timeOfDay: 'NOON',
-				sceneName: 'OLD BAPTIST CHURCH',
-				sceneLocation: 'KENTUCKY'
-			}),
-			shotHeading: ShotHeading({
-				cameraType: Camera.Type.EWS,
-				cameraSource: null,
-				cameraTarget: 'OLD BAPTIST CHURCH FRONT',
-				timeSpan: TimeSpan({
-					start: Time({
-						min: 0,
-						sec: 00
-					}),
-					end: Time({
-						min: 0,
-						sec: 15
-					})
-				})
-			}),
-			inTransition: Transition({
-				type: "Cut"
-			}),
-			conditionalPaths: [],
-			actionLines: [ActionLine({
-					time: TimeSpan({
-						min: 0,
-						sec: 3
-					}),
-					text: 'Foo.'
-				}),
-				ActionLine({
-					time: TimeSpan({
-						min: 0,
-						sec: 1
-					}),
-					text: 'Bar.'
-				}),
-			],
-			next: ConditionalPath({
-				exp: Exp({
-					op: Op({
-						type: 'Pickup',
-						args: [
-							Selectable({
-								handle: 'KEY',
-								pos: new Position(0, 0, 0)
-							})
-						],
-						env: this
-					})
-				}),
-				env: this,
-				unit: Unit({
-					type: 'Shot',
-					cameraType,
-					cameraSource,
-					cameraTarget,
-					timeSpan
-				}),
-				index: 4
-			}),
-			outTransition: Transition({
-				type: "Cut"
-			})
-		}),
-		index: 4
-	}),
-	outTransition: Transition({
-			type: "Cut"
-		}),
-	conditionalPaths: ConditionalPath({
-		
-	})
-})
+const OneShot = compose(Select)
+export { OneShot }
+Op.RegisterType('OneShot', OneShot)
