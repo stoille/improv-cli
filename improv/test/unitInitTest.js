@@ -1,10 +1,10 @@
-import t from 'tap'
-import { Shot } from '../src/improv.mjs'
+const t = require('tap')
+const Shot = require('../src/improv').Shot
 
 t.test(`shotInit ...`, t => {
 	const shotDef = {
 		type: 'Shot',
-		scriptPath: './kentucky',
+		scriptPath: './improv',
 		sceneHeading: {
 			type: 'SceneHeading',
 			timeOfDay: 'NOON',
@@ -80,7 +80,7 @@ t.test(`shotInit ...`, t => {
 			},
 			unit: {
 				type: 'Shot',
-				scriptPath: './kentucky',
+				scriptPath: './improv',
 				sceneHeading: {
 					timeOfDay: 'NOON',
 					sceneName: 'OLD BAPTIST CHURCH',
