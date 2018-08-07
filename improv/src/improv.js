@@ -1,13 +1,15 @@
 /**
  * CORE
  * */
-import compose from 'stampit'
-import * as glob from 'glob'
+const compose = require('stampit')
+const glob = require('glob')
+const filterCircularRefences = require('./common').filterCircularRefences
 
 const State = {
 	PRELOAD: 'PRELOAD',
 	LOAD: 'LOAD',
 	READY: 'READY',
+	START: 'START',
 	IN_TRANSITION: 'IN_TRANSITION',
 	RUN: 'RUN',
 	BACKGROUND: 'BACKGROUND',
@@ -36,7 +38,7 @@ const Time = compose({
 		}
 	}
 })
-export { Time }
+exports.Time = Time
 //TODO: replace with more robust time library
 const TimeSpan = compose({
 	props:{
@@ -52,7 +54,7 @@ const TimeSpan = compose({
 		this.ms = this.end.ms - this.start.ms
 	}
 })
-export { TimeSpan }
+exports.TimeSpan = TimeSpan
 
 var UnitTypesRegister = {}
 
@@ -67,7 +69,7 @@ const Unit = compose({
 	props:{
 		state: State.PRELOAD,
 		onStateChangeHandlers: {},
-		onStateUpdate: {}
+		onStateUpdateHandlers: {}
 	},
 	init({
 		type,
@@ -86,56 +88,63 @@ const Unit = compose({
 				outTransition,
 				next
 			})
+			
 			unit.type = type
 			return unit
 		}
+		
 		this.type = type
 		this.inTransition = Transition(inTransition)
-		this.conditionalPaths = conditionalPaths.map(({exp, unit, index}) => ConditionalPath({exp, env: this, unit, index}))
 		this.scriptPath = scriptPath
 		this.script = require(scriptPath)
 		this.outTransition = Transition(outTransition)
-		this.next = next ? unit.next = next : this
-		this.onStateUpdate = {
-			'IN_TRANSITION': [this.inTransition.update()],
-			'RUN': [() => {
-				this.updateConditionalPaths()
-				this.updateSequences()
-				if (this.state === State.DONE) {
-					return
-				}
-				if (this.script) {
-					if (this.isFirstUpdate) {
-						this.script.onFirstUpdate()
-					} else {
-						this.script.onUpdate()
-					}
-				}
-			}],
-			'OUT_TRANSITION': [this.outTransition.update()]
+		this.next = next === 'this' ? this : next
+		//initialize state handlers
+		for(let state in State){
+			this.onStateChangeHandlers[state] = []
+			this.onStateUpdateHandlers[state] = []
 		}
-		return unit
+		
+		this.onStateUpdateHandlers[State.IN_TRANSITION] = [this.inTransition.update()]
+		this.onStateUpdateHandlers[State.RUN] = [() => {
+			this.updateConditionalPaths()
+			this.updateSequences()
+			if (this.state === State.DONE) {
+				return
+			}
+			if (this.script) {
+				if (this.isFirstUpdate) {
+					this.script.onFirstUpdate()
+				} else {
+					this.script.onUpdate()
+				}
+			}
+		}]
+		this.onStateUpdateHandlers[State.OUT_TRANSITION] = [this.outTransition.update()]
+		
+		this.conditionalPaths = conditionalPaths.map(({exp, unit, index}) => ConditionalPath({exp, env: this, unit, index}))
+
 	},
 	methods: {
 		update() {
-			let onStateUpdate = this.onStateUpdate[this.state]
-			if(onStateUpdate) {
-				onStateUpdate.forEach(update => update())
+			let onStateUpdateHandlers = this.onStateUpdateHandlers[this.state]
+			if(onStateUpdateHandlers) {
+				onStateUpdateHandlers.forEach(update => update())
 			}
 		},
-		registerStateUpdater(unit, state, updaterFunc){
-			this.onStateUpdate[state].push(updaterFunc)
+		registerStateUpdater(state, updaterFunc){
+			this.onStateUpdateHandlers[state].push(updaterFunc)
 		},
-		deregisterStateUpdater(unit, state, updaterFunc){
-			this.onStateUpdate.splice(this.onStateUpdate[state].indexOf(updaterFunc), 1)
+		deregisterStateUpdater(state, updaterFunc){
+			this.onStateUpdateHandlers.splice(this.onStateUpdateHandlers[state].indexOf(updaterFunc), 1)
 		},
-		registerStateChangeHandler(unit, state, onStateChange){
-			if (!unit.onStateChangeHandlers[state]) {
-				unit.onStateChangeHandlers[state] = []
+		registerStateChangeHandler(state, updaterFunc){
+			if (!this.onStateChangeHandlers[state]) {
+				this.onStateChangeHandlers[state] = []
 			}
-			unit.onStateChangeHandlers[state].push(updaterFunc)
+			this.onStateChangeHandlers[state].push(updaterFunc)
 		},
-		deregisterStateChangeHandler(unit, state, onStateChange) {
+		deregisterStateChangeHandler(unit, state, updaterFunc) {
 			unit.onStateChangeHandlers.splice(unit.onStateChangeHandlers[state].indexOf(updaterFunc), 1)
 		},
 		updateConditionalPaths() {
@@ -193,7 +202,7 @@ const Unit = compose({
 		}
 	}
 })
-export { Unit }
+exports.Unit = Unit
 
 const Transition = compose({
 	methods: {
@@ -209,7 +218,9 @@ const Transition = compose({
 			this.time -= Time.deltaTime
 			
 			//TODO: tick screen transitions here
-			this.onUpdate()
+			if (this.onUpdate){
+				this.onUpdate()
+			}
 
 			if (this.isDone()) {
 				this.runPromise.resolve(this.unload)
@@ -228,7 +239,7 @@ const Transition = compose({
 		this.transitionTime = TimeSpan(transitionTime)
 	}
 })
-export { Transition }
+exports.Transition = Transition
 
 const ConditionalPath = compose({
 	init({
@@ -237,12 +248,12 @@ const ConditionalPath = compose({
 		unit
 	}) {
 		this.exp = Exp({exp, env})
-		console.log(this.exp)
+		
 		this.eval = this.exp.eval()
 		this.unit = Unit(unit)
 	}
 })
-export { ConditionalPath }
+exports.ConditionalPath = ConditionalPath
 /**
  * conditionalPaths parsing logic:
  * this.exps = json.conditionalPaths.reduce((exps, op, idx, conds) => {
@@ -266,10 +277,10 @@ const Exp = compose({
 		env
 	}) {
 		this.ops = exp.ops.map( op => Op({...op, env}))
-		this.eval = this.ops.find(op => !op.eval()) ? false : true
+		this.eval = () => this.ops.find(op => !op.eval()) ? false : true
 	}
 })
-export { Exp }
+exports.Exp = Exp
 
 var OpTypesRegister = {}
 const Op = compose({
@@ -285,7 +296,6 @@ const Op = compose({
 	}) {
 		//if type is specified from json definition, instantiate from type register, set the type manually, and return Op
 		if(type){
-			console.log(OpTypesRegister)
 			let op = OpTypesRegister[type]({args, env})
 			op.type = type
 			return op
@@ -301,7 +311,7 @@ const Op = compose({
 		}
 	}
 })
-export { Op }
+exports.Op = Op
 /**
  * MODELS
  * */
@@ -320,14 +330,16 @@ const Shot = compose(Unit, {
 		shotHeading,
 		actionLines
 	}) {
+		console.log(this.onStateChangeHandlers)
 		this.onStateChangeHandlers[State.START].push(() => {
 			this.setupCamera()
 			this.startAnimations()
 		})
-		this.transition = Transition(transition)
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
-		this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
+		if(actionLines){
+			this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
+		}
 		let modelsPath = `${this.scriptPath}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
 		let animsPath = `${this.scriptPath}/anims`
@@ -376,7 +388,7 @@ const Shot = compose(Unit, {
 		}
 	}
 })
-export { Shot }
+exports.Shot = Shot
 Unit.RegisterType('Shot', Shot)
 
 const SceneHeading = compose({
@@ -390,7 +402,7 @@ const SceneHeading = compose({
 		this.sceneLocation = sceneLocation
 	}
 })
-export { SceneHeading }
+exports.SceneHeading = SceneHeading
 
 const ShotHeading = compose({
 	init({
@@ -405,14 +417,14 @@ const ShotHeading = compose({
 		this.timeSpan = TimeSpan(timeSpan)
 	}
 })
-export { ShotHeading }
+exports.ShotHeading = ShotHeading
 
 const ActionLine = compose({
 	init({
 		text,
 		time
 	}) {
-		this.text = text.map( txt => Text(txt))
+		this.text = text
 		this.time = TimeSpan(time)
 	},
 	methods: {
@@ -430,7 +442,7 @@ const ActionLine = compose({
 		}
 	}
 })
-export { ActionLine }
+exports.ActionLine = ActionLine
 
 const Text = compose({
 	init({
@@ -439,7 +451,7 @@ const Text = compose({
 		this.text = text
 	}
 })
-export { Text }
+exports.Text = Text
 /**
  * User Defined Operations
  */
@@ -452,34 +464,24 @@ const Select = compose(Op, {
 		handle,
 		env
 	}) {
+		
 		this.handle = handle
 		this.env = env
-		initializeSelectables.apply(this, env)
-
-		function initializeSelectables(unit) {
-			if (doesUnitHaveSelectables(unit) === false) {
-				assignSelectables(unit, this.type)
-			}
-
-			this.registerStateUpdater(State.RUN, this.update)
-
-			function doesUnitHaveSelectables(unit) {
-				return unit.selectables ? true : false
-			}
-
-			function assignSelectables(unit, opType) {
-				unit.selectables = unit.conditionalPaths
-					.filter(cond => cond.exp.op === opType)
-					.map(cond => cond.exp.args.map(arg => Selectable({
-						handle
-					})))
-					.reduce((flatten, array) => [...flatten, ...array], [])
-					.reduce((sels, sel) => {
-						sels[sel.handle] = sel
-						return sels
-					}, {})
-			}
+		
+		if (!env.selectables && env.conditionalPaths) {
+			env.selectables = env.conditionalPaths
+				.filter(cond => cond.exp.op === opType)
+				.map(cond => cond.exp.args.map(arg => Selectable({
+					handle
+				})))
+				.reduce((flatten, array) => [...flatten, ...array], [])
+				.reduce((sels, sel) => {
+					sels[sel.handle] = sel
+					return sels
+				}, {})
 		}
+
+		this.env.registerStateUpdater(State.RUN, this.update)
 	},
 	methods: {
 		eval() {
@@ -491,9 +493,9 @@ const Select = compose(Op, {
 		}
 	}
 })
-export { Select }
+exports.Select = Select
 Op.RegisterType('Select', Select)
 
 const OneShot = compose(Select)
-export { OneShot }
+exports.OneShot = OneShot
 Op.RegisterType('OneShot', OneShot)
