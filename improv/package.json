@@ -10,6 +10,7 @@
     "json-beautify": "^1.0.1",
     "lowdb": "^1.0.0",
     "nearley": "^2.13.0",
+    "stampit": "^4.1.2",
     "xstate": "^3.1.0"
   },
   "scripts": {
