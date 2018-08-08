@@ -1,5 +1,6 @@
 const t = require('tap')
 const Shot = require('../src/improv').Shot
+const {stringify} = require('flatted/cjs')
 
 t.test(`shotInit ...`, t => {
 	const shotDef = {
@@ -57,77 +58,85 @@ t.test(`shotInit ...`, t => {
 				text: 'He clears his throat and coughs.'
 			},
 		],
-		next: 'this',
+		//next: 'this',
 		conditionalPaths: [{
 			exp: {
 				ops: [{
 					type: 'OneShot',
+					exp: 'exp',
+					args: [{}]
+				}, {
+					type: 'Select',
+					exp: 'exp',
 					args: [{
-						type: 'Select',
+						type: 'Selectable',
 						handle: 'MAN'
-					}, {
-						type: 'TIMESPAN',
-						args: [{
-							start: {
-								sec: 5
-							},
-							end: {
-								sec: 10
-							}
-						}]
 					}]
-				}]
-			},
-			unit: {
-				type: 'Shot',
-				scriptPath: './improv',
-				sceneHeading: {
-					timeOfDay: 'NOON',
-					sceneName: 'OLD BAPTIST CHURCH',
-					sceneLocation: 'KENTUCKY'
-				},
-				shotHeading: {
-					cameraType: 'EWS',
-					cameraSource: null,
-					cameraTarget: 'OLD BAPTIST CHURCH FRONT',
-					timeSpan: {
+				}, {
+					type: 'TimeSpan',
+					exp: 'exp',
+					args: [{
 						start: {
-							min: 0,
-							sec: 0
+							sec: 5
 						},
 						end: {
-							min: 0,
-							sec: 15
+							sec: 10
 						}
-					}
-				},
-				inTransition: {
-					type: "Cut"
-				},
-				conditionalPaths: [],
-				actionLines: [{
-						time: {
-							min: 0,
-							sec: 3
-						},
-						text: 'Foo.'
-					},
-					{
-						time: {
-							min: 0,
-							sec: 1
-						},
-						text: 'Bar.'
-					},
-				],
-				next: 'this',
-				outTransition: {
-					type: "Cut"
-				}
+					}]
+				}]
 			}
-		}]
+		}],
+		unit: {
+			type: 'Shot',
+			scriptPath: './improv',
+			sceneHeading: {
+				timeOfDay: 'NOON',
+				sceneName: 'OLD BAPTIST CHURCH',
+				sceneLocation: 'KENTUCKY'
+			},
+			shotHeading: {
+				cameraType: 'EWS',
+				cameraSource: null,
+				cameraTarget: 'OLD BAPTIST CHURCH FRONT',
+				timeSpan: {
+					start: {
+						min: 0,
+						sec: 0
+					},
+					end: {
+						min: 0,
+						sec: 15
+					}
+				}
+			},
+			inTransition: {
+				type: "Cut"
+			},
+			conditionalPaths: [],
+			actionLines: [{
+					time: {
+						min: 0,
+						sec: 3
+					},
+					text: 'Foo.'
+				},
+				{
+					time: {
+						min: 0,
+						sec: 1
+					},
+					text: 'Bar.'
+				},
+			],
+			//next: 'this',
+			outTransition: {
+				type: "Cut"
+			}
+		}
 	}
 	let shot = Shot(shotDef)
-	t.matchSnapshot(shot.toString(), 'shotTest')
+	let s = stringify(shot)
+	console.log(shot.type + ": "+s)
+	t.matchSnapshot(s, 'shotTest')
 	t.end()
 })
