@@ -3,7 +3,6 @@
  * */
 const compose = require('stampit')
 const glob = require('glob')
-const filterCircularRefences = require('./common').filterCircularRefences
 
 const State = {
 	PRELOAD: 'PRELOAD',
@@ -71,23 +70,19 @@ const Unit = compose({
 		onStateChangeHandlers: {},
 		onStateUpdateHandlers: {}
 	},
-	init({
-		type,
-		inTransition,
-		conditionalPaths,
-		scriptPath,
-		outTransition,
-		next
-	}) {
+	init(args) {
+		let {
+			type,
+			isRegisteredType,
+			inTransition,
+			conditionalPaths,
+			scriptPath,
+			outTransition,
+			next
+		} = args
 		//if type is specified from json definition, instantiate from type register, set the type manually, and return unit
-		if(type){
-			let unit = UnitTypesRegister[type]({
-				inTransition,
-				conditionalPaths,
-				scriptPath,
-				outTransition,
-				next
-			})
+		if(!isRegisteredType){
+			let unit = UnitTypesRegister[type]({...args, isRegisteredType: true})
 			
 			unit.type = type
 			return unit
@@ -122,7 +117,7 @@ const Unit = compose({
 		}]
 		this.onStateUpdateHandlers[State.OUT_TRANSITION] = [this.outTransition.update()]
 		
-		this.conditionalPaths = conditionalPaths.map(({exp, unit, index}) => ConditionalPath({exp, env: this, unit, index}))
+		this.conditionalPaths = conditionalPaths.map(({exp, path}) => ConditionalPath({exp, env: this, path}))
 
 	},
 	methods: {
@@ -156,10 +151,6 @@ const Unit = compose({
 			let activeConditionalPath = this.conditionalPaths.find(conditionalPath => conditionalPath.eval())
 			if (activeConditionalPath) {
 				this.transitionTo(activeConditionalPath.unit)
-				return
-			}
-			if (this.state === State.RUN && this.next.eval()) {
-				this.transitionTo(this.next)
 				return
 			}
 		},
@@ -245,12 +236,12 @@ const ConditionalPath = compose({
 	init({
 		exp,
 		env,
-		unit
+		path
 	}) {
 		this.exp = Exp({exp, env})
 		
 		this.eval = this.exp.eval()
-		this.unit = Unit(unit)
+		this.unit = Unit(path)
 	}
 })
 exports.ConditionalPath = ConditionalPath
@@ -276,7 +267,7 @@ const Exp = compose({
 		exp,
 		env
 	}) {
-		this.ops = exp.ops.map( op => Op({...op, env}))
+		this.ops = exp.ops.map( op => Op({...op, env, exp:this}))
 		this.eval = () => this.ops.find(op => !op.eval()) ? false : true
 	}
 })
@@ -292,17 +283,19 @@ const Op = compose({
 	init({
 		type,
 		args,
-		env
+		env,
+		exp
 	}) {
 		//if type is specified from json definition, instantiate from type register, set the type manually, and return Op
 		if(type){
-			let op = OpTypesRegister[type]({args, env})
+			let op = OpTypesRegister[type]({args, env, exp})
 			op.type = type
 			return op
 		}
 		this.type = type
 		this.args = args
 		this.env = env
+		this.exp = exp
 		return this
 	},
 	methods: {
@@ -325,12 +318,12 @@ const Shot = compose(Unit, {
 		actionLineIndex: 0
 	},
 	//init takes in a json definition
-	init({
-		sceneHeading,
-		shotHeading,
-		actionLines
-	}) {
-		console.log(this.onStateChangeHandlers)
+	init(args) {
+		let {
+			sceneHeading,
+			shotHeading,
+			actionLines
+		} = args
 		this.onStateChangeHandlers[State.START].push(() => {
 			this.setupCamera()
 			this.startAnimations()
@@ -461,26 +454,26 @@ const Select = compose(Op, {
 		type: 'Select'
 	},
 	init({
-		handle,
-		env
+		handle
 	}) {
 		
 		this.handle = handle
-		this.env = env
-		
-		if (!env.selectables && env.conditionalPaths) {
-			env.selectables = env.conditionalPaths
-				.filter(cond => cond.exp.op === opType)
-				.map(cond => cond.exp.args.map(arg => Selectable({
-					handle
-				})))
-				.reduce((flatten, array) => [...flatten, ...array], [])
-				.reduce((sels, sel) => {
-					sels[sel.handle] = sel
-					return sels
-				}, {})
-		}
 
+		const onStart = () => {
+			if (!this.env.selectables && this.env.conditionalPaths) {
+				this.env.selectables = this.env.conditionalPaths
+					.filter(cond => cond.exp.op === opType)
+					.map(cond => cond.exp.args.map(arg => Selectable({
+						handle
+					})))
+					.reduce((flatten, array) => [...flatten, ...array], [])
+					.reduce((sels, sel) => {
+						sels[sel.handle] = sel
+						return sels
+					}, {})
+			}
+		}
+		this.env.registerStateChangeHandler(State.START, onStart.bind(this))
 		this.env.registerStateUpdater(State.RUN, this.update)
 	},
 	methods: {
