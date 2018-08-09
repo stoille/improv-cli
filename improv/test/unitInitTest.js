@@ -63,19 +63,16 @@ t.test(`shotInit ...`, t => {
 			exp: {
 				ops: [{
 					type: 'OneShot',
-					exp: 'exp',
-					args: [{}]
+					opArgs: [{}]
 				}, {
 					type: 'Select',
-					exp: 'exp',
-					args: [{
+					opArgs: [{
 						type: 'Selectable',
 						handle: 'MAN'
 					}]
 				}, {
-					type: 'TimeSpan',
-					exp: 'exp',
-					args: [{
+					type: 'TimeWindow',
+					opArgs: [{
 						start: {
 							sec: 5
 						},
@@ -84,59 +81,59 @@ t.test(`shotInit ...`, t => {
 						}
 					}]
 				}]
-			}
-		}],
-		unit: {
-			type: 'Shot',
-			scriptPath: './improv',
-			sceneHeading: {
-				timeOfDay: 'NOON',
-				sceneName: 'OLD BAPTIST CHURCH',
-				sceneLocation: 'KENTUCKY'
 			},
-			shotHeading: {
-				cameraType: 'EWS',
-				cameraSource: null,
-				cameraTarget: 'OLD BAPTIST CHURCH FRONT',
-				timeSpan: {
-					start: {
-						min: 0,
-						sec: 0
-					},
-					end: {
-						min: 0,
-						sec: 15
+			childUnit: {
+				type: 'Shot',
+				scriptPath: './improv',
+				sceneHeading: {
+					timeOfDay: 'NOON',
+					sceneName: 'OLD BAPTIST CHURCH',
+					sceneLocation: 'KENTUCKY'
+				},
+				shotHeading: {
+					cameraType: 'EWS',
+					cameraSource: null,
+					cameraTarget: 'OLD BAPTIST CHURCH FRONT',
+					timeSpan: {
+						start: {
+							min: 0,
+							sec: 0
+						},
+						end: {
+							min: 0,
+							sec: 15
+						}
 					}
+				},
+				inTransition: {
+					type: "Cut"
+				},
+				conditionalPaths: [],
+				actionLines: [{
+						time: {
+							min: 0,
+							sec: 3
+						},
+						text: 'Foo.'
+					},
+					{
+						time: {
+							min: 0,
+							sec: 1
+						},
+						text: 'Bar.'
+					},
+				],
+				//next: 'this',
+				outTransition: {
+					type: "Cut"
 				}
-			},
-			inTransition: {
-				type: "Cut"
-			},
-			conditionalPaths: [],
-			actionLines: [{
-					time: {
-						min: 0,
-						sec: 3
-					},
-					text: 'Foo.'
-				},
-				{
-					time: {
-						min: 0,
-						sec: 1
-					},
-					text: 'Bar.'
-				},
-			],
-			//next: 'this',
-			outTransition: {
-				type: "Cut"
 			}
-		}
+		}]
 	}
 	let shot = Shot(shotDef)
 	let s = stringify(shot)
-	console.log(shot.type + ": "+s)
+	//console.log(shot.type + ": "+s)
 	t.matchSnapshot(s, 'shotTest')
 	t.end()
 })
