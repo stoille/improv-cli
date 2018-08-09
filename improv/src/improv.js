@@ -18,6 +18,26 @@ const State = {
 	UNLOAD: 'UNLOAD'
 }
 
+var TypesRegister = {}
+const RegisteredType = compose({
+	statics: {
+		Register(type, typeDef) {
+			TypesRegister[type] = typeDef
+		}
+	},
+	init(initArgs) {
+		let {
+			type,
+			isRegisteredType
+		} = initArgs
+		//if type is specified from json definition, instantiate from type register, set the type manually, and return unit
+		if (!isRegisteredType) {
+			return TypesRegister[type]({ ...initArgs, isRegisteredType: true})
+		}
+		this.type = type
+	}
+})
+
 //TODO: replace with more robust time library
 const Time = compose({
 	props:{
@@ -55,13 +75,8 @@ const TimeSpan = compose({
 })
 exports.TimeSpan = TimeSpan
 
-var UnitTypesRegister = {}
-
-const Unit = compose({
+const Unit = compose(RegisteredType,{
 	statics: {
-		RegisterType(type, op) {
-			UnitTypesRegister[type] = op
-		},
 		ActiveUnit: null,
 		History: []
 	},
@@ -70,30 +85,19 @@ const Unit = compose({
 		onStateChangeHandlers: {},
 		onStateUpdateHandlers: {}
 	},
-	init(args) {
+	init(initArgs) {
 		let {
-			type,
-			isRegisteredType,
 			inTransition,
 			conditionalPaths,
 			scriptPath,
 			outTransition,
 			next
-		} = args
-		//if type is specified from json definition, instantiate from type register, set the type manually, and return unit
-		if(!isRegisteredType){
-			let unit = UnitTypesRegister[type]({...args, isRegisteredType: true})
-			
-			unit.type = type
-			return unit
-		}
-		
-		this.type = type
+		} = initArgs
 		this.inTransition = Transition(inTransition)
 		this.scriptPath = scriptPath
 		this.script = require(scriptPath)
 		this.outTransition = Transition(outTransition)
-		this.next = next === 'this' ? this : next
+		this.next = (next && next.type) ? next : this
 		//initialize state handlers
 		for(let state in State){
 			this.onStateChangeHandlers[state] = []
@@ -117,7 +121,7 @@ const Unit = compose({
 		}]
 		this.onStateUpdateHandlers[State.OUT_TRANSITION] = [this.outTransition.update()]
 		
-		this.conditionalPaths = conditionalPaths.map(({exp, path}) => ConditionalPath({exp, env: this, path}))
+		this.conditionalPaths = conditionalPaths.map(({exp, childUnit}) => ConditionalPath({exp, parentUnit: this, childUnit}))
 
 	},
 	methods: {
@@ -150,7 +154,7 @@ const Unit = compose({
 			}
 			let activeConditionalPath = this.conditionalPaths.find(conditionalPath => conditionalPath.eval())
 			if (activeConditionalPath) {
-				this.transitionTo(activeConditionalPath.unit)
+				this.transitionTo(activeConditionalPath.childUnit)
 				return
 			}
 		},
@@ -195,7 +199,7 @@ const Unit = compose({
 })
 exports.Unit = Unit
 
-const Transition = compose({
+const Transition = compose(RegisteredType, {
 	methods: {
 		run() {
 			this.time = this.transitionTime
@@ -231,17 +235,18 @@ const Transition = compose({
 	}
 })
 exports.Transition = Transition
+RegisteredType.Register('Transition', Transition)
 
 const ConditionalPath = compose({
 	init({
 		exp,
-		env,
-		path
+		parentUnit,
+		childUnit
 	}) {
-		this.exp = Exp({exp, env})
+		this.exp = Exp({exp, parentUnit})
 		
 		this.eval = this.exp.eval()
-		this.unit = Unit(path)
+		this.childUnit = Unit(childUnit)
 	}
 })
 exports.ConditionalPath = ConditionalPath
@@ -250,11 +255,11 @@ exports.ConditionalPath = ConditionalPath
  * this.exps = json.conditionalPaths.reduce((exps, op, idx, conds) => {
  	let exp = Exps.GetOp(op)
  	if (exp) {
- 		let args = conds.GetArgs(exps, idx)
+ 		let initArgs = conds.GetArgs(exps, idx)
  		let expInst = exp.create({
  			op: op,
- 			args: args,
- 			env: Object.create(parent)
+ 			opArgs: opArgs,
+ 			parentUnit: Object.create(parent)
  		})
  		return [...exps, expInst]
  	}
@@ -265,38 +270,24 @@ exports.ConditionalPath = ConditionalPath
 const Exp = compose({
 	init({
 		exp,
-		env
+		parentUnit
 	}) {
-		this.ops = exp.ops.map( op => Op({...op, env, exp:this}))
+		this.ops = exp.ops.map( op => Op({...op, parentUnit, exp:this}))
 		this.eval = () => this.ops.find(op => !op.eval()) ? false : true
 	}
 })
 exports.Exp = Exp
 
-var OpTypesRegister = {}
-const Op = compose({
-	statics:{
-		RegisterType(type, op){
-			OpTypesRegister[type] = op
-		}
-	},
-	init({
-		type,
-		args,
-		env,
-		exp
-	}) {
-		//if type is specified from json definition, instantiate from type register, set the type manually, and return Op
-		if(type){
-			let op = OpTypesRegister[type]({args, env, exp})
-			op.type = type
-			return op
-		}
-		this.type = type
-		this.args = args
-		this.env = env
-		this.exp = exp
-		return this
+const Op = compose(RegisteredType, {
+	init(initArgs) {
+		let {
+			opArgs,
+			parentUnit,
+			parentExp
+		} = initArgs
+		this.opArgs = opArgs
+		this.parentUnit = parentUnit
+		this.parentExp = parentExp
 	},
 	methods: {
 		eval() {
@@ -318,12 +309,12 @@ const Shot = compose(Unit, {
 		actionLineIndex: 0
 	},
 	//init takes in a json definition
-	init(args) {
+	init(initArgs) {
 		let {
 			sceneHeading,
 			shotHeading,
 			actionLines
-		} = args
+		} = initArgs
 		this.onStateChangeHandlers[State.START].push(() => {
 			this.setupCamera()
 			this.startAnimations()
@@ -338,8 +329,13 @@ const Shot = compose(Unit, {
 		let animsPath = `${this.scriptPath}/anims`
 		this.anims = listFilesWithExt(animsPath, '.fbx')
 
-		function listFilesWithExt(path, ext) {
-			return glob.sync(`${path}/*.${ext}`)
+		function listFilesWithExt(childUnit, ext) {
+			try {
+				return glob.sync(`${childUnit}/*.${ext}`)
+			} catch (error) {
+				console.console.error(error);
+				
+			}
 		}
 	},
 	statics: {
@@ -382,7 +378,7 @@ const Shot = compose(Unit, {
 	}
 })
 exports.Shot = Shot
-Unit.RegisterType('Shot', Shot)
+RegisteredType.Register('Shot', Shot)
 
 const SceneHeading = compose({
 	init({
@@ -445,10 +441,36 @@ const Text = compose({
 	}
 })
 exports.Text = Text
+
+/**
+ * User Defined Transitions
+ */
+
+ const Cut = compose(Transition,{
+	 props: {
+		 type: 'Cut'
+	 },
+	 init({}){
+
+	 }
+ })
+ RegisteredType.Register('Cut', Cut)
+
+  const FadeIn = compose(Transition,{
+	 props: {
+		 type: 'FadeIn'
+	 },
+	 init({}){
+
+	 }
+ })
+ RegisteredType.Register('FadeIn', FadeIn)
+
 /**
  * User Defined Operations
  */
 
+ //TODO: finish implementing this
 const Select = compose(Op, {
 	props: {
 		type: 'Select'
@@ -460,10 +482,10 @@ const Select = compose(Op, {
 		this.handle = handle
 
 		const onStart = () => {
-			if (!this.env.selectables && this.env.conditionalPaths) {
-				this.env.selectables = this.env.conditionalPaths
-					.filter(cond => cond.exp.op === opType)
-					.map(cond => cond.exp.args.map(arg => Selectable({
+			if (!this.parentUnit.selectables && this.parentUnit.conditionalPaths) {
+				this.parentUnit.selectables = this.parentUnit.conditionalPaths
+					.filter(cond => cond.parentExp.op === opType)
+					.map(cond => cond.parentExp.opArgs.map(arg => Selectable({
 						handle
 					})))
 					.reduce((flatten, array) => [...flatten, ...array], [])
@@ -473,8 +495,8 @@ const Select = compose(Op, {
 					}, {})
 			}
 		}
-		this.env.registerStateChangeHandler(State.START, onStart.bind(this))
-		this.env.registerStateUpdater(State.RUN, this.update)
+		this.parentUnit.registerStateChangeHandler(State.START, onStart.bind(this))
+		this.parentUnit.registerStateUpdater(State.RUN, this.update)
 	},
 	methods: {
 		eval() {
@@ -487,8 +509,14 @@ const Select = compose(Op, {
 	}
 })
 exports.Select = Select
-Op.RegisterType('Select', Select)
+Op.Register('Select', Select)
 
+//TODO: finish implementing this
 const OneShot = compose(Select)
 exports.OneShot = OneShot
-Op.RegisterType('OneShot', OneShot)
+Op.Register('OneShot', OneShot)
+
+//TODO: finish implementing this
+const TimeWindow = compose(Select)
+exports.TimeWindow = TimeWindow
+Op.Register('TimeWindow', TimeWindow)
