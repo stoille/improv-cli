@@ -611,20 +611,20 @@ const UpdateDriver = compose({
 	init({
 		unit
 	}) {
-		this.unit = unit
+		Unit.ActiveUnit = unit
 	},
 	methods: {
 		update() {
 			Time.Update()
-			this.unit.update()
+			Unit.ActiveUnit.update()
 		},
 		testUpdate() {
 			return new Promise( resolve => {
-				testUpdater(this.unit, resolve)
+				testUpdater(Unit.ActiveUnit, resolve)
 			})
 			function testUpdater(unit, resolve) {
 				setTimeout(function () {
-					if(unit.update()){
+					if(unit){
 						testUpdater(unit, resolve)
 					} else {
 						resolve(false)
