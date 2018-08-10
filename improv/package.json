@@ -4,6 +4,7 @@
   "main": "commander.js",
   "license": "BSD0",
   "dependencies": {
+    "blue-tape": "^1.0.0",
     "commander": "^2.15.1",
     "flatted": "^0.2.3",
     "glob": "^7.1.2",

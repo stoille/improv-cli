@@ -14,7 +14,7 @@
 			"runtimeArgs": [
 				//"--inspect",
 				"--inspect-brk=9229",
-				"${workspaceFolder}/improv/test/unitInitTest.js",
+				"${workspaceFolder}/improv/test/driverTest.js",
 			],
 			"port": 9229,
 			"internalConsoleOptions": "neverOpen",
