@@ -48,18 +48,24 @@ const Time = compose({
 		DeltaTime: 0,
 		TimeOfLastUpdate: 0,
 		DefaultTickRate: 16, //in ms
-		Now: Date.now,
+		Now: () => Date.now(),
 		Update: () => {
 			Time.DeltaTime = Time.Now() - Time.TimeOfLastUpdate
 			Time.TimeOfLastUpdate = Time.Now()
 		}
+	},
+	props:{
+		time: new Date()
 	},
 	init({
 		min,
 		sec,
 		ms
 	}) {
-		this.time = new Date(0, 0, 0, 0, this.min, this.sec, this.ms)
+		min = min ? min : 0
+		sec = sec ? sec : 0
+		ms = ms ? ms : 0
+		this.time = new Date(0, 0, 0, 0, min, sec, ms)
 	},
 	methods: {
 		getMinutes() {
@@ -77,10 +83,6 @@ exports.Time = Time
 
 //TODO: consider replacing Time/TimeSpan with more robust time library
 const TimeSpan = compose({
-	props:{
-		start: Time(),
-		end: Time()
-	},
 	init({
 		start,
 		end
@@ -121,21 +123,21 @@ const Unit = compose(RegisteredType,{
 		}
 		
 		this.onStateUpdateHandlers[State.IN_TRANSITION] = [this.inTransition.update()]
-		this.onStateUpdateHandlers[State.RUN] = [() => {
-			this.updateConditionalPaths()
-			this.updateSequences()
-			if (this.state === State.DONE) {
+		this.onStateUpdateHandlers[State.RUN] = [(unit) => {
+			unit.updateConditionalPaths()
+			unit.updateSequences()
+			if (unit.state === State.DONE) {
 				return
 			}
-			if (this.script) {
-				if (this.isFirstUpdate) {
-					this.isFirstUpdate = false
-					if (this.script.onFirstUpdate){
-						this.script.onFirstUpdate()
+			if (unit.script) {
+				if (unit.isFirstUpdate) {
+					unit.isFirstUpdate = false
+					if (unit.script.onFirstUpdate) {
+						unit.script.onFirstUpdate()
 					}
 				} else {
-					if (this.script.onUpdate){
-						this.script.onUpdate()
+					if (unit.script.onUpdate) {
+						unit.script.onUpdate()
 					}
 				}
 			}
@@ -149,7 +151,7 @@ const Unit = compose(RegisteredType,{
 		update() {
 			let onStateUpdateHandlers = this.onStateUpdateHandlers[this.state]
 			if(onStateUpdateHandlers) {
-				onStateUpdateHandlers.forEach(update => update())
+				onStateUpdateHandlers.forEach(update => update(this))
 			}
 		},
 		registerStateUpdater(state, updaterFunc){
@@ -179,7 +181,11 @@ const Unit = compose(RegisteredType,{
 				return
 			}
 		},
+		//TODO: NEXT - see if async/await works as expected
 		async transitionTo(unit) {
+			if(unit === this){
+				return
+			}
 			this.stop()
 			Unit.ActiveUnit = unit
 			Unit.History.push(unit.scriptPath)
@@ -270,7 +276,7 @@ const ConditionalPath = compose({
 	}) {
 		this.exp = Exp({exp, parentUnit})
 		
-		this.eval = this.exp.eval()
+		this.eval = () => this.exp.eval()
 		this.childUnit = Unit(childUnit)
 	}
 })
@@ -330,7 +336,6 @@ const Shot = compose(Unit, {
 	props: {
 		type: 'Shot',
 		isFirstUpdate: true,
-		time: TimeSpan({start: Time(), end: Time()}),
 		actionLineIndex: 0
 	},
 	//init takes in a json definition
@@ -389,9 +394,11 @@ const Shot = compose(Unit, {
 		},
 		updateActionLines() {
 			if (this.getActiveActionLine().isDone()) {
-				this.actionLineIndex += 1
-				if (this.actionLineIndex > this.actionLines.length) {
-					this.setState(State.DONE)
+				this.actionLineIndex = this.actionLineIndex < this.actionLines.length ? 
+					this.actionLineIndex + 1 : this.actionLineIndex
+				//once action lines have finished, transition
+				if (this.actionLineIndex >= this.actionLines.length) {
+					this.transitionTo(this.next)
 					return
 				}
 				this.getActiveActionLine().stop()
@@ -562,7 +569,7 @@ const Timer = compose(Op, {
 	init({
 		time
 	}) {
-		this.time = Time({ time })
+		this.time = Time(time)
 		this.timeLeft = this.time.getMilliseconds()
 	},
 	methods: {
@@ -570,7 +577,7 @@ const Timer = compose(Op, {
 			if (isDone()) {
 				return
 			}
-			this.timeLeft -= new Date(0, 0, 0, 0, 0, 0, Time.DeltaTime)
+			this.timeLeft = this.timeLeft - Time.DeltaTime
 		},
 		isDone() {
 			return this.timeLeft <= 0
