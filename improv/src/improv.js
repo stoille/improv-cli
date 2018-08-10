@@ -4,6 +4,8 @@
 const compose = require('stampit')
 const glob = require('glob')
 
+const DEBUG = true
+
 const State = {
 	PRELOAD: 'PRELOAD',
 	LOAD: 'LOAD',
@@ -17,6 +19,7 @@ const State = {
 	DONE: 'DONE',
 	UNLOAD: 'UNLOAD'
 }
+exports.State = State
 
 var TypesRegister = {}
 const RegisteredType = compose({
@@ -37,28 +40,40 @@ const RegisteredType = compose({
 		this.type = type
 	}
 })
-
-//TODO: replace with more robust time library
+//TODO: drive deltaTime and timeNow from rendering engine loop
 const Time = compose({
-	props:{
-		min: 0,
-		sec: 0,
-		ms: 0
+	statics:{
+		DeltaTime: 0,
+		TimeOfLastUpdate: 0,
+		DefaultTickRate: 16, //in ms
+		Now: Date.now,
+		Update: () => {
+			Time.DeltaTime = Time.Now() - Time.TimeOfLastUpdate
+			Time.TimeOfLastUpdate = Time.Now()
+		}
 	},
 	init({
 		min,
 		sec,
 		ms
 	}) {
-		this.min = min
-		this.sec = sec
-		if(!ms){
-			this.ms = ((min*60) + sec) * 1000
+		this.time = new Date(0, 0, 0, 0, this.min, this.sec, this.ms)
+	},
+	methods: {
+		getMinutes() {
+			return this.time.getMinutes()
+		},
+		getSeconds() {
+			return this.time.getSeconds()
+		},
+		getMilliseconds(){
+			return this.time.getMilliseconds()
 		}
 	}
 })
 exports.Time = Time
-//TODO: replace with more robust time library
+
+//TODO: consider replacing Time/TimeSpan with more robust time library
 const TimeSpan = compose({
 	props:{
 		start: Time(),
@@ -70,7 +85,6 @@ const TimeSpan = compose({
 	}) {
 		this.start = Time(start)
 		this.end = Time(end)
-		this.ms = this.end.ms - this.start.ms
 	}
 })
 exports.TimeSpan = TimeSpan
@@ -130,6 +144,7 @@ const Unit = compose(RegisteredType,{
 			if(onStateUpdateHandlers) {
 				onStateUpdateHandlers.forEach(update => update())
 			}
+			return true
 		},
 		registerStateUpdater(state, updaterFunc){
 			this.onStateUpdateHandlers[state].push(updaterFunc)
@@ -169,12 +184,12 @@ const Unit = compose(RegisteredType,{
 		},
 		async start() {
 			this.setState(State.IN_TRANSITION)
-			await unit.inTransition.run()
+			await unit.inTransition.start()
 			this.setState(State.RUN)
 		},
 		async stop(){
 			this.setState(State.OUT_TRANSITION)
-			await unit.outTransition.run()
+			await unit.outTransition.start()
 		
 			this.setState(State.DONE)
 			if(this.isReadyToUnload()){
@@ -201,16 +216,17 @@ exports.Unit = Unit
 
 const Transition = compose(RegisteredType, {
 	methods: {
-		run() {
-			this.time = this.transitionTime
-			this.runPromise = new Promise()
-			return this.runPromise
+		start() {
+			this.isActive = true
+		},
+		stop(){
+			this.isActive = false
 		},
 		update() {
-			if(this.isDone()){
+			if(this.isDone() || !this.isActive){
 				return
 			}
-			this.time -= Time.deltaTime
+			this.time.update()
 			
 			//TODO: tick screen transitions here
 			if (this.onUpdate){
@@ -218,7 +234,7 @@ const Transition = compose(RegisteredType, {
 			}
 
 			if (this.isDone()) {
-				this.runPromise.resolve(this.unload)
+				stop()
 			}
 		},
 		isDone(){
@@ -228,10 +244,13 @@ const Transition = compose(RegisteredType, {
 			//TODO
 		}
 	},
+	props:{
+		isActive: false
+	},
 	init({
-		transitionTime
+		time
 	}) {
-		this.transitionTime = TimeSpan(transitionTime)
+		this.time = Timer({time})
 	}
 })
 exports.Transition = Transition
@@ -363,17 +382,20 @@ const Shot = compose(Unit, {
 			//TODO
 		},
 		updateActionLines() {
-			if (this.activeActionLine.isDone()) {
+			if (this.getActiveActionLine().isDone()) {
 				this.actionLineIndex += 1
 				if (this.actionLineIndex > this.actionLines.length) {
 					this.setState(State.DONE)
 					return
 				}
-				this.activeActionLine.stop()
+				this.getActiveActionLine().stop()
 				this.activeAction = this.actionLines[this.actionLineIndex]
-				this.activeActionLine.start()
+				this.getActiveActionLine().start()
 			}
-			this.activeActionLine.update()
+			this.getActiveActionLine().update()
+		},
+		getActiveActionLine(){
+			return this.actionLines[this.actionLineIndex]
 		}
 	}
 })
@@ -409,25 +431,34 @@ const ShotHeading = compose({
 exports.ShotHeading = ShotHeading
 
 const ActionLine = compose({
+	props:{
+		isActive: false
+	},
 	init({
 		text,
 		time
 	}) {
 		this.text = text
-		this.time = TimeSpan(time)
+		this.timer = Timer(time)
 	},
 	methods: {
 		stop(){
-			//TODO
+			this.isActive = false
 		},
-		start(){
-			//TODO
+		start() {
+			this.isActive = true
 		},
 		update(){
-			//TODO
+			if(this.isDone() || !this.isActive){
+				return
+			}
+			this.timer.update()
+			if(this.isDone()){
+				this.stop()
+			}
 		},
 		isDone(){
-			//TODO
+			return this.time.eval()
 		}
 	}
 })
@@ -456,13 +487,14 @@ exports.Text = Text
  })
  RegisteredType.Register('Cut', Cut)
 
-  const FadeIn = compose(Transition,{
-	 props: {
-		 type: 'FadeIn'
-	 },
-	 init({}){
+ //TODO: define FadeIn separate from Cut
+const FadeIn = compose(Cut,{
+	props: {
+		type: 'FadeIn'
+	},
+	init({}){
 
-	 }
+	}
  })
  RegisteredType.Register('FadeIn', FadeIn)
 
@@ -517,6 +549,86 @@ exports.OneShot = OneShot
 Op.Register('OneShot', OneShot)
 
 //TODO: finish implementing this
-const TimeWindow = compose(Select)
+const Timer = compose(Op, {
+	init({
+		time
+	}) {
+		this.time = Time({ time })
+		this.timeLeft = this.time.getMilliseconds()
+	},
+	methods: {
+		update() {
+			if (isDone()) {
+				return
+			}
+			this.timeLeft -= new Date(0, 0, 0, 0, 0, 0, Time.DeltaTime)
+		},
+		isDone() {
+			return this.timeLeft <= 0
+		},
+		eval(){
+			return this.isDone()
+		}
+	}
+})
+exports.Timer = Timer
+Op.Register('Timer', Timer)
+
+const TimeWindow = compose(Op, {
+	init({
+		timeSpan
+	}) {
+		let {
+			min,
+			sec,
+			ms
+		} = timeSpan
+		this.timeSpan = TimeSpan({
+			min: Time.Now().getMinutes() + min,
+			sec: Time.Now().getSeconds() + sec,
+			ms: Time.Now().getMilliseconds() + ms
+		})
+	},
+	methods: {
+		isWindowActive() {
+			return Time.Now() >= this.timeSpan.start.getMilliseconds() && Time.Now() <= this.timeSpan.end
+		},
+		eval() {
+			return this.isWindowActive()
+		}
+	}
+})
 exports.TimeWindow = TimeWindow
 Op.Register('TimeWindow', TimeWindow)
+
+/**
+ * Test Drivers
+ */
+const UpdateDriver = compose({
+	init({
+		unit
+	}) {
+		this.unit = unit
+	},
+	methods: {
+		update() {
+			Time.Update()
+			this.unit.update()
+		},
+		testUpdate() {
+			return new Promise( resolve => {
+				testUpdater(this.unit, resolve)
+			})
+			function testUpdater(unit, resolve) {
+				setTimeout(function () {
+					if(unit.update()){
+						testUpdater(unit, resolve)
+					} else {
+						resolve(false)
+					}
+				}, Time.DefaultTickRate)
+			}
+		}
+	}
+})
+exports.UpdateDriver = UpdateDriver

@@ -1,5 +1,5 @@
 const t = require('tap')
-const Shot = require('../src/improv').Shot
+const Unit = require('../src/improv').Unit
 const {stringify} = require('flatted/cjs')
 
 t.test(`shotInit ...`, t => {
@@ -131,7 +131,7 @@ t.test(`shotInit ...`, t => {
 			}
 		}]
 	}
-	let shot = Shot(shotDef)
+	let shot = Unit(shotDef)
 	let s = stringify(shot)
 	//console.log(shot.type + ": "+s)
 	t.matchSnapshot(s, 'shotTest')
