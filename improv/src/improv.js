@@ -33,11 +33,13 @@ const RegisteredType = compose({
 			type,
 			isRegisteredType
 		} = initArgs
+		if(type){
+			this.type = type
+		}
 		//if type is specified from json definition, instantiate from type register, set the type manually, and return unit
 		if (!isRegisteredType) {
-			return TypesRegister[type]({ ...initArgs, isRegisteredType: true})
+			return TypesRegister[this.type]({ ...initArgs, isRegisteredType: true})
 		}
-		this.type = type
 	}
 })
 //TODO: drive deltaTime and timeNow from rendering engine loop
@@ -127,9 +129,14 @@ const Unit = compose(RegisteredType,{
 			}
 			if (this.script) {
 				if (this.isFirstUpdate) {
-					this.script.onFirstUpdate()
+					this.isFirstUpdate = false
+					if (this.script.onFirstUpdate){
+						this.script.onFirstUpdate()
+					}
 				} else {
-					this.script.onUpdate()
+					if (this.script.onUpdate){
+						this.script.onUpdate()
+					}
 				}
 			}
 		}]
@@ -458,7 +465,7 @@ const ActionLine = compose({
 			}
 		},
 		isDone(){
-			return this.time.eval()
+			return this.timer.eval()
 		}
 	}
 })
@@ -550,6 +557,9 @@ Op.Register('OneShot', OneShot)
 
 //TODO: finish implementing this
 const Timer = compose(Op, {
+	props:{
+		type: 'Timer'
+	},
 	init({
 		time
 	}) {
@@ -575,19 +585,12 @@ exports.Timer = Timer
 Op.Register('Timer', Timer)
 
 const TimeWindow = compose(Op, {
-	init({
-		timeSpan
-	}) {
-		let {
-			min,
-			sec,
-			ms
-		} = timeSpan
-		this.timeSpan = TimeSpan({
-			min: Time.Now().getMinutes() + min,
-			sec: Time.Now().getSeconds() + sec,
-			ms: Time.Now().getMilliseconds() + ms
-		})
+	props: {
+		type: 'TimeWindow'
+	},
+	init() {
+		let timeSpan = this.opArgs[0]
+		this.timeSpan = TimeSpan({timeSpan})
 	},
 	methods: {
 		isWindowActive() {

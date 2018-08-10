@@ -35,7 +35,7 @@ t.test(`shotInit ...`, t => {
 		},
 		inTransition: {
 			type: 'FadeIn',
-			transitionTime: {
+			time: {
 				min: 0,
 				sec: 3
 			}
