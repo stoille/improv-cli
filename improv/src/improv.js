@@ -192,16 +192,17 @@ const Unit = compose(RegisteredType,{
 			await unit.start()
 		},
 		setState(state){
+			this.state = state
 			this.onStateChangeHandlers[state].forEach(stateChangeHandler => stateChangeHandler)
 		},
 		async start() {
 			this.setState(State.IN_TRANSITION)
-			await unit.inTransition.start()
+			await this.inTransition.start()
 			this.setState(State.RUN)
 		},
 		async stop(){
 			this.setState(State.OUT_TRANSITION)
-			await unit.outTransition.start()
+			await this.outTransition.start()
 		
 			this.setState(State.DONE)
 			if(this.isReadyToUnload()){
@@ -228,19 +229,25 @@ exports.Unit = Unit
 
 const Transition = compose(RegisteredType, {
 	methods: {
-		start() {
+		async start() {
 			this.isActive = true
+			this.timer.start()
+			let onDone
+			let p = new Promise(function(resolve, reject){ onDone = resolve})
+			this.onDone = onDone
+			return p
 		},
 		stop(){
 			this.isActive = false
+			this.onDone(true)
 		},
 		update() {
 			if(this.isDone() || !this.isActive){
 				return
 			}
-			this.time.update()
+			this.timer.update()
 			
-			//TODO: tick screen transitions here
+			//tick screen transitions inside overriden onUpdate()
 			if (this.onUpdate){
 				this.onUpdate()
 			}
@@ -250,7 +257,7 @@ const Transition = compose(RegisteredType, {
 			}
 		},
 		isDone(){
-			return this.time <= 0
+			return this.timer.isDone()
 		},
 		unload(){
 			//TODO
@@ -260,9 +267,9 @@ const Transition = compose(RegisteredType, {
 		isActive: false
 	},
 	init({
-		time
+		timer
 	}) {
-		this.time = Timer({time})
+		this.timer = Timer({time})
 	}
 })
 exports.Transition = Transition
@@ -408,7 +415,9 @@ const Shot = compose(Unit, {
 			this.getActiveActionLine().update()
 		},
 		getActiveActionLine(){
-			return this.actionLines[this.actionLineIndex]
+			let idx = this.actionLines.length >= this.actionLineIndex ? 
+				this.actionLines.length - 1 : this.actionLineIndex
+			return this.actionLines[idx]
 		}
 	}
 })
@@ -596,14 +605,21 @@ const TimeWindow = compose(Op, {
 	},
 	init() {
 		let timeSpan = this.opArgs[0]
-		this.timeSpan = TimeSpan({timeSpan})
+		this.timeSpan = TimeSpan(timeSpan)
 	},
 	methods: {
 		isWindowActive() {
-			return Time.Now() >= this.timeSpan.start.getMilliseconds() && Time.Now() <= this.timeSpan.end
+			return Time.Now() >= this.applyOffset(this.timeSpan.start) && Time.Now() <= this.applyOffset(this.timeSpan.end)
 		},
 		eval() {
+			//HACK: should consider how to start this more explicitly?
+			if (!this.timeOffset) {
+				this.timeOffset = Time.Now()
+			}
 			return this.isWindowActive()
+		},
+		applyOffset(time){
+			return this.timeOffset + time.getMilliseconds()
 		}
 	}
 })
