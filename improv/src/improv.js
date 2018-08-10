@@ -151,7 +151,6 @@ const Unit = compose(RegisteredType,{
 			if(onStateUpdateHandlers) {
 				onStateUpdateHandlers.forEach(update => update())
 			}
-			return true
 		},
 		registerStateUpdater(state, updaterFunc){
 			this.onStateUpdateHandlers[state].push(updaterFunc)
@@ -625,6 +624,7 @@ const UpdateDriver = compose({
 			function testUpdater(unit, resolve) {
 				setTimeout(function () {
 					if(unit){
+						unit.update()
 						testUpdater(unit, resolve)
 					} else {
 						resolve(false)
