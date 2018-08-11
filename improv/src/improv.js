@@ -93,15 +93,57 @@ const TimeSpan = compose({
 })
 exports.TimeSpan = TimeSpan
 
-const Unit = compose(RegisteredType,{
+const StateHandler = compose({
+	props:{
+		onStateChange: {},
+		onStateUpdate: {},
+		state: null
+	},
+	init(){
+		for (let state in State) {
+			this.onStateChange[state] = []
+			this.onStateUpdate[state] = []
+		}
+	},
+	methods: {
+		async setState(state) {
+			this.state = state
+			for (let handler of this.onStateChange[state]) {
+				//TODO: fix it crashing here
+				await handler() 
+			}
+		},
+		update() {
+			let state = this.state
+			if (this.onStateUpdate) {
+				this.onStateUpdate[this.state].every( updater => {
+					updater()
+					return state === this.state
+				})
+			}
+		},
+		registerStateUpdater(state, updaterFunc){
+			this.onStateUpdate[state].push(updaterFunc)
+		},
+		deregisterStateUpdater(state, updaterFunc){
+			this.onStateUpdate.splice(this.onStateUpdate[state].indexOf(updaterFunc), 1)
+		},
+		registerOnStateHandler(state, updaterFunc){
+			this.onStateChange[state].push(updaterFunc)
+		},
+		deregisterOnStateHandler(unit, state, updaterFunc) {
+			unit.onStateChange.splice(unit.onStateChange[state].indexOf(updaterFunc), 1)
+		}
+	}
+})
+
+const Unit = compose(RegisteredType, StateHandler,{
 	statics: {
 		ActiveUnit: null,
 		History: []
 	},
 	props:{
-		state: State.PRELOAD,
-		onStateChangeHandlers: {},
-		onStateUpdateHandlers: {}
+		state: State.PRELOAD
 	},
 	init(initArgs) {
 		let {
@@ -116,112 +158,69 @@ const Unit = compose(RegisteredType,{
 		this.script = require(scriptPath)
 		this.outTransition = Transition(outTransition)
 		this.next = (next && next.type) ? next : this
-		//initialize state handlers
-		for(let state in State){
-			this.onStateChangeHandlers[state] = []
-			this.onStateUpdateHandlers[state] = []
-		}
+
+		this.conditionalPaths = conditionalPaths.map(({
+			exp,
+			childUnit
+		}) => ConditionalPath({
+			exp,
+			parentUnit: this,
+			childUnit
+		}))
 		
-		this.onStateUpdateHandlers[State.IN_TRANSITION] = [this.inTransition.update()]
-		this.onStateUpdateHandlers[State.RUN] = [(unit) => {
-			unit.updateConditionalPaths()
-			unit.updateSequences()
-			if (unit.state === State.DONE) {
-				return
-			}
-			if (unit.script) {
-				if (unit.isFirstUpdate) {
-					unit.isFirstUpdate = false
-					if (unit.script.onFirstUpdate) {
-						unit.script.onFirstUpdate()
+		this.registerOnStateHandler(State.IN_TRANSITION, () => this.inTransition.start())
+		this.registerOnStateHandler(State.OUT_TRANSITION, () => this.outTransition.start())
+
+		this.registerStateUpdater(State.IN_TRANSITION, () => this.inTransition.update())
+		this.registerStateUpdater(State.RUN, () => this.conditionalPathUpdater())
+		this.registerStateUpdater(State.RUN, () => this.scriptUpdater())
+		this.registerStateUpdater(State.OUT_TRANSITION, () => this.outTransition.update())
+	},
+	methods: {
+		scriptUpdater(){
+			if (this.script) {
+				if (this.isFirstUpdate) {
+					this.isFirstUpdate = false
+					if (this.script.onFirstUpdate) {
+						this.script.onFirstUpdate()
 					}
 				} else {
-					if (unit.script.onUpdate) {
-						unit.script.onUpdate()
+					if (this.script.update) {
+						this.script.update()
 					}
 				}
 			}
-		}]
-		this.onStateUpdateHandlers[State.OUT_TRANSITION] = [this.outTransition.update()]
-		
-		this.conditionalPaths = conditionalPaths.map(({exp, childUnit}) => ConditionalPath({exp, parentUnit: this, childUnit}))
-
-	},
-	methods: {
-		update() {
-			let onStateUpdateHandlers = this.onStateUpdateHandlers[this.state]
-			if(onStateUpdateHandlers) {
-				onStateUpdateHandlers.forEach(update => update(this))
-			}
 		},
-		registerStateUpdater(state, updaterFunc){
-			this.onStateUpdateHandlers[state].push(updaterFunc)
-		},
-		deregisterStateUpdater(state, updaterFunc){
-			this.onStateUpdateHandlers.splice(this.onStateUpdateHandlers[state].indexOf(updaterFunc), 1)
-		},
-		registerStateChangeHandler(state, updaterFunc){
-			if (!this.onStateChangeHandlers[state]) {
-				this.onStateChangeHandlers[state] = []
-			}
-			this.onStateChangeHandlers[state].push(updaterFunc)
-		},
-		deregisterStateChangeHandler(unit, state, updaterFunc) {
-			unit.onStateChangeHandlers.splice(unit.onStateChangeHandlers[state].indexOf(updaterFunc), 1)
-		},
-		updateConditionalPaths() {
-			if (this.state === State.DONE ||
-				this.state === State.PAUSE ||
-				this.state === State.PRELOAD) {
-				return
-			}
+		conditionalPathUpdater() {
 			let activeConditionalPath = this.conditionalPaths.find(conditionalPath => conditionalPath.eval())
 			if (activeConditionalPath) {
 				this.transitionTo(activeConditionalPath.childUnit)
 				return
 			}
 		},
-		//TODO: NEXT - see if async/await works as expected
 		async transitionTo(unit) {
 			if(unit === this){
 				return
 			}
-			this.stop()
+			await this.stop()
 			Unit.ActiveUnit = unit
 			Unit.History.push(unit.scriptPath)
 			await unit.start()
 		},
-		setState(state){
-			this.state = state
-			this.onStateChangeHandlers[state].forEach(stateChangeHandler => stateChangeHandler)
-		},
 		async start() {
-			this.setState(State.IN_TRANSITION)
-			await this.inTransition.start()
-			this.setState(State.RUN)
+			await this.setState(State.IN_TRANSITION)
+			await this.setState(State.RUN)
 		},
 		async stop(){
-			this.setState(State.OUT_TRANSITION)
-			await this.outTransition.start()
-		
-			this.setState(State.DONE)
-			if(this.isReadyToUnload()){
-				await this.unload()
-			}
+			await this.setState(State.OUT_TRANSITION)
+			await this.setState(State.DONE)
 		},
 		async load() {
-			this.setState(State.LOAD)
-			await this.loadAssets()
-			this.setState(State.READY)
-		},
-		async loadAssts(){
-			//to be overridden
-		},
-		isReadyToUnload(){
-			//to be overriden
+			await this.setState(State.LOAD)
+			await this.setState(State.READY)
 		},
 		async unload(){
-			await this.unloadAssets()
+			await this.setState(State.UNLOAD)
 		}
 	}
 })
@@ -231,49 +230,33 @@ const Transition = compose(RegisteredType, {
 	methods: {
 		async start() {
 			this.isActive = true
-			this.timer.start()
-			let onDone
-			let p = new Promise(function(resolve, reject){ onDone = resolve})
-			this.onDone = onDone
-			return p
+			await this.timer.start()
+			stop()			
 		},
 		stop(){
 			this.isActive = false
-			this.onDone(true)
+		},
+		pause(){
+			this.isActive = false
+		},
+		resume(){
+			this.isActive = true
 		},
 		update() {
-			if(this.isDone() || !this.isActive){
+			if(!this.isActive){
 				return
 			}
 			this.timer.update()
-			
-			//tick screen transitions inside overriden onUpdate()
-			if (this.onUpdate){
-				this.onUpdate()
-			}
-
-			if (this.isDone()) {
-				stop()
-			}
-		},
-		isDone(){
-			return this.timer.isDone()
-		},
-		unload(){
-			//TODO
 		}
 	},
-	props:{
-		isActive: false
-	},
 	init({
-		timer
+		time
 	}) {
-		this.timer = Timer({time})
+		this.timer = Timer(time)
 	}
 })
 exports.Transition = Transition
-RegisteredType.Register('Transition', Transition)
+//RegisteredType.Register('Transition', Transition)
 
 const ConditionalPath = compose({
 	init({
@@ -283,7 +266,7 @@ const ConditionalPath = compose({
 	}) {
 		this.exp = Exp({exp, parentUnit})
 		
-		this.eval = () => this.exp.eval()
+		this.eval = this.exp.eval
 		this.childUnit = Unit(childUnit)
 	}
 })
@@ -343,7 +326,6 @@ const Shot = compose(Unit, {
 	props: {
 		type: 'Shot',
 		isFirstUpdate: true,
-		actionLineIndex: 0
 	},
 	//init takes in a json definition
 	init(initArgs) {
@@ -352,19 +334,21 @@ const Shot = compose(Unit, {
 			shotHeading,
 			actionLines
 		} = initArgs
-		this.onStateChangeHandlers[State.START].push(() => {
-			this.setupCamera()
-			this.startAnimations()
-		})
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
-		if(actionLines){
-			this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
-		}
 		let modelsPath = `${this.scriptPath}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
 		let animsPath = `${this.scriptPath}/anims`
 		this.anims = listFilesWithExt(animsPath, '.fbx')
+
+		if (actionLines) {
+			this.actionBlock = ActionBlock(actionLines)
+			this.registerStateUpdater(State.RUN, () => this.actionBlock.update() )
+		}
+
+		this.registerOnStateHandler(State.LOAD, () => this.onLoad())
+		this.registerOnStateHandler(State.START, () => this.onStart())
+		this.registerOnStateHandler(State.RUN, () => this.actionBlock.update())
 
 		function listFilesWithExt(childUnit, ext) {
 			try {
@@ -381,7 +365,19 @@ const Shot = compose(Unit, {
 		AnimLoader: async (asset) => {}
 	},
 	methods: {
-		async loadAssets() {
+		async onStart(){
+			this.setupCamera()
+			this.startAnimations()
+			await this.actionBlock.start()
+			await this.transitionTo(this.next)
+		},
+		setupCamera() {
+				//TODO
+		},
+		startAnimations() {
+			//TODO
+		},
+		async onLoad() {
 			this.models = await load(this.models, Shot.ModelLoader)
 			this.anims = await load(this.anims, Shot.AnimLoader)
 
@@ -390,35 +386,6 @@ const Shot = compose(Unit, {
 					handle => loader(assets[handle])))
 			}
 		},
-		updateSequences(){
-			this.updateActionLines()
-		},
-		setupCamera() {
-				//TODO
-		},
-		startAnimations() {
-			//TODO
-		},
-		updateActionLines() {
-			if (this.getActiveActionLine().isDone()) {
-				this.actionLineIndex = this.actionLineIndex < this.actionLines.length ? 
-					this.actionLineIndex + 1 : this.actionLineIndex
-				//once action lines have finished, transition
-				if (this.actionLineIndex >= this.actionLines.length) {
-					this.transitionTo(this.next)
-					return
-				}
-				this.getActiveActionLine().stop()
-				this.activeAction = this.actionLines[this.actionLineIndex]
-				this.getActiveActionLine().start()
-			}
-			this.getActiveActionLine().update()
-		},
-		getActiveActionLine(){
-			let idx = this.actionLines.length >= this.actionLineIndex ? 
-				this.actionLines.length - 1 : this.actionLineIndex
-			return this.actionLines[idx]
-		}
 	}
 })
 exports.Shot = Shot
@@ -467,24 +434,39 @@ const ActionLine = compose({
 		stop(){
 			this.isActive = false
 		},
-		start() {
+		async start() {
 			this.isActive = true
+			console.log(this.text)
+			await this.timer.start()
+			stop()
 		},
 		update(){
-			if(this.isDone() || !this.isActive){
+			if(!this.isActive){
 				return
 			}
 			this.timer.update()
-			if(this.isDone()){
-				this.stop()
-			}
-		},
-		isDone(){
-			return this.timer.eval()
 		}
 	}
 })
 exports.ActionLine = ActionLine
+
+const ActionBlock = compose({
+	init(actionLines) {
+		this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
+	},
+	methods: {
+		async start() {
+			this.isActive = true
+			for (let actionLine in this.actionLines) {
+				this.activeActionLine = await actionLine.start()
+			}
+		},
+		update() {
+			this.activeActionLine.update()
+		}
+	}
+})
+exports.ActionBlock = ActionBlock
 
 const Text = compose({
 	init({
@@ -535,7 +517,10 @@ const Select = compose(Op, {
 		
 		this.handle = handle
 
-		const onStart = () => {
+		this.parentUnit.registerOnStateHandler(State.START, this.onStart)
+	},
+	methods: {
+		onStart() {
 			if (!this.parentUnit.selectables && this.parentUnit.conditionalPaths) {
 				this.parentUnit.selectables = this.parentUnit.conditionalPaths
 					.filter(cond => cond.parentExp.op === opType)
@@ -548,17 +533,10 @@ const Select = compose(Op, {
 						return sels
 					}, {})
 			}
-		}
-		this.parentUnit.registerStateChangeHandler(State.START, onStart.bind(this))
-		this.parentUnit.registerStateUpdater(State.RUN, this.update)
-	},
-	methods: {
+		},
 		eval() {
 			//TODO: return true if user selection intersects with the handle's anchor
 			return true
-		},
-		update() {
-			//TODO
 		}
 	}
 })
@@ -583,10 +561,24 @@ const Timer = compose(Op, {
 	},
 	methods: {
 		update() {
-			if (isDone()) {
+			if (this.isDone() || !this.isActive) {
 				return
 			}
 			this.timeLeft = this.timeLeft - Time.DeltaTime
+			if(isDone()){
+				this.stop()
+				this.onDone()
+			}
+		},
+		start(){
+			this.isActive = true
+			let onDone
+			let p = new Promise(resolve => onDone = resolve)
+			this.onDone = onDone
+			return p
+		},
+		stop(){
+			this.isActive = false
 		},
 		isDone() {
 			return this.timeLeft <= 0
@@ -641,6 +633,10 @@ const UpdateDriver = compose({
 			Unit.ActiveUnit.update()
 		},
 		testUpdate() {
+			if(!this.isInitialized){
+				this.isInitialized = true
+				return Unit.ActiveUnit.start()
+			}
 			return new Promise( resolve => {
 				testUpdater(Unit.ActiveUnit, resolve)
 			})
