@@ -82,7 +82,7 @@ t.test(`shotInit ...`, t => {
 					}]
 				}]
 			},
-			childUnit: {
+			next: {
 				type: 'Shot',
 				scriptPath: './improv',
 				sceneHeading: {
