@@ -93,23 +93,42 @@ const TimeSpan = compose({
 })
 exports.TimeSpan = TimeSpan
 
-const StateHandler = compose({
+const StateMachine = compose({
 	props:{
 		onStateChange: {},
 		onStateUpdate: {},
-		state: null
+		state: null,
 	},
-	init(){
+	init({
+		inTransition,
+		outTransition
+	}){
 		for (let state in State) {
 			this.onStateChange[state] = []
 			this.onStateUpdate[state] = []
 		}
+		this.inTransition = Transition({...inTransition, stateMachine: this})
+		this.outTransition = Transition({...outTransition, stateMachine: this})
+
+		this.registerOnChange(State.IN_TRANSITION, this.inTransition.start)
+		this.registerOnChange(State.OUT_TRANSITION, this.outTransition.start)
+		this.registerUpdater(State.IN_TRANSITION, this.inTransition.update)
+		this.registerUpdater(State.OUT_TRANSITION, this.outTransition.update)
 	},
 	methods: {
 		async setState(state) {
 			this.state = state
 			for (let handler of this.onStateChange[state]) {
 				await handler() 
+			}
+		},
+		async transitionTo(unit) {
+			await this.setState(State.OUT_TRANSITION)
+			await unit.setState(State.IN_TRANSITION)
+			Unit.ActiveUnit = unit
+			Unit.History.push(unit.scriptPath)
+			if (this.onTransition) {
+				await this.onTransition()
 			}
 		},
 		update() {
@@ -121,31 +140,32 @@ const StateHandler = compose({
 				})
 			}
 		},
-		registerStateUpdater(unit, state, stateUpdater){
-			unit.onStateUpdate[state].push(stateUpdater)
+		registerUpdater(state, stateUpdater){
+			this.onStateUpdate[state].push(stateUpdater)
 		},
-		deregisterStateUpdater(unit, state, stateUpdater){
-			unit.onStateUpdate.splice(unit.onStateUpdate[state].indexOf(stateUpdater), 1)
+		deregisterUpdater(state, stateUpdater){
+			this.onStateUpdate.splice(this.onStateUpdate[state].indexOf(stateUpdater), 1)
 		},
-		registerOnStateHandler(unit, state, onStateHandler){
-			unit.onStateChange[state].push(onStateHandler)
+		registerOnChange(state, onStateChange){
+			this.onStateChange[state].push(onStateChange)
 		},
-		deregisterOnStateHandler(unit, state, onStateHandler) {
-			unit.onStateChange.splice(unit.onStateChange[state].indexOf(onStateHandler), 1)
+		deregisterOnChange(state, onStateChange) {
+			this.onStateChange.splice(this.onStateChange[state].indexOf(onStateChange), 1)
 		}
 	}
 })
 
-const Awaitable = compose({
+/**
+ * runnables run until their isDone() condition is satisfied (e.g. AWAIT) or stop() is called
+ */
+const Runnable = compose({
 	init({
 		isDone,
-		scope
+		stateMachine
 	}) {
-		if (isDone) {
-			this.isDone = isDone
-		}
-
-		this.scope = scope
+		this.isDone = isDone
+		this.stateMachine = stateMachine ? stateMachine : this
+		this.stateMachine.registerUpdater(State.RUN, this.update)
 	},
 	methods: {
 		update() {
@@ -155,49 +175,53 @@ const Awaitable = compose({
 			if (this.onUpdate) {
 				this.onUpdate()
 			}
-
 			if (this.isDone()) {
 				this.stop()
-				if (this.onDone) {
-					this.onDone()
-				}
-				this.resolve()
 			}
 		},
-		start() {
+		async start() {
 			this.isActive = true
-			this.scope.registerStateUpdater(this, State.RUN, this.update)
 			let resolve
 			let p = new Promise(resolve => resolve = resolve)
-			this.resolve = resolve
+			this.resolver = resolve
 			if (this.onStart) {
-				this.onStart()
+				await this.onStart()
 			}
 			return p
 		},
-		stop() {
+		/**
+		 * await onStop(), await onDone() *
+		 	if it exists and resolve. Otherwse, resolve.
+		 */
+		async stop() {
 			this.isActive = false
-			this.scope.deregisterOnStateHandler(this, State.RUN, this.update)
+			this.stateMachine.deregisterOnChange( State.RUN, this.update)
 			if (this.onStop) {
-				this.onStop()
+				await this.onStop()
+			}
+			if (this.onDone) {
+				let result = await this.onDone()
+				this.resolver(result)
+			} else {
+				this.resolver(true)
 			}
 		},
-		pause() {
+		async pause() {
 			this.isActive = false
 			if (this.onPause) {
-				this.onPause()
+				return await this.onPause()
 			}
 		},
-		resume() {
+		async resume() {
 			this.isActive = true
 			if (this.onResume) {
-				this.onResume()
+				return await this.onResume()
 			}
 		}
 	}
 })
 
-const Unit = compose(RegisteredType, StateHandler, Awaitable, {
+const Unit = compose(RegisteredType, StateMachine, Runnable, {
 	statics: {
 		ActiveUnit: null,
 		History: []
@@ -207,38 +231,34 @@ const Unit = compose(RegisteredType, StateHandler, Awaitable, {
 	},
 	init(initArgs) {
 		let {
-			inTransition,
-			conditionalPaths,
+			conditionalTransitions,
 			scriptPath,
-			outTransition,
 			next
 		} = initArgs
-		this.inTransition = Transition(inTransition)
 		this.scriptPath = scriptPath
 		this.script = require(scriptPath)
-		this.outTransition = Transition(outTransition)
 		this.next = (next && next.type) ? next : this
 
-		this.conditionalPaths = conditionalPaths.map(({
-			exp,
-			next
-		}) => ConditionalPath({
-			exp,
-			scope: this,
-			next
-		}))
-		
-		this.registerOnStateHandler(this.inTransition, State.IN_TRANSITION, this.inTransition.start)
-		this.registerOnStateHandler(this.outTransition, State.OUT_TRANSITION, this.outTransition.start)
-
-		this.registerStateUpdater(this.inTransition, State.IN_TRANSITION, this.inTransition.update)
-		this.registerStateUpdater(this, State.RUN, this.conditionalPathsUpdater)
-		if (this.scriptUpdater && this.scriptUpdater.update){
-			this.registerStateUpdater(this.scriptUpdater, State.RUN, this.scriptUpdater.update)
+		if(conditionalTransitions){
+			this.conditionalTransitions = conditionalTransitions.map(({
+				exp
+			}) => ConditionalTransition({
+				exp,
+				stateMachine: this,
+				next: this.next
+			}))
 		}
-		this.registerStateUpdater(this.outTransition, State.OUT_TRANSITION, this.outTransition.update)
+
+		this.registerUpdater( State.RUN, this.conditionalTransitionsUpdater)
+		if (this.scriptUpdater && this.scriptUpdater.update){
+			this.registerUpdater( State.RUN, this.scriptUpdater.update)
+		}
+		
 	},
 	methods: {
+		onUpdate(){
+			this.scriptUpdater
+		},
 		scriptUpdater(){
 			if (this.script) {
 				if (this.isFirstUpdate) {
@@ -254,23 +274,19 @@ const Unit = compose(RegisteredType, StateHandler, Awaitable, {
 			}
 		},
 		//IDEA: parallel-unit support can be enabled by using filter() instead of find()
-		conditionalPathsUpdater() {
-			let activeConditionalPath = this.conditionalPaths.find(conditionalPath => conditionalPath.eval())
-			if (activeConditionalPath) {
-				this.transitionTo(activeConditionalPath.next)
+		conditionalTransitionsUpdater() {
+			let activeConditionalTransition = this.conditionalTransitions.find(conditionalTransition => conditionalTransition.eval())
+			if (activeConditionalTransition) {
+				this.transitionTo(activeConditionalTransition.next)
 			}
 		},
-		async transitionTo(unit) {
+		async onTransition(unit) {
 			await Promise.all(this.stop(), unit.start())
-			Unit.ActiveUnit = unit
-			Unit.History.push(unit.scriptPath)
 		},
 		async onStart() {
-			await this.setState(State.IN_TRANSITION)
 			await this.setState(State.RUN)
 		},
 		async onStop(){
-			await this.setState(State.OUT_TRANSITION)
 			await this.setState(State.DONE)
 		},
 		async load() {
@@ -284,11 +300,11 @@ const Unit = compose(RegisteredType, StateHandler, Awaitable, {
 })
 exports.Unit = Unit
 
-const Transition = compose(RegisteredType, Awaitable, {
+const Transition = compose(RegisteredType, Runnable, {
 	init({
 		time
 	}) {
-		this.timer = Timer(time)
+		this.timer = Timer({...time, stateMachine: this.stateMachine})
 	},
 	methods: {
 		async onStart() {
@@ -308,22 +324,22 @@ exports.Transition = Transition
 // but the next's can always be more imaginative
 //corollary: a prev's mistakes are only more subtle than the next's, but not fewer
 //corollary: the master's mistakes are only more subtle than the student's, but not fewer
-//operations on units are like little flexible fortune cookie relationships you can apply onto an executable scope
-const ConditionalPath = compose({
+//operations on units are like little flexible fortune cookie relationships you can apply onto an executable stateMachine
+const ConditionalTransition = compose({
 	init({
 		exp,
-		scope,
+		stateMachine,
 		next
 	}) {
-		this.exp = Exp({exp, scope})
+		this.exp = Exp({exp, stateMachine})
 		this.eval = this.exp.eval.bind(this.exp)
 		this.next = Unit(next)
 	}
 })
-exports.ConditionalPath = ConditionalPath
+exports.ConditionalTransition = ConditionalTransition
 /**
- * conditionalPaths parsing logic:
- * this.exps = json.conditionalPaths.reduce((exps, op, idx, conds) => {
+ * conditionalTransitions parsing logic:
+ * this.exps = json.conditionalTransitions.reduce((exps, op, idx, conds) => {
  	let exp = Exps.GetOp(op)
  	if (exp) {
  		let initArgs = conds.GetArgs(exps, idx)
@@ -341,21 +357,21 @@ exports.ConditionalPath = ConditionalPath
 const Exp = compose({
 	init({
 		exp,
-		scope
+		stateMachine
 	}) {
-		this.ops = exp.ops.map( op => Op({...op, scope, exp:this}))
+		this.ops = exp.ops.map( op => Op({...op, stateMachine, exp:this}))
 		this.eval = () => ops.find(op => op.eval()) ? true : false
 	}
 })
 exports.Exp = Exp
 
-const Op = compose(RegisteredType, Awaitable, {
+const Op = compose(RegisteredType, Runnable, {
 	init(initArgs) {
 		let {
 			opArgs,
 		} = initArgs
 		this.opArgs = opArgs
-		this.eval = this.eval.bind(this.scope)
+		this.eval = this.eval.bind(this.stateMachine)
 	},
 	methods: {
 		eval() {
@@ -390,12 +406,12 @@ const Shot = compose(Unit, {
 		this.anims = listFilesWithExt(animsPath, '.fbx')
 
 		if (actionLines) {
-			this.actionBlock = ActionBlock(actionLines)
-			this.registerStateUpdater(this.actionBlock, State.RUN, this.actionBlock.update)
+			this.actionBlock = ActionBlock({actionLines, stateMachine: this})
+			this.registerUpdater( State.RUN, this.actionBlock.update)
 		}
 
-		this.registerOnStateHandler(this, State.LOAD, this.onLoad)
-		this.registerOnStateHandler(this, State.START, this.onStart)
+		this.registerOnChange( State.LOAD, this.onLoad)
+		this.registerOnChange( State.START, this.onStart)
 
 		function listFilesWithExt(next, ext) {
 			try {
@@ -466,13 +482,13 @@ const ShotHeading = compose({
 })
 exports.ShotHeading = ShotHeading
 
-const ActionLine = compose(Awaitable, {
+const ActionLine = compose(Runnable, {
 	init({
 		text,
 		time
 	}) {
 		this.text = text
-		this.timer = Timer(time)
+		this.timer = Timer({time, stateMachine: this.stateMachine})
 	},
 	methods: {
 		async onStart() {
@@ -486,9 +502,9 @@ const ActionLine = compose(Awaitable, {
 })
 exports.ActionLine = ActionLine
 
-const ActionBlock = compose(Awaitable, {
-	init(actionLines) {
-		this.actionLines = actionLines.map(actionLine => ActionLine(actionLine))
+const ActionBlock = compose(Runnable, {
+	init({actionLines}) {
+		this.actionLines = actionLines.map(actionLine => ActionLine({actionLine, stateMachine: this.stateMachine}))
 	},
 	methods: {
 		async onStart() {
@@ -553,12 +569,12 @@ const Select = compose(Op, {
 		
 		this.handle = handle
 
-		this.scope.registerOnStateHandler(this, State.START, this.onStart)
+		this.stateMachine.registerOnChange( State.START, this.onStart)
 	},
 	methods: {
 		onStart() {
-			if (!this.selectables && this.conditionalPaths) {
-				this.selectables = this.conditionalPaths
+			if (!this.selectables && this.conditionalTransitions) {
+				this.selectables = this.conditionalTransitions
 					.filter(cp => cp.exp.op === opType)
 					.map(cp => cp.exp.opArgs.map(arg => Selectable({handle})))
 					.reduce((flatten, array) => [...flatten, ...array], [])
@@ -671,11 +687,11 @@ const UpdateDriver = compose({
 			return new Promise( resolve => {
 				testUpdater(Unit.ActiveUnit, resolve)
 			})
-			function testUpdater(unit, resolve) {
+			function testUpdater(resolve) {
 				setTimeout(function () {
 					if(unit){
 						unit.update()
-						testUpdater(unit, resolve)
+						testUpdater(resolve)
 					} else {
 						resolve(false)
 					}
