@@ -57,7 +57,7 @@ const unitDef = {
 		},
 	],
 	//next: 'this',
-	conditionalPaths: [{
+	conditionalTransitions: [{
 		exp: {
 			ops: [{
 				type: 'OneShot',
@@ -106,7 +106,7 @@ const unitDef = {
 			inTransition: {
 				type: "Cut"
 			},
-			conditionalPaths: [],
+			conditionalTransitions: [],
 			actionLines: [{
 					time: {
 						min: 0,
