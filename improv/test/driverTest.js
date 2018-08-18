@@ -131,10 +131,12 @@ const unitDef = {
 }
 t.test(`updateDriver ...`, t => {
 	let unit = imp.Unit(unitDef)
-	unit.state = imp.State.RUN
-	let driver = imp.UpdateDriver({unit})
+	unit.start()
+	let driver = imp.UpdateDriver({
+		unit
+	})
 	return driver.testUpdate()
-		.then( results => {
+		.then(results => {
 			t.matchSnapshot(results, 'driverTest')
 			t.end()
 		})
