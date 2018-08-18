@@ -10,38 +10,118 @@ const State = {
 	PRELOAD: 'PRELOAD',
 	LOAD: 'LOAD',
 	READY: 'READY',
-	START: 'START',
 	IN_TRANSITION: 'IN_TRANSITION',
-	RUN: 'RUN',
+	UPDATE: 'UPDATE',
 	BACKGROUND: 'BACKGROUND',
 	PAUSE: 'PAUSE',
 	OUT_TRANSITION: 'OUT_TRANSITION',
-	DONE: 'DONE',
+	STOP: 'STOP',
 	UNLOAD: 'UNLOAD'
 }
 exports.State = State
 
-var TypesRegister = {}
+const TypeDescriptors = {}
 const RegisteredType = compose({
 	statics: {
 		Register(type, typeDef) {
-			TypesRegister[type] = typeDef
+			if(TypeDescriptors[type] === undefined){
+				TypeDescriptors[type] = typeDef
+			}
 		}
 	},
 	init(initArgs) {
 		let {
 			type,
-			isRegisteredType
+			skipLookup
 		} = initArgs
 		if(type){
 			this.type = type
 		}
-		//if type is specified from json definition, instantiate from type register, set the type manually, and return unit
-		if (!isRegisteredType) {
-			return TypesRegister[this.type]({ ...initArgs, isRegisteredType: true})
+		if (!TypeDescriptors[this.type]){
+			console.error(`Could not find registered type "${type}". Make sure you've called RegisteredType.Register('${type}', {type})`)
 		}
+		//this constructor should only run once, to instantiate from type field
+		if(skipLookup){
+			return this
+		}
+		//instantiate from type register
+		let typeDescriptor = TypeDescriptors[this.type]
+		return typeDescriptor({...initArgs, skipLookup: true})
 	}
 })
+
+/**
+ * Awaitables run until their isDone() condition is satisfied (e.g. AWAIT) or stop() is called
+ */
+const Awaitable = compose({
+	init({
+		isDone,
+		stateMachine
+	}) {
+		stateMachine = stateMachine ? stateMachine
+			: this.stateMachine ? this.stateMachine : this
+		stateMachine.registerUpdater(State.IN_TRANSITION, this.update.bind(this))
+		stateMachine.registerUpdater(State.UPDATE, this.update.bind(this))
+		stateMachine.registerUpdater(State.OUT_TRANSITION, this.update.bind(this))
+		this.isDone = isDone
+	},
+	methods: {
+		update() {
+			if (!this.isActive) {
+				return
+			}
+			if (this.onUpdate) {
+				this.onUpdate()
+			}
+			if (this.isDone()) {
+				this.stop()
+			}
+		},
+		async start() {
+			this.isActive = true
+			let resolve
+			let p = new Promise(resolve => resolve = resolve)
+			this.resolver = resolve
+			if (this.onStart) {
+				this.results.onStart = await this.onStart()
+			}
+			return p
+		},
+		/**
+		 * await onStop(), await onDone() *
+		 	if it exists and resolve. Otherwse, resolve.
+		 */
+		async stop() {
+			this.isActive = false
+			if (this.onStop) {
+				this.results.onStop = await this.onStop()
+			}
+			if (this.onDone) {
+				this.results.onDoneResult = await this.onDone()
+			}
+			this.resolver(this.results)
+			return this.results
+		},
+		async pause() {
+			this.isActive = false
+			if (this.onPause) {
+				this.results.onPauseResult = await this.onPause()
+			}
+			return this.results
+		},
+		async resume() {
+			this.isActive = true
+			if (this.onResume) {
+				this.results.onResume = await this.onResume()
+			}
+			return this.results
+		},
+		async onTransition(unit) {
+			await Promise.all(this.stop(), unit.start())
+		},
+	}
+})
+
 //TODO: drive deltaTime and timeNow from rendering engine loop
 const Time = compose({
 	statics:{
@@ -93,6 +173,72 @@ const TimeSpan = compose({
 })
 exports.TimeSpan = TimeSpan
 
+//TODO: finish implementing this
+const Timer = compose(Awaitable, {
+	props: {
+		type: 'Timer'
+	},
+	init({
+		time
+	}) {
+		this.time = Time(time)
+		this.timeLeft = this.time.getMilliseconds()
+	},
+	methods: {
+		onUpdate() {
+			this.timeLeft = this.timeLeft - Time.DeltaTime
+		},
+		onStart() {
+			let onDone
+			let p = new Promise(resolve => onDone = resolve)
+			this.onDone = onDone
+			return p
+		},
+		isDone() {
+			return this.timeLeft <= 0
+		}
+	}
+})
+exports.Timer = Timer
+
+const Transition = compose(RegisteredType, Awaitable, {
+	init(initArgs) {
+		let {
+			time,
+			stateMachine
+		} = initArgs
+		this.timer = Timer({ time, stateMachine})
+	},
+	methods: {
+		async onStart() {
+			await this.timer.start()
+		},
+		async onUpdate() {
+			//this.timer.update()
+			//TODO: tick the transition
+		}
+	}
+})
+exports.Transition = Transition
+//RegisteredType.Register('Transition', Transition)
+
+/**
+ * transitions parsing logic:
+ * this.exps = json.transitions.reduce((exps, op, idx, conds) => {
+ 	let exp = Exps.GetOp(op)
+ 	if (exp) {
+ 		let initArgs = conds.GetArgs(exps, idx)
+ 		let expInst = exp.create({
+ 			op: op,
+ 			opArgs: opArgs,
+ 			prev: Object.create(prev)
+ 		})
+ 		return [...exps, expInst]
+ 	}
+ 	return exps
+ }, [])
+ */
+
 const StateMachine = compose({
 	props:{
 		onStateChange: {},
@@ -109,35 +255,20 @@ const StateMachine = compose({
 		}
 		this.inTransition = Transition({...inTransition, stateMachine: this})
 		this.outTransition = Transition({...outTransition, stateMachine: this})
-
-		this.registerOnChange(State.IN_TRANSITION, this.inTransition.start)
-		this.registerOnChange(State.OUT_TRANSITION, this.outTransition.start)
-		this.registerUpdater(State.IN_TRANSITION, this.inTransition.update)
-		this.registerUpdater(State.OUT_TRANSITION, this.outTransition.update)
 	},
 	methods: {
 		async setState(state) {
 			this.state = state
-			for (let handler of this.onStateChange[state]) {
-				await handler() 
+			this.results.onStateChangeHandler = {}
+			for (let onStateChangeHandler of this.onStateChange[state]) {
+				this.results.onStateChangeHandler[state] = await onStateChangeHandler(state) 
 			}
-		},
-		async transitionTo(unit) {
-			await this.setState(State.OUT_TRANSITION)
-			await unit.setState(State.IN_TRANSITION)
-			Unit.ActiveUnit = unit
-			Unit.History.push(unit.scriptPath)
-			if (this.onTransition) {
-				await this.onTransition()
-			}
+			return Promise.resolve(this.results)
 		},
 		update() {
-			let state = this.state
-			if (this.onStateUpdate) {
-				this.onStateUpdate[this.state].every( updater => {
-					updater()
-					return state === this.state
-				})
+			let stateUpdaters = this.onStateUpdate[this.state]
+			for (let updater of stateUpdaters) {
+				updater()
 			}
 		},
 		registerUpdater(state, stateUpdater){
@@ -155,73 +286,46 @@ const StateMachine = compose({
 	}
 })
 
-/**
- * runnables run until their isDone() condition is satisfied (e.g. AWAIT) or stop() is called
- */
-const Runnable = compose({
-	init({
-		isDone,
-		stateMachine
-	}) {
-		this.isDone = isDone
-		this.stateMachine = stateMachine ? stateMachine : this
-		this.stateMachine.registerUpdater(State.RUN, this.update)
+const Loadable = compose(StateMachine, {
+	init() {
+		this.results = {}
 	},
 	methods: {
-		update() {
-			if (!this.isActive) {
-				return
+		async load() {
+			await this.setState(State.LOAD)
+			if (this.onLoad) {
+				this.results.onLoad = await this.onLoad()
 			}
-			if (this.onUpdate) {
-				this.onUpdate()
-			}
-			if (this.isDone()) {
-				this.stop()
-			}
+			await this.setState(State.READY)
 		},
-		async start() {
-			this.isActive = true
-			let resolve
-			let p = new Promise(resolve => resolve = resolve)
-			this.resolver = resolve
-			if (this.onStart) {
-				await this.onStart()
-			}
-			return p
-		},
-		/**
-		 * await onStop(), await onDone() *
-		 	if it exists and resolve. Otherwse, resolve.
-		 */
-		async stop() {
-			this.isActive = false
-			this.stateMachine.deregisterOnChange( State.RUN, this.update)
-			if (this.onStop) {
-				await this.onStop()
-			}
-			if (this.onDone) {
-				let result = await this.onDone()
-				this.resolver(result)
-			} else {
-				this.resolver(true)
-			}
-		},
-		async pause() {
-			this.isActive = false
-			if (this.onPause) {
-				return await this.onPause()
-			}
-		},
-		async resume() {
-			this.isActive = true
-			if (this.onResume) {
-				return await this.onResume()
+		async unload() {
+			await this.setState(State.UNLOAD)
+			if (this.unLoad) {
+				this.results.unLoad = await this.unLoad()
 			}
 		}
 	}
 })
 
-const Unit = compose(RegisteredType, StateMachine, Runnable, {
+//a prev's thoughts are more reliable than the next's
+// but the next's can always be more constied
+//a prev's lies are more reliable than their next's
+// but the next's can always be more imaginative
+//corollary: a prev's mistakes are only more subtle than the next's, but not fewer
+//corollary: the master's mistakes are only more subtle than the student's, but not fewer
+//operations on units are like little flexible fortune cookie relationships you can apply onto an executable stateMachine
+const ConditionalTransition = compose({
+	init({
+		exp,
+		next
+	}) {
+		this.eval = this.exp.eval.bind(exp)
+		this.next = next
+	}
+})
+exports.ConditionalTransition = ConditionalTransition
+
+const Unit = compose(RegisteredType, StateMachine, Awaitable, Loadable, {
 	statics: {
 		ActiveUnit: null,
 		History: []
@@ -231,7 +335,7 @@ const Unit = compose(RegisteredType, StateMachine, Runnable, {
 	},
 	init(initArgs) {
 		let {
-			conditionalTransitions,
+			transitions,
 			scriptPath,
 			next
 		} = initArgs
@@ -239,27 +343,41 @@ const Unit = compose(RegisteredType, StateMachine, Runnable, {
 		this.script = require(scriptPath)
 		this.next = (next && next.type) ? next : this
 
-		if(conditionalTransitions){
-			this.conditionalTransitions = conditionalTransitions.map(({
+		if(transitions){
+			this.transitions = transitions.map(({
 				exp
 			}) => ConditionalTransition({
 				exp,
-				stateMachine: this,
-				next: this.next
+				next: Unit(this.next)
 			}))
 		}
 
-		this.registerUpdater( State.RUN, this.conditionalTransitionsUpdater)
-		if (this.scriptUpdater && this.scriptUpdater.update){
-			this.registerUpdater( State.RUN, this.scriptUpdater.update)
-		}
-		
+		this.registerUpdater(State.UPDATE, this.update.bind(this))
 	},
 	methods: {
-		onUpdate(){
-			this.scriptUpdater
+		async onStart(){
+			this.results.inTransitionStart = await this.inTransition.start()
+			this.results.onStart = await this.setState(State.IN_TRANSITION)
+			return Promise.resolve(this.results)
 		},
-		scriptUpdater(){
+		async onStop(){
+			this.results.inTransitionStart = await this.inTransition.start()
+			this.results.onStop = await this.setState(State.STOP)
+			return Promise.resolve(this.results)
+		},
+		async transitionTo(unit) {
+			this.results.onStop = await this.stop()
+			this.results.transitionTo = await unit.start()
+			if (this.onTransition) {
+				this.results.onTransition = await this.onTransition(unit)
+			}
+			return Promise.resolve(this.results)
+		},
+		onUpdate(){
+			this.updateConditionalTransitions()
+			this.updateScript()
+		},
+		updateScript(){
 			if (this.script) {
 				if (this.isFirstUpdate) {
 					this.isFirstUpdate = false
@@ -274,85 +392,20 @@ const Unit = compose(RegisteredType, StateMachine, Runnable, {
 			}
 		},
 		//IDEA: parallel-unit support can be enabled by using filter() instead of find()
-		conditionalTransitionsUpdater() {
-			let activeConditionalTransition = this.conditionalTransitions.find(conditionalTransition => conditionalTransition.eval())
+		updateConditionalTransitions() {
+			let activeConditionalTransition = this.transitions.find(transition => transition.eval())
 			if (activeConditionalTransition) {
 				this.transitionTo(activeConditionalTransition.next)
 			}
 		},
-		async onTransition(unit) {
-			await Promise.all(this.stop(), unit.start())
-		},
-		async onStart() {
-			await this.setState(State.RUN)
-		},
-		async onStop(){
-			await this.setState(State.DONE)
-		},
-		async load() {
-			await this.setState(State.LOAD)
-			await this.setState(State.READY)
-		},
-		async unload(){
-			await this.setState(State.UNLOAD)
+		async onTransition(unit){
+			Unit.ActiveUnit = unit
+			Unit.History.push(unit.scriptPath)
+			return Promise.resolve(true)
 		}
 	}
 })
 exports.Unit = Unit
-
-const Transition = compose(RegisteredType, Runnable, {
-	init({
-		time
-	}) {
-		this.timer = Timer({...time, stateMachine: this.stateMachine})
-	},
-	methods: {
-		async onStart() {
-			await this.timer.start()
-		},
-		onUpdate() {
-			this.timer.update()
-		}
-	}
-})
-exports.Transition = Transition
-//RegisteredType.Register('Transition', Transition)
-
-//a prev's thoughts are more reliable than the next's
-// but the next's can always be more varied
-//a prev's lies are more reliable than their next's
-// but the next's can always be more imaginative
-//corollary: a prev's mistakes are only more subtle than the next's, but not fewer
-//corollary: the master's mistakes are only more subtle than the student's, but not fewer
-//operations on units are like little flexible fortune cookie relationships you can apply onto an executable stateMachine
-const ConditionalTransition = compose({
-	init({
-		exp,
-		stateMachine,
-		next
-	}) {
-		this.exp = Exp({exp, stateMachine})
-		this.eval = this.exp.eval.bind(this.exp)
-		this.next = Unit(next)
-	}
-})
-exports.ConditionalTransition = ConditionalTransition
-/**
- * conditionalTransitions parsing logic:
- * this.exps = json.conditionalTransitions.reduce((exps, op, idx, conds) => {
- 	let exp = Exps.GetOp(op)
- 	if (exp) {
- 		let initArgs = conds.GetArgs(exps, idx)
- 		let expInst = exp.create({
- 			op: op,
- 			opArgs: opArgs,
- 			prev: Object.create(prev)
- 		})
- 		return [...exps, expInst]
- 	}
- 	return exps
- }, [])
- */
 
 const Exp = compose({
 	init({
@@ -365,13 +418,12 @@ const Exp = compose({
 })
 exports.Exp = Exp
 
-const Op = compose(RegisteredType, Runnable, {
+const Op = compose(RegisteredType, Awaitable, {
 	init(initArgs) {
 		let {
-			opArgs,
+			opArgs
 		} = initArgs
 		this.opArgs = opArgs
-		this.eval = this.eval.bind(this.stateMachine)
 	},
 	methods: {
 		eval() {
@@ -407,11 +459,11 @@ const Shot = compose(Unit, {
 
 		if (actionLines) {
 			this.actionBlock = ActionBlock({actionLines, stateMachine: this})
-			this.registerUpdater( State.RUN, this.actionBlock.update)
+			this.registerUpdater(State.UPDATE, this.actionBlock.update.bind(this.actionBlock))
 		}
-
-		this.registerOnChange( State.LOAD, this.onLoad)
-		this.registerOnChange( State.START, this.onStart)
+		this.registerOnChange(State.IN_TRANSITION, this.onShotStart.bind(this))
+		this.registerOnChange(State.OUT_TRANSITION, this.onShotStop.bind(this))
+		this.registerOnChange(State.LOAD, this.onLoad.bind(this))
 
 		function listFilesWithExt(next, ext) {
 			try {
@@ -428,11 +480,14 @@ const Shot = compose(Unit, {
 		AnimLoader: async (asset) => {}
 	},
 	methods: {
-		async onStart(){
+		async onShotStart(){
 			this.setupCamera()
 			this.startAnimations()
-			await this.actionBlock.start()
-			await this.transitionTo(this.next)
+			this.results.onActionBlockStart = await this.actionBlock.start()
+			return await this.stop()
+		},
+		async onShotStop(){
+			this.results.onTransitionTo = await this.transitionTo(this.next)
 		},
 		setupCamera() {
 				//TODO
@@ -482,13 +537,14 @@ const ShotHeading = compose({
 })
 exports.ShotHeading = ShotHeading
 
-const ActionLine = compose(Runnable, {
+const ActionLine = compose(Awaitable, {
 	init({
 		text,
-		time
+		time,
+		stateMachine
 	}) {
 		this.text = text
-		this.timer = Timer({time, stateMachine: this.stateMachine})
+		this.timer = Timer({time, stateMachine})
 	},
 	methods: {
 		async onStart() {
@@ -502,14 +558,20 @@ const ActionLine = compose(Runnable, {
 })
 exports.ActionLine = ActionLine
 
-const ActionBlock = compose(Runnable, {
-	init({actionLines}) {
-		this.actionLines = actionLines.map(actionLine => ActionLine({actionLine, stateMachine: this.stateMachine}))
+const ActionBlock = compose(Awaitable, {
+	init({
+		actionLines,
+		stateMachine
+	}) {
+		this.actionLines = actionLines.map(actionLine => ActionLine({
+			actionLine,
+			stateMachine
+		}))
 	},
 	methods: {
 		async onStart() {
 			this.isActive = true
-			for (let actionLine in this.actionLines) {
+			for (let actionLine of this.actionLines) {
 				this.activeActionLine = await actionLine.start()
 			}
 		},
@@ -564,17 +626,14 @@ const Select = compose(Op, {
 		type: 'Select'
 	},
 	init({
-		handle
+		handle,
 	}) {
-		
 		this.handle = handle
-
-		this.stateMachine.registerOnChange( State.START, this.onStart)
 	},
 	methods: {
-		onStart() {
-			if (!this.selectables && this.conditionalTransitions) {
-				this.selectables = this.conditionalTransitions
+		async onStart() {
+			if (!this.selectables && this.transitions) {
+				this.selectables = this.transitions
 					.filter(cp => cp.exp.op === opType)
 					.map(cp => cp.exp.opArgs.map(arg => Selectable({handle})))
 					.reduce((flatten, array) => [...flatten, ...array], [])
@@ -583,6 +642,7 @@ const Select = compose(Op, {
 						return sels
 					}, {})
 			}
+			return this.Promise(this.results)
 		},
 		eval() {
 			//TODO: return true if user selection intersects with the handle's anchor
@@ -597,35 +657,6 @@ Op.Register('Select', Select)
 const OneShot = compose(Select)
 exports.OneShot = OneShot
 Op.Register('OneShot', OneShot)
-
-//TODO: finish implementing this
-const Timer = compose(Op, {
-	props:{
-		type: 'Timer'
-	},
-	init({
-		time
-	}) {
-		this.time = Time(time)
-		this.timeLeft = this.time.getMilliseconds()
-	},
-	methods: {
-		onUpdate() {
-			this.timeLeft = this.timeLeft - Time.DeltaTime
-		},
-		onStart(){
-			let onDone
-			let p = new Promise(resolve => onDone = resolve)
-			this.onDone = onDone
-			return p
-		},		
-		isDone() {
-			return this.timeLeft <= 0
-		}
-	}
-})
-exports.Timer = Timer
-Op.Register('Timer', Timer)
 
 const TimeWindow = compose(Op, {
 	props: {
@@ -672,10 +703,7 @@ const UpdateDriver = compose({
 		Unit.ActiveUnit = unit
 	},
 	methods: {
-		update() {
-			Time.Update()
-			Unit.ActiveUnit.update()
-		},
+		//TODO: replace with real updater
 		testUpdate() {
 			if(!this.isInitialized){
 				this.isInitialized = true
@@ -687,11 +715,11 @@ const UpdateDriver = compose({
 			return new Promise( resolve => {
 				testUpdater(Unit.ActiveUnit, resolve)
 			})
-			function testUpdater(resolve) {
+			function testUpdater(unit, resolve) {
 				setTimeout(function () {
 					if(unit){
 						unit.update()
-						testUpdater(resolve)
+						testUpdater(unit, resolve)
 					} else {
 						resolve(false)
 					}
