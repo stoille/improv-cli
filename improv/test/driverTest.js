@@ -31,16 +31,6 @@ const unitDef = {
 			}
 		}
 	},
-	inTransition: {
-		type: 'FadeIn',
-		time: {
-			min: 0,
-			sec: 3
-		}
-	},
-	outTransition: {
-		type: "Cut"
-	},
 	actionLines: [{
 			time: {
 				min: 0,
@@ -56,8 +46,12 @@ const unitDef = {
 			text: 'He clears his throat and coughs.'
 		},
 	],
-	//next: 'this',
-	conditionalTransitions: [{
+	transitions: [{
+		type: 'FadeIn',
+		time: {
+			min: 0,
+			sec: 3
+		},
 		exp: {
 			ops: [{
 				type: 'OneShot',
@@ -80,7 +74,7 @@ const unitDef = {
 				}]
 			}]
 		},
-		childUnit: {
+		next: {
 			type: 'Shot',
 			scriptPath: './improv',
 			sceneHeading: {
@@ -103,10 +97,9 @@ const unitDef = {
 					}
 				}
 			},
-			inTransition: {
+			transitions: [{
 				type: "Cut"
-			},
-			conditionalTransitions: [],
+			}],
 			actionLines: [{
 					time: {
 						min: 0,
@@ -121,11 +114,7 @@ const unitDef = {
 					},
 					text: 'Bar.'
 				},
-			],
-			//next: 'this',
-			outTransition: {
-				type: "Cut"
-			}
+			]
 		}
 	}]
 }

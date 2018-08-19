@@ -33,16 +33,6 @@ t.test(`shotInit ...`, t => {
 				}
 			}
 		},
-		inTransition: {
-			type: 'FadeIn',
-			time: {
-				min: 0,
-				sec: 3
-			}
-		},
-		outTransition: {
-			type: "Cut"
-		},
 		actionLines: [{
 				time: {
 					min: 0,
@@ -58,8 +48,12 @@ t.test(`shotInit ...`, t => {
 				text: 'He clears his throat and coughs.'
 			},
 		],
-		//next: 'this',
-		conditionalPaths: [{
+		transitions: [{
+			type: 'FadeIn',
+			time: {
+				min: 0,
+				sec: 3
+			},
 			exp: {
 				ops: [{
 					type: 'OneShot',
@@ -105,10 +99,9 @@ t.test(`shotInit ...`, t => {
 						}
 					}
 				},
-				inTransition: {
+				transitions: [{
 					type: "Cut"
-				},
-				conditionalPaths: [],
+				}],
 				actionLines: [{
 						time: {
 							min: 0,
@@ -123,11 +116,7 @@ t.test(`shotInit ...`, t => {
 						},
 						text: 'Bar.'
 					},
-				],
-				//next: 'this',
-				outTransition: {
-					type: "Cut"
-				}
+				]
 			}
 		}]
 	}
