@@ -40,61 +40,63 @@ const RegisteredType = compose({
  * Awaitables run until their isDone() condition is satisfied (e.g. AWAIT) or stop() is called
  */
 const Awaitable = compose({
-	init({
-		isDone
-	}) {
-		this.isDone = isDone
-	},
 	methods: {
+		//isDoneShould be overriden
+		isDone(){
+			return true
+		},
 		update() {
-			if (!this.isActive) {
+			if (this._isUpdateSuspended) {
 				return
 			}
 			if (this._onUpdate) {
 				this._onUpdate()
 			}
-			if (this._isDone()) {
-				this._stop()
+			if (this.isDone()) {
+				this.stop({isDone: true})
 			}
 		},
 		async start() {
-			this.isActive = true
+			this._isUpdateSuspended = false
 			let resolve
-			let p = new Promise(resolve => resolve = resolve)
+			this.awaitCondition = new Promise(r => resolve = r)
 			this.resolver = resolve
+			let results = { awaitCondition: this.awaitCondition }
 			if (this._onStart) {
-				this.results.onStart = await this._onStart()
+				results.onStart = await this._onStart()
 			}
-			return p
+			return results
 		},
 		/**
 		 * await onStop(), await onDone() *
 		 	if it exists and resolve. Otherwse, resolve.
 		 */
-		async stop() {
-			this.isActive = false
+		async stop({isDone}) {
+			let results = {}
+			if (isDone && this._onDone) {
+				results.onDone = await this._onDone()
+			}
+			this._isUpdateSuspended = true
 			if (this._onStop) {
-				this.results.onStop = await this._onStop()
+				results.onStop = await this._onStop()
 			}
-			if (this._onDone) {
-				this.results.onDoneResult = await this._onDone()
-			}
-			this.resolver(this.results)
-			return this.results
+			return this.resolver(results)
 		},
 		async pause() {
-			this.isActive = false
+			this._isUpdateSuspended = true
+			let results = {}
 			if (this._onPause) {
-				this.results.onPauseResult = await this._onPause()
+				results.onPauseResult = await this._onPause()
 			}
-			return this.results
+			return results
 		},
 		async resume() {
-			this.isActive = true
+			this._isUpdateSuspended = false
+			let results = {}
 			if (this._onResume) {
-				this.results.onResume = await this._onResume()
+				results.onResume = await this._onResume()
 			}
-			return this.results
+			return results
 		}
 	}
 })
@@ -112,7 +114,7 @@ const Time = compose({
 		}
 	},
 	props:{
-		time: new Date()
+		_time: new Date()
 	},
 	init({
 		min,
@@ -122,17 +124,17 @@ const Time = compose({
 		min = min ? min : 0
 		sec = sec ? sec : 0
 		ms = ms ? ms : 0
-		this.time = new Date(0, 0, 0, 0, min, sec, ms)
+		this._time = new Date(0, 0, 0, 0, min, sec, ms)
 	},
 	methods: {
 		getMinutes() {
-			return this.time.getMinutes()
+			return this._time.getMinutes()
 		},
 		getSeconds() {
-			return this.time.getSeconds()
+			return this._time.getSeconds()
 		},
 		getMilliseconds(){
-			return this.time.getMilliseconds()
+			return this._time.getMilliseconds()
 		}
 	}
 })
@@ -144,8 +146,8 @@ const TimeSpan = compose({
 		start,
 		end
 	}) {
-		this.start = Time(start)
-		this.end = Time(end)
+		this._start = Time(start)
+		this._end = Time(end)
 	}
 })
 exports.TimeSpan = TimeSpan
@@ -158,18 +160,12 @@ const Timer = compose(Awaitable, {
 	init({
 		time
 	}) {
-		this.time = Time(time)
-		this.timeLeft = this.time.getMilliseconds()
+		this._time = Time(time)
+		this._timeLeft = this._time.getMilliseconds()
 	},
 	methods: {
-		onUpdate() {
-			this.timeLeft = this.timeLeft - Time.DeltaTime
-		},
-		onStart() {
-			let onDone
-			let p = new Promise(resolve => onDone = resolve)
-			this.onDone = onDone
-			return p
+		_onUpdate() {
+			this._timeLeft = this._timeLeft - Time.DeltaTime
 		},
 		isDone() {
 			return this.timeLeft <= 0
@@ -178,33 +174,166 @@ const Timer = compose(Awaitable, {
 })
 exports.Timer = Timer
 
-//a prev's thoughts are more reliable than the next's
-// but the next's can always be more constied
-//a prev's lies are more reliable than their next's
+const Op = compose(RegisteredType, Awaitable, {
+	init(initArgs) {
+		let {
+			opArgs,
+			scope
+		} = initArgs
+		this.opArgs = opArgs
+		//used to allow operator to modify parent state
+		this.scope = scope
+	},
+	methods: {
+		eval() {
+			//to be overriden by user
+			return true
+		},
+		_onUpdate() {
+			if (this.onUpdate) {
+				this.onUpdate()
+			}
+		},
+		async _onStart() {
+			if (this.onStart) {
+				return await this.onStart()
+			}
+			return true
+		},
+		async _onStop() {
+			if (this.onStop) {
+				return await this.onStop()
+			}
+			return true
+		},
+		async _onPause() {
+			if (this.onPause) {
+				return await this.onPause()
+			}
+			return true
+		},
+		async _onResume() {
+			if (this.onResume) {
+				return await this.onResume()
+			}
+			return true
+		},
+		async _onUpdate() {
+			if (this.onUpdate) {
+				return await this.onUpdate()
+			}
+			return true
+		}
+	}
+})
+exports.Op = Op
+
+const Exp = compose(Awaitable, {
+	init({
+		ops,
+		scope
+	}) {
+		this.operations = ops.map(opArgs => Op({ ...opArgs, scope, exp: this }))
+		this.eval = () => this.operations.find(op => op.eval())
+	},
+	methods: {
+		_onupdate() {
+			this.operations.forEach(op => op.update())
+		}
+	}
+})
+exports.Exp = Exp
+
+
+//a curr's thoughts are more reliable than the next's
+// but the next's can always be more varied
+//a curr's lies are more reliable than their next's
 // but the next's can always be more imaginative
-//corollary: a prev's mistakes are only more subtle than the next's, but not fewer
+//corollary: a curr's mistakes are only more subtle than the next's, but not fewer
 //corollary: the master's mistakes are only more subtle than the student's, but not fewer
 //operations on units are like little flexible fortune cookie relationships you can apply onto an executable scope
 const Transition = compose(RegisteredType, Awaitable, {
 	init({
 			exp,
 			timer,
-			prev,
+			curr,
 			next
 		}){
-		this.prev = prev
-		this.next = next
-		this.timer = timer
-		let expression = exp
-		this.eval = expression ? expression.eval.bind(this.prev) : () => true
+		this._curr = curr
+		this._next = next
+		this._timer = timer
+		this._expression = exp
 	},
 	methods: {
-		async onStart() {
-			return await Promise.all(this.prev.stop(), this.timer.start(), this.next.start())
+		isDone(){
+			return this._isDone 
 		},
-		async onUpdate() {
-			let interp = this.timer.update()
-			//TODO: tick the transitions over prev/next units
+		/** A transition is "done" when its expression has been satisfied AND:
+		 * 1 - the timer is up
+		 * 2 - the current unit stops
+		 * 3 - the next unit starts
+		 **/
+		async onDone(){
+			let results = {}
+			results.onDoneTimer = await this._timer.start()
+			results.onStopCurr = await this._curr.stop()
+			results.onStartNext = await this._next.start()
+			return results
+		},
+		async _onStart(){
+			let results = {}
+			
+			if (this._expression) {
+				results.onStartExp = await this._expression.start()
+				results.awaitExp = this._expression.awaitCondition
+			}
+
+			if(this.onStart){
+				results.onStart = await this.onStart()
+			}
+			return results
+		},
+		async _onStop() {
+			let results = {}
+			results.onStopTimer = this._timer.stop()
+			results.onStopExp = await this._expression.stop()
+			if (this.onStop) {
+				results.onStop = await this.onStop()
+			}
+			return results
+		},
+		async _onPause() {
+			let results = {}
+			results.onPauseTimer = this._timer.pause()
+			if (this.onPause) {
+				results.onPause = await this.onPause()
+			}
+			return results
+		},
+		async _onResume() {
+			let results = {}
+			results.onResumeTimer = this._timer.resume()
+			if (this.onResume) {
+				results.onResume = await this.onResume()
+			}
+			return results
+		},
+		_onUpdate() {
+			if (this._expression) {
+				this._expression.update()
+				this._isDone = this._expression.eval()
+			}
+			//update the previous unit until the transition is complete since Unit.ActiveUnit == next as soon as the transtiion has started (when this.isDone() == true)
+			if(this.isDone()){
+				this._curr.update()
+			}
+			//let interp = this._timer.update()
+			if(this.onUpdate){
+				this.onUpdate()
+			}
+		},
+		async load(){
+			return this._next.load()
 		}
 	}
 })
@@ -219,7 +348,7 @@ exports.Transition = Transition
  		let expInst = exp.create({
  			op: op,
  			opArgs: opArgs,
- 			prev: Object.create(prev)
+ 			curr: Object.create(curr)
  		})
  		return [...exps, expInst]
  	}
@@ -252,127 +381,97 @@ const Unit = compose(RegisteredType, Awaitable, {
 			transitions,
 			scriptPath
 		} = initArgs
-		this.scriptPath = scriptPath
-		this.script = require(scriptPath)
+		this._scriptPath = scriptPath
+		this._script = require(scriptPath)
 
 		if(transitions){
 			this.transitions = transitions.map(t => {
-				let {
-					type,
-					exp,
-					time,
-					prev,
-					next
-				} = t
-				let tDef = {
-					type,
-					timer: Timer({
-						time
-					})
-				}
+				let {type, exp, time, next } = t
+				let tDef = { type, timer: Timer({ time }), curr: this }
+				tDef.curr = this
+				tDef.next = next ? Unit(next) : null
+				
+				
 				if(exp){
 					tDef.exp = Exp(exp)
 				}
-				if(prev){
-					tDef.prev = prev
-				}
-				if(next){
-					tDef.next = Unit(next)
-				}
-				return Transition(tDef)})
+				
+				return Transition(tDef)
+			})
 		}
 	},
 	methods: {
 		async _onStart(){
-			this.state = State.IN_TRANSITION
+			this._state = State.IN_TRANSITION
 			Unit.ActiveUnit = this
-			Unit.History.push(this.scriptPath)
+			Unit.History.push(this._scriptPath)
+			let results = {}
+			//wait until all transitions start
+			results.onStartTransitions = await Promise.all(this.transitions.map( t => t.start()))
 			//onStart() must be defined in inherited type
 			if(this.onStart){
-				this.results.onStart = await this.onStart()
-				this.state = State.UPDATE
+				this._state = State.UPDATE
+				retuls = await this.onStart()
 			}
-			return this.results
+			return results
 		},
 		async _onStop(){
+			let results = {}
+			//wait until all transitions start
+			results.onStopTransitions = await Promise.all(this.transitions.map(t => t.onStop()))
+
 			if (this.onStop) {
-				this.results.onStop = await this.onStop()
-				this.state = State.STOP
+				this._state = State.STOP
+				results = await this.onStop()
 			}
-			return this.results
 		},
 		async _onPause() {
+			let results = {}
+			//wait until all transitions start
+			results.onPauseTransitions = await Promise.all(this.transitions.map(t => t.onPause()))
+
 			if (this.onPause) {
-				this.results.onPause = await this.onPause()
-				this.lastState = this.state
-				this.state = State.PAUSE
+				this._lastState = this._state
+				this._state = State.PAUSE
+				results = await this.onPause()
 			}
-			return this.results
 		},
 		async _onResume() {
+			let results = {}
+			//wait until all transitions start
+			results.onResumeTransitions = await Promise.all(this.transitions.map(t => t.onResume()))
+
 			if (this.onResume) {
-				this.results.onResume = await this.onResume()
-				this.state = this.lastState
+				this._state = this._lastState
+				results = await this.onResume()
 			}
-			return this
 		},
 		_onUpdate(){
-			this.updateTransitions()
+			//IDEA: parallel-unit support can be enabled by using filter() instead of find()
+			this.transitions.forEach(t => t.update())
+
 			this.updateScript()
 			//onUpdate() must be defined in inherited type
 			this.onUpdate()
 		},
 		updateScript(){
-			if (this.script) {
+			if (this._script) {
 				if (this.isFirstUpdate) {
 					this.isFirstUpdate = false
-					if (this.script.onFirstUpdate) {
-						this.script.onFirstUpdate()
+					if (this._script.onFirstUpdate) {
+						this._script.onFirstUpdate()
 					}
 				} else {
-					if (this.script.update) {
-						this.script.update()
+					if (this._script.update) {
+						this._script.update()
 					}
 				}
 			}
 		},
-		//IDEA: parallel-unit support can be enabled by using filter() instead of find()
-		updateTransitions() {
-			this.transitions.forEach(transition => transition.update())
-		}
 	}
 })
 exports.Unit = Unit
 
-const Exp = compose({
-	init({
-		ops,
-		scope
-	}) {
-		let operations = ops.map( opArgs => Op({...opArgs, scope, exp:this}))
-		this.eval = () => operations.find(op => op.eval())
-	}
-})
-exports.Exp = Exp
-
-const Op = compose(RegisteredType, Awaitable, {
-	init(initArgs) {
-		let {
-			opArgs,
-			scope
-		} = initArgs
-		this.opArgs = opArgs
-		//used to allow operator to modify parent state
-		this.scope = scope
-	},
-	methods: {
-		eval() {
-			//isDone defined in Awaitable init
-			return this.isDone()
-		}
-	}
-})
-exports.Op = Op
 /**
  * MODELS
  * */
@@ -390,15 +489,15 @@ const Shot = compose(Unit, {
 			shotHeading,
 			actionLines
 		} = initArgs
-		this.sceneHeading = SceneHeading(sceneHeading)
-		this.shotHeading = ShotHeading(shotHeading)
-		let modelsPath = `${this.scriptPath}/models`
-		this.models = listFilesWithExt(modelsPath, '.fbx')
-		let animsPath = `${this.scriptPath}/anims`
-		this.anims = listFilesWithExt(animsPath, '.fbx')
+		this._sceneHeading = SceneHeading(sceneHeading)
+		this._shotHeading = ShotHeading(shotHeading)
+		let modelsPath = `${this._scriptPath}/models`
+		this._models = listFilesWithExt(modelsPath, '.fbx')
+		let animsPath = `${this._scriptPath}/anims`
+		this._anims = listFilesWithExt(animsPath, '.fbx')
 
 		if (actionLines) {
-			this.actionBlock = ActionBlock({actionLines, scope: this})
+			this._actionBlock = ActionBlock({actionLines, scope: this})
 		}
 
 		function listFilesWithExt(next, ext) {
@@ -416,42 +515,54 @@ const Shot = compose(Unit, {
 		AnimLoader: async (asset) => {}
 	},
 	methods: {
-		async onStart(){
-			setupCamera()
-			startAnimations()
-			this.results.onActionBlockStart = await this.actionBlock.start()
-			this.results.onLoad = await Promise.all(this.transitions.map(t => t.next.load()))
-			return await this.stop()
-
-			function setupCamera() {
-				//TODO
-			}
-			function startAnimations() {
-				//TODO
-			}
+		isDone(){
+			return this._isDone
 		},
-		async onStop(){
-			//TODO: reinvestigate unloading on stop
-			this.results.unload = await this.unload()
+		async onStart(){
+			//TODO: investigate optimizing loading on start
+			let results = {}
+			results.onLoad = await Promise.all(this.transitions.map(t => t.load()))
+			this.setupCamera()
+			this.startAnimations()
+			results.onActionBlock = await this._actionBlock.start()
+			//when the action block finishes set this._isDone = true to finish the shot
+			this._actionBlock.awaitCondition.then( () => this._isDone = true)
+			return results
 		},
 		async load() {
-			this.state = State.LOAD
-			this.models = await load(this.models, Shot.ModelLoader)
-			this.anims = await load(this.anims, Shot.AnimLoader)
-			this.state = State.READY
-
+			this._state = State.LOAD
+			this._models = await load(this._models, Shot.ModelLoader)
+			this._anims = await load(this._anims, Shot.AnimLoader)
+			this._state = State.READY
+			return {onLoadModels: this._models, onLoadAnims: this._anims}
+			//create ModelLoader classes
 			async function load(assets, loader) { 
-				return Promise.all(Object.keys(this.models).map(
+				/* TODO: implement this
+				return Promise.all(Object.keys(this._models).map(
 					handle => loader(assets[handle])))
+					*/
+				return []
 			}
 		},
-		async unload(){
-			this.state = State.UNLOAD
+		setupCamera() {
+				//TODO
+		},
+		startAnimations() {
 			//TODO
-			this.state = State.DONE
+		},
+		async unload(){
+			this._state = State.UNLOAD
+			//TODO
+			this._state = State.DONE
+		},
+		async onStop() {
+			//TODO: investigate optimizing unloading on stop
+			let results = {}
+			results.unload = await this.unload()
+			return results
 		},
 		onUpdate(){
-			this.actionBlock.update()
+			this._actionBlock.update()
 		}
 	}
 })
@@ -491,16 +602,16 @@ const ActionLine = compose(Awaitable, {
 		text,
 		time
 	}) {
-		this.text = text
-		this.timer = Timer({time})
+		this._text = text
+		this._timer = Timer({time})
 	},
 	methods: {
 		async _onStart() {
-			console.log(this.text)
-			await this.timer.start()
+			console.log(this._text)
+			await this._timer.start()
 		},
 		_onUpdate(){
-			this.timer.update()
+			this._timer.update()
 			//TODO: animated closed captions
 		}
 	}
@@ -511,19 +622,26 @@ const ActionBlock = compose(Awaitable, {
 	init({
 		actionLines
 	}) {
-		this.actionLines = actionLines.map(actionLine => ActionLine({
+		this._actionLines = actionLines.map(actionLine => ActionLine({
 			actionLine
 		}))
 	},
 	methods: {
+		isDone(){
+			return this._isDone
+		},
 		async _onStart() {
-			this.isActive = true
-			for (let actionLine of this.actionLines) {
-				this.activeActionLine = await actionLine.start()
+			let results = {onActionLines: []}
+			for (let actionLine of this._actionLines) {
+				results.onActionLines.push(await actionLine.start())
 			}
+			//when the action lines are all done set this._isDone = true
+			Promise.all(this._actionLines.map( a => a.awaitCondition ))
+				.then( () => this._isDone = true )
+			return results
 		},
 		_onUpdate() {
-			this.activeActionLine.update()
+			this._activeActionLine.update()
 		}
 	}
 })
@@ -533,7 +651,7 @@ const Text = compose({
 	init({
 		text
 	}) {
-		this.text = text
+		this._text = text
 	}
 })
 exports.Text = Text
@@ -578,18 +696,8 @@ const Select = compose(Op, {
 		this.handle = handle
 	},
 	methods: {
-		async _onStart() {
-			if (!this.selectables && this.transitions) {
-				this.selectables = this.transitions
-					.filter(cp => cp.exp.op === opType)
-					.map(cp => cp.exp.opArgs.map(arg => Selectable({handle})))
-					.reduce((flatten, array) => [...flatten, ...array], [])
-					.reduce((sels, sel) => {
-						sels[sel.handle] = sel
-						return sels
-					}, {})
-			}
-			return this.Promise(this.results)
+		onUpdate(){
+			//TODO: anchor handle to correct location
 		},
 		eval() {
 			//TODO: return true if user selection intersects with the handle's anchor
@@ -617,16 +725,16 @@ const TimeWindow = compose(Op, {
 		isWindowActive() {
 			return Time.Now() >= this.applyOffset(this.timeSpan.start) && Time.Now() <= this.applyOffset(this.timeSpan.end)
 		},
-		async _onStart(){
+		async onStart(){
 			this.timeOffset = Time.Now()
 		},
-		async _onStop(){
+		async onStop(){
 			this.timeOffset = 0
 		},
-		async _onResume(){
+		async onResume(){
 			this.timeOffset = Time.Now() + this.timeOffset
 		},
-		async _onPause(){
+		async onPause(){
 			this.timeOffset = Time.Now() - this.timeOffset
 		},
 		isDone() {
@@ -652,8 +760,8 @@ const UpdateDriver = compose({
 	methods: {
 		//TODO: replace with real updater
 		testUpdate() {
-			if(!this.isInitialized){
-				this.isInitialized = true
+			if(!this._isInitialized){
+				this._isInitialized = true
 				Unit.ActiveUnit.start()
 					.then(() => new Promise(resolve => {
 							testUpdater(Unit.ActiveUnit, resolve)
