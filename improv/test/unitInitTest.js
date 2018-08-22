@@ -33,29 +33,14 @@ t.test(`shotInit ...`, t => {
 				}
 			}
 		},
-		actionLines: [{
-				time: {
-					min: 0,
-					sec: 3
-				},
-				text: 'Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church.'
-			},
-			{
-				time: {
-					min: 0,
-					sec: 1
-				},
-				text: 'He clears his throat and coughs.'
-			},
-		],
 		transitions: [{
 			type: 'FadeIn',
 			time: {
 				min: 0,
 				sec: 3
 			},
-			exp: {
-				ops: [{
+			ops: [
+				{
 					type: 'OneShot',
 					opArgs: [{}]
 				}, {
@@ -74,8 +59,8 @@ t.test(`shotInit ...`, t => {
 							sec: 10
 						}
 					}]
-				}]
-			},
+				}
+			],
 			next: {
 				type: 'Shot',
 				scriptPath: './improv',
@@ -100,24 +85,48 @@ t.test(`shotInit ...`, t => {
 					}
 				},
 				transitions: [{
-					type: "Cut"
-				}],
+					type: 'Cut',
+					ops: [{
+						type: 'ActionBlock',
+						actionLines: [{
+								time: {
+									min: 0,
+									sec: 3
+								},
+								text: 'Foo.'
+							},
+							{
+								time: {
+									min: 0,
+									sec: 1
+								},
+								text: 'Bar.'
+							},
+						]
+					}]
+				}]
+			}
+		},{
+			type: 'Cut',
+			ops:[{
+				type: 'ActionBlock',
 				actionLines: [{
 						time: {
 							min: 0,
 							sec: 3
 						},
-						text: 'Foo.'
+						text: 'Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church.'
 					},
 					{
 						time: {
 							min: 0,
 							sec: 1
 						},
-						text: 'Bar.'
+						text: 'He clears his throat and coughs.'
 					},
-				]
-			}
+				],
+				next: null
+			}]
 		}]
 	}
 	let shot = Unit(shotDef)

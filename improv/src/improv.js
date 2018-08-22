@@ -6,24 +6,28 @@ const glob = require('glob')
 
 const DEBUG = true
 
-const TypeDescriptors = {}
 const RegisteredType = compose({
 	statics: {
+		TypeDescriptors: {},
 		Register(type, typeDef) {
-			if(TypeDescriptors[type] === undefined){
-				TypeDescriptors[type] = typeDef
+			if(RegisteredType.TypeDescriptors[type] === undefined){
+				RegisteredType.TypeDescriptors[type] = typeDef
 			}
 		}
 	},
 	init(initArgs) {
+		//return null for props type declarations
+		if (isEmptyObject(initArgs)) {
+			return null
+		}
 		let {
 			type,
 			skipLookup
 		} = initArgs
-		if(type){
-			this.type = type
-		}
-		if (!TypeDescriptors[this.type]){
+		//all inheritors of RegisteredType must define a type
+		this.type = type ? type : this.type
+		
+		if (!RegisteredType.TypeDescriptors[this.type]){
 			console.error(`Could not find registered type "${type}". Make sure you've called RegisteredType.Register('${type}', {type})`)
 		}
 		//this constructor should only run once, to instantiate from type field
@@ -31,73 +35,74 @@ const RegisteredType = compose({
 			return this
 		}
 		//instantiate from type register
-		let typeDescriptor = TypeDescriptors[this.type]
+		let typeDescriptor = RegisteredType.TypeDescriptors[this.type]
 		return typeDescriptor({...initArgs, skipLookup: true})
+
+		function isEmptyObject(obj){
+			return Object.keys(obj).length === 0 && obj.constructor === Object
+		}
+	},
+	props: {
+		type: undefined
 	}
 })
 
 /**
- * Awaitables run until their isDone() condition is satisfied (e.g. AWAIT) or stop() is called
+ * Awaitables run until their isDoneUpdate() condition is satisfied (e.g. AWAIT) or stopUpdate() is called
  */
 const Awaitable = compose({
 	methods: {
-		//isDoneShould be overriden
-		isDone(){
+		//isDoneUpdateShould be overriden
+		isDoneUpdate(){
 			return true
 		},
+		//TODO: NEXT find out why update() results in an max call stack size exceeded (infinite loop)
 		update() {
-			if (this._isUpdateSuspended) {
+			if (this.isUpdateSuspended) {
 				return
 			}
-			if (this._onUpdate) {
-				this._onUpdate()
+			if (this.onUpdate) {
+				this.onUpdate()
 			}
-			if (this.isDone()) {
-				this.stop({isDone: true})
+			if (this.isDoneUpdate()) {
+				this.stopUpdate({isDoneUpdate: true})
 			}
 		},
-		async start() {
-			this._isUpdateSuspended = false
+		async startUpdate() {
+			this.isUpdateSuspended = false
 			let resolve
-			this.awaitCondition = new Promise(r => resolve = r)
+			let awaitCondition = new Promise(r => resolve = r)
 			this.resolver = resolve
-			let results = { awaitCondition: this.awaitCondition }
-			if (this._onStart) {
-				results.onStart = await this._onStart()
+			return { 
+				awaitCondition: awaitCondition,
+				onStartUpdate: this.onStartUpdate()
 			}
-			return results
 		},
-		/**
-		 * await onStop(), await onDone() *
-		 	if it exists and resolve. Otherwse, resolve.
-		 */
-		async stop({isDone}) {
-			let results = {}
-			if (isDone && this._onDone) {
-				results.onDone = await this._onDone()
+		async stopUpdate({isDoneUpdate, resolveArg}) {
+			this.isUpdateSuspended = true
+			return {
+				onDoneUpdate: isDoneUpdate ? this.onDoneUpdate() : false,
+				onStopUpdate: this.onStopUpdate(),
+				resolve: this.resolver(resolveArg)
 			}
-			this._isUpdateSuspended = true
-			if (this._onStop) {
-				results.onStop = await this._onStop()
-			}
-			return this.resolver(results)
 		},
-		async pause() {
-			this._isUpdateSuspended = true
-			let results = {}
-			if (this._onPause) {
-				results.onPauseResult = await this._onPause()
-			}
-			return results
+		async pauseUpdate() {
+			this.isUpdateSuspended = true
+			return { onPauseUpdate: this.onPauseUpdate() }
 		},
-		async resume() {
-			this._isUpdateSuspended = false
-			let results = {}
-			if (this._onResume) {
-				results.onResume = await this._onResume()
-			}
-			return results
+		async resumeUpdate() {
+			this.isUpdateSuspended = false
+			return { onResumeUpdate: this.onResumeUpdate() }
 		}
+	},
+	props: {
+		isUpdateSuspended: true,
+		resolver: (resolveArg) => {},
+		onStartUpdate: async () => { },
+		onStopUpdate: async () => { },
+		onPauseUpdate: async () => { },
+		onResumeUpdate: async () => { },
+		onUpdate: async () => { }
 	}
 })
 
@@ -113,8 +118,16 @@ const Time = compose({
 			Time.TimeOfLastUpdate = Time.Now()
 		}
 	},
-	props:{
-		_time: new Date()
+	methods: {
+		getMinutes() {
+			return this._time.getMinutes()
+		},
+		getSeconds() {
+			return this._time.getSeconds()
+		},
+		getMilliseconds(){
+			return this._time.getMilliseconds()
+		}
 	},
 	init({
 		min,
@@ -126,36 +139,45 @@ const Time = compose({
 		ms = ms ? ms : 0
 		this._time = new Date(0, 0, 0, 0, min, sec, ms)
 	},
-	methods: {
-		getMinutes() {
-			return this._time.getMinutes()
-		},
-		getSeconds() {
-			return this._time.getSeconds()
-		},
-		getMilliseconds(){
-			return this._time.getMilliseconds()
-		}
-	}
+	props: {
+		time: new Date()
+	},
 })
 exports.Time = Time
 
 //TODO: consider replacing Time/TimeSpan with more robust time library
 const TimeSpan = compose({
+	methods:{
+		getRunLength() {
+			return this._time
+		}
+	},
 	init({
 		start,
 		end
 	}) {
-		this._start = Time(start)
-		this._end = Time(end)
+		this._start = Time(start ? start : {})
+		this._end = Time(end ? end : {})
+	},
+	props: {
+		_start: Time(),
+		_end: Time()
 	}
 })
 exports.TimeSpan = TimeSpan
 
 //TODO: finish implementing this
 const Timer = compose(Awaitable, {
-	props: {
-		type: 'Timer'
+	methods: {
+		onUpdate() {
+			this._timeLeft = this._timeLeft - Time.DeltaTime
+		},
+		isDoneUpdate() {
+			return this._timeLeft <= 0
+		},
+		getRunLength(){
+			return this._time
+		}
 	},
 	init({
 		time
@@ -163,178 +185,174 @@ const Timer = compose(Awaitable, {
 		this._time = Time(time)
 		this._timeLeft = this._time.getMilliseconds()
 	},
-	methods: {
-		_onUpdate() {
-			this._timeLeft = this._timeLeft - Time.DeltaTime
-		},
-		isDone() {
-			return this.timeLeft <= 0
-		}
-	}
+	props: {
+		type: 'Timer',
+		_time: Time(),
+		_timeLeft: 0
+	},
 })
 exports.Timer = Timer
 
 const Op = compose(RegisteredType, Awaitable, {
-	init(initArgs) {
-		let {
-			opArgs,
-			scope
-		} = initArgs
-		this.opArgs = opArgs
-		//used to allow operator to modify parent state
-		this.scope = scope
-	},
 	methods: {
 		eval() {
 			//to be overriden by user
 			return true
 		},
-		_onUpdate() {
+		onUpdate() {
 			if (this.onUpdate) {
 				this.onUpdate()
 			}
 		},
-		async _onStart() {
-			if (this.onStart) {
-				return await this.onStart()
+		async onStartUpdate() {
+			if (this.onStartUpdate) {
+				return this.onStartUpdate()
 			}
 			return true
 		},
-		async _onStop() {
-			if (this.onStop) {
-				return await this.onStop()
+		async onStopUpdate() {
+			if (this.onStopUpdate) {
+				return this.onStopUpdate()
 			}
 			return true
 		},
-		async _onPause() {
-			if (this.onPause) {
-				return await this.onPause()
+		async onPauseUpdate() {
+			if (this.onPauseUpdate) {
+				return this.onPauseUpdate()
 			}
 			return true
 		},
-		async _onResume() {
-			if (this.onResume) {
-				return await this.onResume()
+		async onResumeUpdate() {
+			if (this.onResumeUpdate) {
+				return this.onResumeUpdate()
 			}
 			return true
 		},
-		async _onUpdate() {
+		async onUpdate() {
 			if (this.onUpdate) {
-				return await this.onUpdate()
+				return this.onUpdate()
 			}
 			return true
 		}
+	},
+	init({
+			opArgs
+		}) {
+		this.opArgs = opArgs
+		//BAD IDEA: allow operator to modify parent state
+		//this.scope = scope
+	},
+	props:{
+		opArgs: []
 	}
 })
 exports.Op = Op
 
 const Exp = compose(Awaitable, {
-	init({
-		ops,
-		scope
-	}) {
-		this.operations = ops.map(opArgs => Op({ ...opArgs, scope, exp: this }))
-		this.eval = () => this.operations.find(op => op.eval())
-	},
 	methods: {
-		_onupdate() {
+		onupdate() {
+			if(alwaysTrue){
+				return
+			}
 			this.operations.forEach(op => op.update())
+		},
+		isDoneUpdate() {
+			//default to true if no ops were supplied
+			return this.operations ? this.operations.find(op => op.eval()) : true
 		}
+	},
+	init({
+		ops
+	}) {
+		this.operations = ops ? ops.map(opArgs => Op(opArgs)) : null
+	},
+	props: {
+		operations: []
 	}
 })
 exports.Exp = Exp
 
-
-//a curr's thoughts are more reliable than the next's
-// but the next's can always be more varied
-//a curr's lies are more reliable than their next's
-// but the next's can always be more imaginative
-//corollary: a curr's mistakes are only more subtle than the next's, but not fewer
-//corollary: the master's mistakes are only more subtle than the student's, but not fewer
-//operations on units are like little flexible fortune cookie relationships you can apply onto an executable scope
 const Transition = compose(RegisteredType, Awaitable, {
-	init({
-			exp,
-			timer,
-			curr,
-			next
-		}){
-		this._curr = curr
-		this._next = next
-		this._timer = timer
-		this._expression = exp
-	},
 	methods: {
-		isDone(){
-			return this._isDone 
+		async onStartUpdate() { /* Inheritor to override */},
+		async onStartUpdate(){
+			return {
+				onStartUpdateExp: await this._expression.startUpdate(),
+				awaitExp: this._expression.awaitCondition,
+				onStartUpdate: await this.onStartUpdate()
+			}
+		},
+		async onStopUpdate() { /* Inheritor to override */ },
+		async onStopUpdate() {
+			return {
+				onStopUpdateTimer: this._timer.stopUpdate(),
+				onStopUpdateExp: this._expression.stopUpdate(),
+				onStopUpdate: await this.onStopUpdate()
+			}
+		},
+		async onPauseUpdate() { /* Inheritor to override */ },
+		async onPauseUpdate() {
+			return {
+				onPauseUpdateTimer: this._timer.pauseUpdate(),
+				onPauseUpdateExp: this._expression.pauseUpdate(),
+				onPauseUpdate: await this.onPauseUpdate()
+			}
+		},
+		async onResumeUpdate() { /* Inheritor to override */ },
+		async onResumeUpdate() {
+			return {
+				onResumeUpdateTimer: this._timer.resumeUpdate(),
+				onResumeUpdateExp: this._expression.resumeUpdate(),
+				onResumeUpdate: await this.onResumeUpdate()
+			}
+		},
+		onUpdate() { /* Inheritor to override */ },
+		onUpdate() {
+			this._expression.update()
+			
+			//let interp = this._timer.update()
+			//TODO: apply transition over curr and next
+			this.onUpdate()
 		},
 		/** A transition is "done" when its expression has been satisfied AND:
 		 * 1 - the timer is up
-		 * 2 - the current unit stops
-		 * 3 - the next unit starts
+		 * 2 - the current awaitable stops
+		 * 3 - the next awaitable starts
 		 **/
-		async onDone(){
-			let results = {}
-			results.onDoneTimer = await this._timer.start()
-			results.onStopCurr = await this._curr.stop()
-			results.onStartNext = await this._next.start()
-			return results
+		isDoneUpdate(){
+			return this._expression.isDoneUpdate()
 		},
-		async _onStart(){
-			let results = {}
-			
-			if (this._expression) {
-				results.onStartExp = await this._expression.start()
-				results.awaitExp = this._expression.awaitCondition
-			}
-
-			if(this.onStart){
-				results.onStart = await this.onStart()
-			}
-			return results
-		},
-		async _onStop() {
-			let results = {}
-			results.onStopTimer = this._timer.stop()
-			results.onStopExp = await this._expression.stop()
-			if (this.onStop) {
-				results.onStop = await this.onStop()
-			}
-			return results
-		},
-		async _onPause() {
-			let results = {}
-			results.onPauseTimer = this._timer.pause()
-			if (this.onPause) {
-				results.onPause = await this.onPause()
-			}
-			return results
-		},
-		async _onResume() {
-			let results = {}
-			results.onResumeTimer = this._timer.resume()
-			if (this.onResume) {
-				results.onResume = await this.onResume()
-			}
-			return results
-		},
-		_onUpdate() {
-			if (this._expression) {
-				this._expression.update()
-				this._isDone = this._expression.eval()
-			}
-			//update the previous unit until the transition is complete since Unit.ActiveUnit == next as soon as the transtiion has started (when this.isDone() == true)
-			if(this.isDone()){
-				this._curr.update()
-			}
-			//let interp = this._timer.update()
-			if(this.onUpdate){
-				this.onUpdate()
+		async onDoneUpdate(){
+			this._curr.setState( State.OUT_TRANSITION )
+			this._next.setState(State.IN_TRANSITION )
+			//TODO: determine whether curr's state is done or should be put into background
+			return {
+				onDoneUpdateTimer: await this._timer.startUpdate(),
+				onStopUpdateCurr: await this._curr.stopUpdate(),
+				onStartUpdateNext: await this._next.startUpdate(),
 			}
 		},
 		async load(){
 			return this._next.load()
 		}
+	},
+	init({
+		exp,
+		timer,
+		curr,
+		next
+	}) {
+		this._curr = curr
+		this._next = next
+		this._timer = timer
+		this._expression = exp
+	},
+	props: {
+		_curr: Awaitable(),
+		_prev: Awaitable(),
+		_next: Awaitable(),
+		_timer: Timer(),
+		_expression: Exp()
 	}
 })
 exports.Transition = Transition
@@ -373,81 +391,59 @@ exports.Transition = Transition
 
 const Unit = compose(RegisteredType, Awaitable, {
 	statics: {
-		ActiveUnit: null,
+		ActiveUnits: [],
 		History: []
 	},
-	init(initArgs) {
-		let {
-			transitions,
-			scriptPath
-		} = initArgs
-		this._scriptPath = scriptPath
-		this._script = require(scriptPath)
-
-		if(transitions){
-			this.transitions = transitions.map(t => {
-				let {type, exp, time, next } = t
-				let tDef = { type, timer: Timer({ time }), curr: this }
-				tDef.curr = this
-				tDef.next = next ? Unit(next) : null
-				
-				
-				if(exp){
-					tDef.exp = Exp(exp)
-				}
-				
-				return Transition(tDef)
-			})
-		}
-	},
 	methods: {
-		async _onStart(){
-			this._state = State.IN_TRANSITION
-			Unit.ActiveUnit = this
-			Unit.History.push(this._scriptPath)
+		setState( state ){
+			this.state = state
+		},
+		async onStartUpdate(){
+			Unit.ActiveUnits.push(this)
+			Unit.History.push(this.scriptPath)
 			let results = {}
 			//wait until all transitions start
-			results.onStartTransitions = await Promise.all(this.transitions.map( t => t.start()))
-			//onStart() must be defined in inherited type
-			if(this.onStart){
-				this._state = State.UPDATE
-				retuls = await this.onStart()
-			}
+			results.onStartUpdateTransitions = await Promise.all(this.transitions.map( t => t.startUpdate()))
+			//onStartUpdate() must be defined in inherited type
+			
+			this.state = State.UPDATE
+			results.onStartUpdate = await this.onStartUpdate()
+			
 			return results
 		},
-		async _onStop(){
+		async onStopUpdate(){
 			let results = {}
 			//wait until all transitions start
-			results.onStopTransitions = await Promise.all(this.transitions.map(t => t.onStop()))
-
-			if (this.onStop) {
-				this._state = State.STOP
-				results = await this.onStop()
+			results.onStopUpdateTransitions = await Promise.all(this.transitions.map(t => t.onStopUpdate()))
+			Unit.ActiveUnits.splice(Unit.ActiveUnits.indexOf(this), 1)
+			if (this.onStopUpdate) {
+				this.state = State.STOP
+				results = await this.onStopUpdate()
 			}
 		},
-		async _onPause() {
+		async onPauseUpdate() {
 			let results = {}
 			//wait until all transitions start
-			results.onPauseTransitions = await Promise.all(this.transitions.map(t => t.onPause()))
+			results.onPauseUpdateTransitions = await Promise.all(this.transitions.map(t => t.onPauseUpdate()))
 
-			if (this.onPause) {
-				this._lastState = this._state
-				this._state = State.PAUSE
-				results = await this.onPause()
+			if (this.onPauseUpdate) {
+				this.lastState = this.state
+				this.state = State.PAUSE
+				results = await this.onPauseUpdate()
 			}
 		},
-		async _onResume() {
+		async onResumeUpdate() {
 			let results = {}
 			//wait until all transitions start
-			results.onResumeTransitions = await Promise.all(this.transitions.map(t => t.onResume()))
+			results.onResumeUpdateTransitions = await Promise.all(this.transitions.map(t => t.onResumeUpdate()))
 
-			if (this.onResume) {
-				this._state = this._lastState
-				results = await this.onResume()
+			if (this.onResumeUpdate) {
+				this.state = this.lastState
+				results = await this.onResumeUpdate()
 			}
 		},
-		_onUpdate(){
-			//IDEA: parallel-unit support can be enabled by using filter() instead of find()
+		onUpdate(){
+			//IDEA: parallel-unit support
 			this.transitions.forEach(t => t.update())
 
 			this.updateScript()
@@ -455,19 +451,47 @@ const Unit = compose(RegisteredType, Awaitable, {
 			this.onUpdate()
 		},
 		updateScript(){
-			if (this._script) {
-				if (this.isFirstUpdate) {
-					this.isFirstUpdate = false
-					if (this._script.onFirstUpdate) {
-						this._script.onFirstUpdate()
+			if (this.script) {
+				if (this._isFirstUpdate) {
+					this._isFirstUpdate = false
+					if (this.script.onFirstUpdate) {
+						this.script.onFirstUpdate()
 					}
 				} else {
-					if (this._script.update) {
-						this._script.update()
+					if (this.script.update) {
+						this.script.update()
 					}
 				}
 			}
 		},
+	},
+	init({
+			transitions,
+			scriptPath
+		}) {
+		this.scriptPath = scriptPath
+		this.script = require(scriptPath)
+
+		if (transitions) {
+			this.transitions = transitions.map(({
+						type,
+						exp,
+						time,
+						next
+					}) => Transition({
+					type,
+					timer: Timer({ time }),
+					curr: this,
+					next: next ? Unit(next) : this,
+					exp: Exp(exp)
+				})
+			)
+		}
+	},
+	props: {
+		scriptPath: '',
+		script: {},
+		transitions: []
 	}
 })
 exports.Unit = Unit
@@ -476,69 +500,141 @@ exports.Unit = Unit
  * MODELS
  * */
 
+ const Text = compose({
+ 	init({
+ 		text
+ 	}) {
+ 		this._text = text
+ 	},
+ 	props: {
+ 		_text: ''
+ 	}
+ })
+ exports.Text = Text
+
+ const ActionLine = compose(Awaitable, {
+ 	methods: {
+ 		async onStartUpdate() {
+ 			console.log(this._text)
+ 			return ({
+ 				onStartUpdateTimer: this._timer.startUpdate()
+ 			})
+ 		},
+ 		onUpdate() {
+ 			this._timer.update()
+ 			//TODO: animated closed captions
+ 		},
+ 		getRuntime() {
+ 			return this._timer.getRunLength()
+		 },
+		 isDoneUpdate(){
+			 return this._timer.isDoneUpdate()
+		 }
+ 	},
+ 	init({
+ 		text,
+ 		time
+ 	}) {
+ 		this._text = Text({
+ 			text
+ 		})
+ 		this._timer = Timer({
+ 			time
+ 		})
+ 	},
+ 	props: {
+ 		_text: Text(),
+ 		_timer: Timer()
+ 	}
+ })
+ exports.ActionLine = ActionLine
+
+ const ActionBlock = compose(Op, {
+ 	methods: {
+ 		getActiveLine() {
+ 			return this.actionLines[this._activeLineIdx]
+ 		},
+ 		getRuntime() {
+
+ 		},
+ 		setNextActiveLine() {
+ 			++this._activeLineIdx
+ 		},
+ 		onUpdate() {
+ 			this.getActiveLine().update()
+ 			if (this.getActiveLine().isDoneUpdate()) {
+ 				this.setNextActiveLine()
+ 			}
+ 		},
+ 		isDoneUpdate() {
+ 			return this.getActiveLine().isDoneUpdate()
+ 		},
+ 	},
+ 	init({
+ 		actionLines
+ 	}) {
+		 //return null for props type declarations
+		if(!actionLines){
+			return null
+		}
+ 		this.actionLines = actionLines.map(actionLine => ActionLine({
+ 			actionLine
+ 		}))
+
+ 		this._runtime = sumLineRuntimes(this._actionLines)
+
+ 		function sumLineRuntimes(actionLines) {
+ 			return actionLines.reduce((runLength, line) => runLength + line.getRuntime(), 0)
+ 		}
+ 	},
+ 	props: {
+ 		_actionLines: [ActionLine()],
+ 		_activeLineIdx: 0,
+		 _runtime: Time(),
+		 type: 'ActionBlock'
+ 	}
+ })
+ exports.ActionBlock = ActionBlock
+ RegisteredType.Register('ActionBlock', ActionBlock)
+
 //shot as a unit
-const Shot = compose(Unit, {
-	props: {
-		type: 'Shot',
-		isFirstUpdate: true,
-	},
-	//init takes in a json definition
-	init(initArgs) {
-		let {
-			sceneHeading,
-			shotHeading,
-			actionLines
-		} = initArgs
-		this._sceneHeading = SceneHeading(sceneHeading)
-		this._shotHeading = ShotHeading(shotHeading)
-		let modelsPath = `${this._scriptPath}/models`
-		this._models = listFilesWithExt(modelsPath, '.fbx')
-		let animsPath = `${this._scriptPath}/anims`
-		this._anims = listFilesWithExt(animsPath, '.fbx')
-
-		if (actionLines) {
-			this._actionBlock = ActionBlock({actionLines, scope: this})
-		}
-
-		function listFilesWithExt(next, ext) {
-			try {
-				return glob.sync(`${next}/*.${ext}`)
-			} catch (error) {
-				console.console.error(error);
-				
-			}
-		}
-	},
+const Shot = compose(Unit, {	
 	statics: {
 		//TODO: implement these loaders
 		ModelLoader: async (asset) => {},
-		AnimLoader: async (asset) => {}
+		AnimLoader: async (asset) => {},
+		MAX_LOAD_DEPTH: 2
 	},
 	methods: {
-		isDone(){
-			return this._isDone
-		},
-		async onStart(){
-			//TODO: investigate optimizing loading on start
-			let results = {}
-			results.onLoad = await Promise.all(this.transitions.map(t => t.load()))
+		async onStartUpdate(){
 			this.setupCamera()
 			this.startAnimations()
-			results.onActionBlock = await this._actionBlock.start()
-			//when the action block finishes set this._isDone = true to finish the shot
-			this._actionBlock.awaitCondition.then( () => this._isDone = true)
-			return results
+			return {
+				//TODO: 
+				onLoadTransitions: await Promise.all(this.transitions.map(t => t.load())),
+				onStart: await this._actionBlock.startUpdate()
+			}
 		},
 		async load() {
-			this._state = State.LOAD
-			this._models = await load(this._models, Shot.ModelLoader)
-			this._anims = await load(this._anims, Shot.AnimLoader)
-			this._state = State.READY
-			return {onLoadModels: this._models, onLoadAnims: this._anims}
+			if(this._isLoaded){
+				return
+			} else {
+				this._isLoaded = true
+			}
+			this.state = State.LOAD
+			
+			//load assets for this unit and its children
+			this.models = await load(this.models, Shot.ModelLoader)
+			this.anims = await load(this.anims, Shot.AnimLoader)
+
+			this.state = State.READY
+
+			return {done: true}
+
 			//create ModelLoader classes
 			async function load(assets, loader) { 
 				/* TODO: implement this
-				return Promise.all(Object.keys(this._models).map(
+				return Promise.all(Object.keys(this.models).map(
 					handle => loader(assets[handle])))
 					*/
 				return []
@@ -551,11 +647,11 @@ const Shot = compose(Unit, {
 			//TODO
 		},
 		async unload(){
-			this._state = State.UNLOAD
+			this.state = State.UNLOAD
 			//TODO
-			this._state = State.DONE
+			this.state = State.DONE
 		},
-		async onStop() {
+		async onStopUpdate() {
 			//TODO: investigate optimizing unloading on stop
 			let results = {}
 			results.unload = await this.unload()
@@ -563,7 +659,41 @@ const Shot = compose(Unit, {
 		},
 		onUpdate(){
 			this._actionBlock.update()
+		},
+		isDoneUpdate() {
+			//when the action block finishes finish the shot
+			return this._actionBlock.isDoneUpdate()
+		},
+	},
+	//init takes in a json definition
+	init({
+			sceneHeading,
+			shotHeading,
+			actionLines
+		}) {
+		this.sceneHeading = SceneHeading(sceneHeading)
+		this.shotHeading = ShotHeading(shotHeading)
+		let modelsPath = `${this.scriptPath}/models`
+		this.models = listFilesWithExt(modelsPath, '.fbx')
+		let animsPath = `${this.scriptPath}/anims`
+		this.anims = listFilesWithExt(animsPath, '.fbx')
+
+		this._actionBlock = ActionBlock({actionLines})
+
+		function listFilesWithExt(next, ext) {
+			try {
+				return glob.sync(`${next}/*.${ext}`)
+			} catch (error) {
+				console.console.error(error);
+
+			}
 		}
+	},
+	props: {
+		type: 'Shot',
+		_isFirstUpdate: true,
+		_isLoaded: false,
+		_actionBlock: ActionBlock()
 	}
 })
 exports.Shot = Shot
@@ -575,9 +705,14 @@ const SceneHeading = compose({
 		sceneName,
 		sceneLocation
 	}) {
-		this.timeOfDay = timeOfDay
-		this.sceneName = sceneName
-		this.sceneLocation = sceneLocation
+		this._timeOfDay = timeOfDay
+		this._sceneName = sceneName
+		this._sceneLocation = sceneLocation
+	},
+	props:{
+		_timeOfDay: '',
+		_sceneName: '',
+		_sceneLocation: ''
 	}
 })
 exports.SceneHeading = SceneHeading
@@ -589,72 +724,19 @@ const ShotHeading = compose({
 		cameraTarget,
 		timeSpan
 	}) {
-		this.cameraType = cameraType
-		this.cameraSource = cameraSource
-		this.cameraTarget = cameraTarget
-		this.timeSpan = TimeSpan(timeSpan)
+		this._cameraType = cameraType
+		this._cameraSource = cameraSource
+		this._cameraTarget = cameraTarget
+		this._timeSpan = TimeSpan(timeSpan)
+	},
+	props: {
+		_cameraType: '',
+		_cameraSource: '',
+		_cameraTarget: '',
+		_timeSpan: TimeSpan()
 	}
 })
 exports.ShotHeading = ShotHeading
-
-const ActionLine = compose(Awaitable, {
-	init({
-		text,
-		time
-	}) {
-		this._text = text
-		this._timer = Timer({time})
-	},
-	methods: {
-		async _onStart() {
-			console.log(this._text)
-			await this._timer.start()
-		},
-		_onUpdate(){
-			this._timer.update()
-			//TODO: animated closed captions
-		}
-	}
-})
-exports.ActionLine = ActionLine
-
-const ActionBlock = compose(Awaitable, {
-	init({
-		actionLines
-	}) {
-		this._actionLines = actionLines.map(actionLine => ActionLine({
-			actionLine
-		}))
-	},
-	methods: {
-		isDone(){
-			return this._isDone
-		},
-		async _onStart() {
-			let results = {onActionLines: []}
-			for (let actionLine of this._actionLines) {
-				results.onActionLines.push(await actionLine.start())
-			}
-			//when the action lines are all done set this._isDone = true
-			Promise.all(this._actionLines.map( a => a.awaitCondition ))
-				.then( () => this._isDone = true )
-			return results
-		},
-		_onUpdate() {
-			this._activeActionLine.update()
-		}
-	}
-})
-exports.ActionBlock = ActionBlock
-
-const Text = compose({
-	init({
-		text
-	}) {
-		this._text = text
-	}
-})
-exports.Text = Text
 
 /**
  * User Defined Transitions
@@ -664,7 +746,7 @@ exports.Text = Text
 	 props: {
 		 type: 'Cut'
 	 },
-	 init({}){
+	 init(){
 
 	 }
  })
@@ -675,7 +757,7 @@ const FadeIn = compose(Cut,{
 	props: {
 		type: 'FadeIn'
 	},
-	init({}){
+	init(){
 
 	}
  })
@@ -687,14 +769,6 @@ const FadeIn = compose(Cut,{
 
  //TODO: finish implementing this
 const Select = compose(Op, {
-	props: {
-		type: 'Select'
-	},
-	init({
-		handle,
-	}) {
-		this.handle = handle
-	},
 	methods: {
 		onUpdate(){
 			//TODO: anchor handle to correct location
@@ -702,8 +776,17 @@ const Select = compose(Op, {
 		eval() {
 			//TODO: return true if user selection intersects with the handle's anchor
 			return true
-		}
-	}
+		},
+	},
+	init({
+		handle,
+	}) {
+		this.handle = handle
+	},
+	props: {
+		type: 'Select',
+		handle: null //TODO: define a handler type
+	},
 })
 exports.Select = Select
 Op.Register('Select', Select)
@@ -714,36 +797,38 @@ exports.OneShot = OneShot
 Op.Register('OneShot', OneShot)
 
 const TimeWindow = compose(Op, {
-	props: {
-		type: 'TimeWindow'
+	methods: {
+		async onStartUpdate(){
+			this._timeOffset = Time.Now()
+		},
+		async onStopUpdate(){
+			this._timeOffset = 0
+		},
+		async onPauseUpdate() {
+			this._timeOffset = Time.Now() - this._timeOffset
+		},
+		async onResumeUpdate(){
+			this._timeOffset = Time.Now() + this._timeOffset
+		},
+		isDoneUpdate() {
+			return Time.Now() >= this.getTimeSpan().getStartUpdate() 
+			&& Time.Now() <= this.getTimeSpan().getEnd()
+		},
+		applyOffset(time){
+			return this._timeOffset + time.getMilliseconds()
+		},
+		getTimeSpan() {
+			return this.applyOffset(this._timeSpan)
+		}
 	},
 	init() {
 		let timeSpan = this.opArgs[0]
-		this.timeSpan = TimeSpan(timeSpan)
+		this._timeSpan = TimeSpan(timeSpan)
 	},
-	methods: {
-		isWindowActive() {
-			return Time.Now() >= this.applyOffset(this.timeSpan.start) && Time.Now() <= this.applyOffset(this.timeSpan.end)
-		},
-		async onStart(){
-			this.timeOffset = Time.Now()
-		},
-		async onStop(){
-			this.timeOffset = 0
-		},
-		async onResume(){
-			this.timeOffset = Time.Now() + this.timeOffset
-		},
-		async onPause(){
-			this.timeOffset = Time.Now() - this.timeOffset
-		},
-		isDone() {
-			return this.isWindowActive()
-		},
-		applyOffset(time){
-			return this.timeOffset + time.getMilliseconds()
-		}
-	}
+	props: {
+		type: 'TimeWindow',
+		timeSpan: TimeSpan()
+	},
 })
 exports.TimeWindow = TimeWindow
 Op.Register('TimeWindow', TimeWindow)
@@ -752,35 +837,29 @@ Op.Register('TimeWindow', TimeWindow)
  * Test Drivers
  */
 const UpdateDriver = compose({
-	init({
-		unit
-	}) {
-		Unit.ActiveUnit = unit
-	},
 	methods: {
 		//TODO: replace with real updater
 		testUpdate() {
-			if(!this._isInitialized){
-				this._isInitialized = true
-				Unit.ActiveUnit.start()
-					.then(() => new Promise(resolve => {
-							testUpdater(Unit.ActiveUnit, resolve)
-						}))
-			}
-			return new Promise( resolve => {
-				testUpdater(Unit.ActiveUnit, resolve)
-			})
-			function testUpdater(unit, resolve) {
+			timeoutUpdater()
+			let resolver
+			return new Promise( resolve => resolver = resolve)
+
+			function timeoutUpdater(){
 				setTimeout(function () {
-					if(unit){
-						unit.update()
-						testUpdater(unit, resolve)
-					} else {
-						resolve(false)
+					Unit.ActiveUnits.forEach(unit => unit.update())
+					if(Unit.ActiveUnits.every(unit => unit.isDoneUpdate())){
+						resolver()
 					}
+					timeoutUpdater()
 				}, Time.DefaultTickRate)
 			}
 		}
+	},
+	init({
+		unit
+	}) {
+		Unit.ActiveUnits.push(unit)
+		Unit.ActiveUnits.forEach(unit => unit.startUpdate())
 	}
 })
 exports.UpdateDriver = UpdateDriver
