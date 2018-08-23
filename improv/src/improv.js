@@ -52,9 +52,9 @@ const RegisteredType = compose({
  */
 const Awaitable = compose({
 	methods: {
-		//isDoneUpdateShould be overriden
+		//inheritors to override isDoneUpdate
 		isDoneUpdate(){
-			return true
+			return false
 		},
 		//TODO: NEXT find out why update() results in an max call stack size exceeded (infinite loop)
 		update() {
@@ -75,34 +75,33 @@ const Awaitable = compose({
 			this.resolver = resolve
 			return { 
 				awaitCondition: awaitCondition,
-				onStartUpdate: this.onStartUpdate()
+				onStartUpdate: this.onStartUpdate ? this.onStartUpdate() : false
 			}
 		},
 		async stopUpdate({isDoneUpdate, resolveArg}) {
 			this.isUpdateSuspended = true
 			return {
-				onDoneUpdate: isDoneUpdate ? this.onDoneUpdate() : false,
-				onStopUpdate: this.onStopUpdate(),
+				onDoneUpdate: isDoneUpdate && this.onDoneUpdate ? this.onDoneUpdate() : false,
+				onStopUpdate: this.onStopUpdate ? this.onStopUpdate() : false,
 				resolve: this.resolver(resolveArg)
 			}
 		},
 		async pauseUpdate() {
 			this.isUpdateSuspended = true
-			return { onPauseUpdate: this.onPauseUpdate() }
+			return {
+				onPauseUpdate: this.onPauseUpdate ? this.onPauseUpdate() : false
+			}
 		},
 		async resumeUpdate() {
 			this.isUpdateSuspended = false
-			return { onResumeUpdate: this.onResumeUpdate() }
+			return {
+				onResumeUpdate: this.onResumeUpdate ? this.onResumeUpdate() : false
+			}
 		}
 	},
 	props: {
 		isUpdateSuspended: true,
-		resolver: (resolveArg) => {},
-		onStartUpdate: async () => { },
-		onStopUpdate: async () => { },
-		onPauseUpdate: async () => { },
-		onResumeUpdate: async () => { },
-		onUpdate: async () => { }
+		resolver: (resolveArg) => {}
 	}
 })
 
@@ -198,41 +197,6 @@ const Op = compose(RegisteredType, Awaitable, {
 		eval() {
 			//to be overriden by user
 			return true
-		},
-		onUpdate() {
-			if (this.onUpdate) {
-				this.onUpdate()
-			}
-		},
-		async onStartUpdate() {
-			if (this.onStartUpdate) {
-				return this.onStartUpdate()
-			}
-			return true
-		},
-		async onStopUpdate() {
-			if (this.onStopUpdate) {
-				return this.onStopUpdate()
-			}
-			return true
-		},
-		async onPauseUpdate() {
-			if (this.onPauseUpdate) {
-				return this.onPauseUpdate()
-			}
-			return true
-		},
-		async onResumeUpdate() {
-			if (this.onResumeUpdate) {
-				return this.onResumeUpdate()
-			}
-			return true
-		},
-		async onUpdate() {
-			if (this.onUpdate) {
-				return this.onUpdate()
-			}
-			return true
 		}
 	},
 	init({
@@ -271,10 +235,10 @@ const Exp = compose(Awaitable, {
 	}
 })
 exports.Exp = Exp
-
+//TODO: NEXT find infinite loop onStartUpdate
 const Transition = compose(RegisteredType, Awaitable, {
 	methods: {
-		async onStartUpdate() { /* Inheritor to override */},
+		async onStartTransitionUpdate() { /* Inheritor to override */ },
 		async onStartUpdate(){
 			return {
 				onStartUpdateExp: await this._expression.startUpdate(),
@@ -282,7 +246,7 @@ const Transition = compose(RegisteredType, Awaitable, {
 				onStartUpdate: await this.onStartUpdate()
 			}
 		},
-		async onStopUpdate() { /* Inheritor to override */ },
+		async onStopTransitionUpdate() { /* Inheritor to override */ },
 		async onStopUpdate() {
 			return {
 				onStopUpdateTimer: this._timer.stopUpdate(),
@@ -290,7 +254,7 @@ const Transition = compose(RegisteredType, Awaitable, {
 				onStopUpdate: await this.onStopUpdate()
 			}
 		},
-		async onPauseUpdate() { /* Inheritor to override */ },
+		async onPauseTransitionUpdate() { /* Inheritor to override */ },
 		async onPauseUpdate() {
 			return {
 				onPauseUpdateTimer: this._timer.pauseUpdate(),
@@ -298,7 +262,7 @@ const Transition = compose(RegisteredType, Awaitable, {
 				onPauseUpdate: await this.onPauseUpdate()
 			}
 		},
-		async onResumeUpdate() { /* Inheritor to override */ },
+		async onResumeTransitionUpdate() { /* Inheritor to override */ },
 		async onResumeUpdate() {
 			return {
 				onResumeUpdateTimer: this._timer.resumeUpdate(),
@@ -306,7 +270,7 @@ const Transition = compose(RegisteredType, Awaitable, {
 				onResumeUpdate: await this.onResumeUpdate()
 			}
 		},
-		onUpdate() { /* Inheritor to override */ },
+		onTransitionUpdate() { /* Inheritor to override */ },
 		onUpdate() {
 			this._expression.update()
 			
@@ -404,10 +368,12 @@ const Unit = compose(RegisteredType, Awaitable, {
 			let results = {}
 			//wait until all transitions start
 			results.onStartUpdateTransitions = await Promise.all(this.transitions.map( t => t.startUpdate()))
-			//onStartUpdate() must be defined in inherited type
-			
+	
 			this.state = State.UPDATE
-			results.onStartUpdate = await this.onStartUpdate()
+
+			if(this.onStartUnitUpdate){
+				results.onStartUnitUpdate = await this.onStartUnitUpdate()
+			}
 			
 			return results
 		},
@@ -415,10 +381,12 @@ const Unit = compose(RegisteredType, Awaitable, {
 			let results = {}
 			//wait until all transitions start
 			results.onStopUpdateTransitions = await Promise.all(this.transitions.map(t => t.onStopUpdate()))
+			//remove this unit from active units
 			Unit.ActiveUnits.splice(Unit.ActiveUnits.indexOf(this), 1)
-			if (this.onStopUpdate) {
-				this.state = State.STOP
-				results = await this.onStopUpdate()
+			this.state = State.STOP
+
+			if (this.onStopUnitUpdate) {
+				results = await this.onStopUnitUpdate()
 			}
 		},
 		async onPauseUpdate() {
@@ -426,10 +394,11 @@ const Unit = compose(RegisteredType, Awaitable, {
 			//wait until all transitions start
 			results.onPauseUpdateTransitions = await Promise.all(this.transitions.map(t => t.onPauseUpdate()))
 
-			if (this.onPauseUpdate) {
-				this.lastState = this.state
-				this.state = State.PAUSE
-				results = await this.onPauseUpdate()
+			this.lastState = this.state
+			this.state = State.PAUSE
+
+			if (this.onPauseUnitUpdate) {
+				results = await this.onPauseUnitUpdate()
 			}
 		},
 		async onResumeUpdate() {
@@ -437,18 +406,21 @@ const Unit = compose(RegisteredType, Awaitable, {
 			//wait until all transitions start
 			results.onResumeUpdateTransitions = await Promise.all(this.transitions.map(t => t.onResumeUpdate()))
 
-			if (this.onResumeUpdate) {
-				this.state = this.lastState
-				results = await this.onResumeUpdate()
+			this.state = this.lastState
+
+			if (this.onResumeUnitUpdate) {
+				results = await this.onResumeUnitUpdate()
 			}
 		},
 		onUpdate(){
-			//IDEA: parallel-unit support
+			//update transitions
 			this.transitions.forEach(t => t.update())
-
+			//update scripts
 			this.updateScript()
-			//onUpdate() must be defined in inherited type
-			this.onUpdate()
+			
+			if(this.onUnitUpdate){
+				this.onUnitUpdate()
+			}
 		},
 		updateScript(){
 			if (this.script) {
@@ -602,17 +574,15 @@ const Shot = compose(Unit, {
 	statics: {
 		//TODO: implement these loaders
 		ModelLoader: async (asset) => {},
-		AnimLoader: async (asset) => {},
-		MAX_LOAD_DEPTH: 2
+		AnimLoader: async (asset) => {}
 	},
 	methods: {
-		async onStartUpdate(){
+		async onStartUnitUpdate(){
 			this.setupCamera()
 			this.startAnimations()
 			return {
 				//TODO: 
 				onLoadTransitions: await Promise.all(this.transitions.map(t => t.load())),
-				onStart: await this._actionBlock.startUpdate()
 			}
 		},
 		async load() {
@@ -651,25 +621,17 @@ const Shot = compose(Unit, {
 			//TODO
 			this.state = State.DONE
 		},
-		async onStopUpdate() {
+		async onStopUnitUpdate() {
 			//TODO: investigate optimizing unloading on stop
 			let results = {}
 			results.unload = await this.unload()
 			return results
-		},
-		onUpdate(){
-			this._actionBlock.update()
-		},
-		isDoneUpdate() {
-			//when the action block finishes finish the shot
-			return this._actionBlock.isDoneUpdate()
-		},
+		}
 	},
 	//init takes in a json definition
 	init({
 			sceneHeading,
-			shotHeading,
-			actionLines
+			shotHeading
 		}) {
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
@@ -677,8 +639,6 @@ const Shot = compose(Unit, {
 		this.models = listFilesWithExt(modelsPath, '.fbx')
 		let animsPath = `${this.scriptPath}/anims`
 		this.anims = listFilesWithExt(animsPath, '.fbx')
-
-		this._actionBlock = ActionBlock({actionLines})
 
 		function listFilesWithExt(next, ext) {
 			try {
@@ -692,8 +652,7 @@ const Shot = compose(Unit, {
 	props: {
 		type: 'Shot',
 		_isFirstUpdate: true,
-		_isLoaded: false,
-		_actionBlock: ActionBlock()
+		_isLoaded: false
 	}
 })
 exports.Shot = Shot
@@ -798,16 +757,16 @@ Op.Register('OneShot', OneShot)
 
 const TimeWindow = compose(Op, {
 	methods: {
-		async onStartUpdate(){
+		async onStartOpUpdate(){
 			this._timeOffset = Time.Now()
 		},
-		async onStopUpdate(){
+		async onStopOpUpdate(){
 			this._timeOffset = 0
 		},
-		async onPauseUpdate() {
+		async onPauseOpUpdate() {
 			this._timeOffset = Time.Now() - this._timeOffset
 		},
-		async onResumeUpdate(){
+		async onResumeOpUpdate(){
 			this._timeOffset = Time.Now() + this._timeOffset
 		},
 		isDoneUpdate() {

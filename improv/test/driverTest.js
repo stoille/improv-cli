@@ -120,7 +120,7 @@ const unitDef = {
 }
 t.test(`updateDriver ...`, t => {
 	let unit = imp.Unit(unitDef)
-	unit.start()
+	unit.startUpdate()
 	let driver = imp.UpdateDriver({
 		unit
 	})
