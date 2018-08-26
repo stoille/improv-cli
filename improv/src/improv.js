@@ -3,6 +3,7 @@
  * */
 const compose = require('stampit')
 const glob = require('glob')
+const { performance } = require('perf_hooks')
 
 const DEBUG = true
 
@@ -58,7 +59,7 @@ const Awaitable = compose({
 		},
 		//TODO: NEXT find out why update() results in an max call stack size exceeded (infinite loop)
 		update() {
-			if (this.isUpdateSuspended) {
+			if (this._isUpdateSuspended) {
 				return
 			}
 			if (this.onUpdate) {
@@ -69,63 +70,55 @@ const Awaitable = compose({
 			}
 		},
 		async startUpdate() {
-			this.isUpdateSuspended = false
+			this._isUpdateSuspended = false
 			let resolve
 			let awaitCondition = new Promise(r => resolve = r)
-			this.resolver = resolve
+			this._resolver = resolve
 			return { 
 				awaitCondition: awaitCondition,
 				onStartUpdate: this.onStartUpdate ? this.onStartUpdate() : false
 			}
 		},
 		async stopUpdate({isDoneUpdate, resolveArg}) {
-			this.isUpdateSuspended = true
+			this._isUpdateSuspended = true
 			return {
 				onDoneUpdate: isDoneUpdate && this.onDoneUpdate ? this.onDoneUpdate() : false,
-				onStopUpdate: this.onStopUpdate ? this.onStopUpdate() : false,
-				resolve: this.resolver(resolveArg)
+				onStopUpdate: this.onStopUpdate ? this.onStopUpdate({isDoneUpdate, resolveArg}) : false,
+				resolve: this._resolver(resolveArg)
 			}
 		},
 		async pauseUpdate() {
-			this.isUpdateSuspended = true
+			this._isUpdateSuspended = true
 			return {
 				onPauseUpdate: this.onPauseUpdate ? this.onPauseUpdate() : false
 			}
 		},
 		async resumeUpdate() {
-			this.isUpdateSuspended = false
+			this._isUpdateSuspended = false
 			return {
 				onResumeUpdate: this.onResumeUpdate ? this.onResumeUpdate() : false
 			}
 		}
 	},
 	props: {
-		isUpdateSuspended: true,
-		resolver: (resolveArg) => {}
+		_isUpdateSuspended: true,
+		_resolver: (resolveArg) => {}
 	}
 })
 
-//TODO: drive deltaTime and timeNow from rendering engine loop
 const Time = compose({
 	statics:{
 		DeltaTime: 0,
-		TimeOfLastUpdate: 0,
-		DefaultTickRate: 16, //in ms
-		Now: () => Date.now(),
-		Update: () => {
-			Time.DeltaTime = Time.Now() - Time.TimeOfLastUpdate
-			Time.TimeOfLastUpdate = Time.Now()
+		Now: () => performance.now(),
+		UpdateDeltaTime: () => {
+			let timeOfLastUpdate = this.__timeOfLastUpdate ? this.__timeOfLastUpdate : performance.now()
+			Time.DeltaTime = (performance.now() - timeOfLastUpdate)
+			this.__timeOfLastUpdate = performance.now()
 		}
 	},
 	methods: {
-		getMinutes() {
-			return this._time.getMinutes()
-		},
-		getSeconds() {
-			return this._time.getSeconds()
-		},
-		getMilliseconds(){
-			return this._time.getMilliseconds()
+		getTimestamp(){
+			return this._time
 		}
 	},
 	init({
@@ -136,10 +129,10 @@ const Time = compose({
 		min = min ? min : 0
 		sec = sec ? sec : 0
 		ms = ms ? ms : 0
-		this._time = new Date(0, 0, 0, 0, min, sec, ms)
+		this._time = (min * 60 * 1000) + (sec * 1000) + ms
 	},
 	props: {
-		time: new Date()
+		_time: 0 //in ms
 	},
 })
 exports.Time = Time
@@ -147,16 +140,22 @@ exports.Time = Time
 //TODO: consider replacing Time/TimeSpan with more robust time library
 const TimeSpan = compose({
 	methods:{
-		getRunLength() {
-			return this._time
+		getTimeLengthMilliseconds() {
+			return this._end.getTimestamp() - this._start.getTimestamp()
+		},
+		getStartTime(){
+			return this._start
+		},
+		getEndTime(){
+			return this._end
 		}
 	},
 	init({
 		start,
 		end
 	}) {
-		this._start = Time(start ? start : {})
-		this._end = Time(end ? end : {})
+		this._start = Time(start)
+		this._end = Time(end)
 	},
 	props: {
 		_start: Time(),
@@ -174,7 +173,7 @@ const Timer = compose(Awaitable, {
 		isDoneUpdate() {
 			return this._timeLeft <= 0
 		},
-		getRunLength(){
+		getTimeLengthMilliseconds(){
 			return this._time
 		}
 	},
@@ -182,7 +181,7 @@ const Timer = compose(Awaitable, {
 		time
 	}) {
 		this._time = Time(time)
-		this._timeLeft = this._time.getMilliseconds()
+		this._timeLeft = this._time.getTimestamp()
 	},
 	props: {
 		type: 'Timer',
@@ -196,7 +195,7 @@ const Op = compose(RegisteredType, Awaitable, {
 	methods: {
 		eval() {
 			//to be overriden by user
-			return true
+			return false
 		}
 	},
 	init({
@@ -214,44 +213,53 @@ exports.Op = Op
 
 const Exp = compose(Awaitable, {
 	methods: {
-		onupdate() {
-			if(alwaysTrue){
-				return
-			}
-			this.operations.forEach(op => op.update())
+		onStartUpdate(){
+			this._ops.forEach(op => op.startUpdate())
+		},
+		onStopUpdate({isDoneUpdate, resolveArg}) {
+			this._ops.forEach(op => op.stopUpdate({isDoneUpdate, resolveArg}))
+		},
+		onPauseUpdate() {
+			this._ops.forEach(op => op.pauseUpdate())
+		},
+		onResumeUpdate() {
+			this._ops.forEach(op => op.resumeUpdate())
+		},
+		onUpdate() {
+			this._ops.forEach(op => op.update())
 		},
 		isDoneUpdate() {
 			//default to true if no ops were supplied
-			return this.operations ? this.operations.find(op => op.eval()) : true
+			return this._ops.every(op => op.eval())
 		}
 	},
 	init({
 		ops
 	}) {
-		this.operations = ops ? ops.map(opArgs => Op(opArgs)) : null
+		this._ops = ops ? ops.map(opArgs => Op(opArgs)) : this._ops
 	},
 	props: {
-		operations: []
+		_ops: [] //Op()
 	}
 })
 exports.Exp = Exp
-//TODO: NEXT find infinite loop onStartUpdate
 const Transition = compose(RegisteredType, Awaitable, {
 	methods: {
 		async onStartTransitionUpdate() { /* Inheritor to override */ },
 		async onStartUpdate(){
 			return {
+				//TODO: analyze load strategy on start
+				onLoad: await this.load(),
+				onStartUpdate: await this.onStartTransitionUpdate(),
 				onStartUpdateExp: await this._expression.startUpdate(),
-				awaitExp: this._expression.awaitCondition,
-				onStartUpdate: await this.onStartUpdate()
 			}
 		},
 		async onStopTransitionUpdate() { /* Inheritor to override */ },
-		async onStopUpdate() {
+		async onStopUpdate({isDoneUpdate, resolveArg}) {
 			return {
-				onStopUpdateTimer: this._timer.stopUpdate(),
-				onStopUpdateExp: this._expression.stopUpdate(),
-				onStopUpdate: await this.onStopUpdate()
+				onStopUpdateTimer: this._timer.stopUpdate({isDoneUpdate, resolveArg}),
+				onStopUpdateExp: this._expression.stopUpdate({isDoneUpdate, resolveArg}),
+				onStopUpdate: await this.onStopTransitionUpdate({isDoneUpdate, resolveArg})
 			}
 		},
 		async onPauseTransitionUpdate() { /* Inheritor to override */ },
@@ -259,7 +267,7 @@ const Transition = compose(RegisteredType, Awaitable, {
 			return {
 				onPauseUpdateTimer: this._timer.pauseUpdate(),
 				onPauseUpdateExp: this._expression.pauseUpdate(),
-				onPauseUpdate: await this.onPauseUpdate()
+				onPauseUpdate: await this.onPauseTransitionUpdate()
 			}
 		},
 		async onResumeTransitionUpdate() { /* Inheritor to override */ },
@@ -267,7 +275,7 @@ const Transition = compose(RegisteredType, Awaitable, {
 			return {
 				onResumeUpdateTimer: this._timer.resumeUpdate(),
 				onResumeUpdateExp: this._expression.resumeUpdate(),
-				onResumeUpdate: await this.onResumeUpdate()
+				onResumeUpdate: await this.onResumeTransitionUpdate()
 			}
 		},
 		onTransitionUpdate() { /* Inheritor to override */ },
@@ -276,7 +284,7 @@ const Transition = compose(RegisteredType, Awaitable, {
 			
 			//let interp = this._timer.update()
 			//TODO: apply transition over curr and next
-			this.onUpdate()
+			this.onTransitionUpdate()
 		},
 		/** A transition is "done" when its expression has been satisfied AND:
 		 * 1 - the timer is up
@@ -292,7 +300,7 @@ const Transition = compose(RegisteredType, Awaitable, {
 			//TODO: determine whether curr's state is done or should be put into background
 			return {
 				onDoneUpdateTimer: await this._timer.startUpdate(),
-				onStopUpdateCurr: await this._curr.stopUpdate(),
+				onStopUpdateCurr: await this._curr.stopUpdate({isDoneUpdate:true}),
 				onStartUpdateNext: await this._next.startUpdate(),
 			}
 		},
@@ -356,7 +364,9 @@ exports.Transition = Transition
 const Unit = compose(RegisteredType, Awaitable, {
 	statics: {
 		ActiveUnits: [],
-		History: []
+		History: [],
+		//TODO: investigate id system
+		LastId: 0
 	},
 	methods: {
 		setState( state ){
@@ -364,11 +374,11 @@ const Unit = compose(RegisteredType, Awaitable, {
 		},
 		async onStartUpdate(){
 			Unit.ActiveUnits.push(this)
-			Unit.History.push(this.scriptPath)
+			Unit.History.push(this._scriptPath)
 			let results = {}
 			//wait until all transitions start
-			results.onStartUpdateTransitions = await Promise.all(this.transitions.map( t => t.startUpdate()))
-	
+			results.onStartUpdateTransitions = await Promise.all(this._transitions.map( t => t.startUpdate()))
+			
 			this.state = State.UPDATE
 
 			if(this.onStartUnitUpdate){
@@ -377,10 +387,10 @@ const Unit = compose(RegisteredType, Awaitable, {
 			
 			return results
 		},
-		async onStopUpdate(){
+		async onStopUpdate({isDoneUpdate, resolveArg}){
 			let results = {}
 			//wait until all transitions start
-			results.onStopUpdateTransitions = await Promise.all(this.transitions.map(t => t.onStopUpdate()))
+			results.onStopUpdateTransitions = await Promise.all(this._transitions.map(t => t.onStopUpdate({isDoneUpdate, resolveArg})))
 			//remove this unit from active units
 			Unit.ActiveUnits.splice(Unit.ActiveUnits.indexOf(this), 1)
 			this.state = State.STOP
@@ -392,7 +402,7 @@ const Unit = compose(RegisteredType, Awaitable, {
 		async onPauseUpdate() {
 			let results = {}
 			//wait until all transitions start
-			results.onPauseUpdateTransitions = await Promise.all(this.transitions.map(t => t.onPauseUpdate()))
+			results.onPauseUpdateTransitions = await Promise.all(this._transitions.map(t => t.onPauseUpdate()))
 
 			this.lastState = this.state
 			this.state = State.PAUSE
@@ -404,7 +414,7 @@ const Unit = compose(RegisteredType, Awaitable, {
 		async onResumeUpdate() {
 			let results = {}
 			//wait until all transitions start
-			results.onResumeUpdateTransitions = await Promise.all(this.transitions.map(t => t.onResumeUpdate()))
+			results.onResumeUpdateTransitions = await Promise.all(this._transitions.map(t => t.onResumeUpdate()))
 
 			this.state = this.lastState
 
@@ -414,7 +424,7 @@ const Unit = compose(RegisteredType, Awaitable, {
 		},
 		onUpdate(){
 			//update transitions
-			this.transitions.forEach(t => t.update())
+			this._transitions.forEach(t => t.update())
 			//update scripts
 			this.updateScript()
 			
@@ -423,15 +433,15 @@ const Unit = compose(RegisteredType, Awaitable, {
 			}
 		},
 		updateScript(){
-			if (this.script) {
+			if (this._script) {
 				if (this._isFirstUpdate) {
 					this._isFirstUpdate = false
-					if (this.script.onFirstUpdate) {
-						this.script.onFirstUpdate()
+					if (this._script.onFirstUpdate) {
+						this._script.onFirstUpdate()
 					}
 				} else {
-					if (this.script.update) {
-						this.script.update()
+					if (this._script.update) {
+						this._script.update()
 					}
 				}
 			}
@@ -441,11 +451,13 @@ const Unit = compose(RegisteredType, Awaitable, {
 			transitions,
 			scriptPath
 		}) {
-		this.scriptPath = scriptPath
-		this.script = require(scriptPath)
+		this._id = Unit.LastId++
+		
+		this._scriptPath = scriptPath
+		this._script = require(scriptPath)
 
 		if (transitions) {
-			this.transitions = transitions.map(({
+			this._transitions = transitions.map(({
 						type,
 						exp,
 						time,
@@ -461,9 +473,10 @@ const Unit = compose(RegisteredType, Awaitable, {
 		}
 	},
 	props: {
-		scriptPath: '',
-		script: {},
-		transitions: []
+		_scriptPath: '',
+		_script: {},
+		transitions: [],
+		_id: 0
 	}
 })
 exports.Unit = Unit
@@ -497,7 +510,7 @@ exports.Unit = Unit
  			//TODO: animated closed captions
  		},
  		getRuntime() {
- 			return this._timer.getRunLength()
+ 			return this._timer.getTimeLengthMilliseconds()
 		 },
 		 isDoneUpdate(){
 			 return this._timer.isDoneUpdate()
@@ -527,7 +540,7 @@ exports.Unit = Unit
  			return this.actionLines[this._activeLineIdx]
  		},
  		getRuntime() {
-
+			return this.actionLines.reduce((totalLength, line) => totalLength + line.getRuntime(), 0 )
  		},
  		setNextActiveLine() {
  			++this._activeLineIdx
@@ -560,7 +573,7 @@ exports.Unit = Unit
  		}
  	},
  	props: {
- 		_actionLines: [ActionLine()],
+ 		_actionLines: [], //ActionLine()
  		_activeLineIdx: 0,
 		 _runtime: Time(),
 		 type: 'ActionBlock'
@@ -580,10 +593,6 @@ const Shot = compose(Unit, {
 		async onStartUnitUpdate(){
 			this.setupCamera()
 			this.startAnimations()
-			return {
-				//TODO: 
-				onLoadTransitions: await Promise.all(this.transitions.map(t => t.load())),
-			}
 		},
 		async load() {
 			if(this._isLoaded){
@@ -635,9 +644,9 @@ const Shot = compose(Unit, {
 		}) {
 		this.sceneHeading = SceneHeading(sceneHeading)
 		this.shotHeading = ShotHeading(shotHeading)
-		let modelsPath = `${this.scriptPath}/models`
+		let modelsPath = `${this._scriptPath}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
-		let animsPath = `${this.scriptPath}/anims`
+		let animsPath = `${this._scriptPath}/anims`
 		this.anims = listFilesWithExt(animsPath, '.fbx')
 
 		function listFilesWithExt(next, ext) {
@@ -729,7 +738,7 @@ const FadeIn = compose(Cut,{
  //TODO: finish implementing this
 const Select = compose(Op, {
 	methods: {
-		onUpdate(){
+		onTransitionUpdate(){
 			//TODO: anchor handle to correct location
 		},
 		eval() {
@@ -757,36 +766,31 @@ Op.Register('OneShot', OneShot)
 
 const TimeWindow = compose(Op, {
 	methods: {
-		async onStartOpUpdate(){
-			this._timeOffset = Time.Now()
+		async onStartUpdate(){
+			this._timeOffset = Time({ms: Time.Now()})
 		},
-		async onStopOpUpdate(){
-			this._timeOffset = 0
+		async onStopUpdate(){
+			this._timeOffset = Time()
 		},
-		async onPauseOpUpdate() {
-			this._timeOffset = Time.Now() - this._timeOffset
+		async onPauseUpdate() {
+			this._timeOffset = Time({ms: Time.Now() - this._timeOffset.getTimestamp()})
 		},
-		async onResumeOpUpdate(){
-			this._timeOffset = Time.Now() + this._timeOffset
+		async onResumeUpdate(){
+			this._timeOffset = Time({ms: Time.Now() + this._timeOffset.getTimestamp()})
 		},
-		isDoneUpdate() {
-			return Time.Now() >= this.getTimeSpan().getStartUpdate() 
-			&& Time.Now() <= this.getTimeSpan().getEnd()
-		},
-		applyOffset(time){
-			return this._timeOffset + time.getMilliseconds()
-		},
-		getTimeSpan() {
-			return this.applyOffset(this._timeSpan)
+		eval() {
+			let start = this._timeOffset.getTimestamp() + this._timeSpan.getStartTime().getTimestamp()
+			let end = this._timeOffset.getTimestamp() + this._timeSpan.getEndTime().getTimestamp()
+			return Time.Now() >= start && Time.Now() <= end
 		}
 	},
-	init() {
-		let timeSpan = this.opArgs[0]
+	init({timeSpan}) {
 		this._timeSpan = TimeSpan(timeSpan)
 	},
 	props: {
 		type: 'TimeWindow',
-		timeSpan: TimeSpan()
+		_timeSpan: TimeSpan(),
+		_timeOffset: Time()
 	},
 })
 exports.TimeWindow = TimeWindow
@@ -796,29 +800,33 @@ Op.Register('TimeWindow', TimeWindow)
  * Test Drivers
  */
 const UpdateDriver = compose({
+	statics:{
+		DefaultTickRate: 16, //in ms
+	},
 	methods: {
 		//TODO: replace with real updater
 		testUpdate() {
 			timeoutUpdater()
-			let resolver
-			return new Promise( resolve => resolver = resolve)
+			let _resolver
+			return new Promise( resolve => _resolver = resolve)
 
 			function timeoutUpdater(){
 				setTimeout(function () {
+					//TODO: drive Time.UpdateDeltaTime() from rendering engine loop
+					Time.UpdateDeltaTime()
 					Unit.ActiveUnits.forEach(unit => unit.update())
 					if(Unit.ActiveUnits.every(unit => unit.isDoneUpdate())){
-						resolver()
+						_resolver()
 					}
 					timeoutUpdater()
-				}, Time.DefaultTickRate)
+				}, UpdateDriver.DefaultTickRate)
 			}
 		}
 	},
 	init({
 		unit
 	}) {
-		Unit.ActiveUnits.push(unit)
-		Unit.ActiveUnits.forEach(unit => unit.startUpdate())
+		unit.startUpdate()
 	}
 })
 exports.UpdateDriver = UpdateDriver

@@ -41,24 +41,20 @@ t.test(`shotInit ...`, t => {
 			},
 			ops: [
 				{
-					type: 'OneShot',
-					opArgs: [{}]
+					type: 'OneShot'
 				}, {
 					type: 'Select',
-					opArgs: [{
-						type: 'Selectable',
-						handle: 'MAN'
-					}]
+					handle: 'MAN'
 				}, {
 					type: 'TimeWindow',
-					opArgs: [{
+					timeSpan: {
 						start: {
 							sec: 5
 						},
 						end: {
-							sec: 10
+							sec: 15
 						}
-					}]
+					}
 				}
 			],
 			next: {
