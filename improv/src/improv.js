@@ -3,21 +3,34 @@
  * */
 const compose = require('stampit')
 const glob = require('glob')
-const { performance } = require('perf_hooks')
+const {
+	performance
+} = require('perf_hooks')
 
 const DEBUG = true
+
+const Logger = compose({
+	statics:{
+		log(string){
+			console.log(string)
+		},
+		error(string){
+			console.error(string)
+		}
+	}
+})
 
 const RegisteredType = compose({
 	statics: {
 		TypeDescriptors: {},
 		Register(type, typeDef) {
-			if(RegisteredType.TypeDescriptors[type] === undefined){
+			if (RegisteredType.TypeDescriptors[type] === undefined) {
 				RegisteredType.TypeDescriptors[type] = typeDef
 			}
 		}
 	},
 	init(initArgs) {
-		//return null for props type declarations
+		//return null for deepProps type declarations
 		if (isEmptyObject(initArgs)) {
 			return null
 		}
@@ -27,37 +40,41 @@ const RegisteredType = compose({
 		} = initArgs
 		//all inheritors of RegisteredType must define a type
 		this.type = type ? type : this.type
-		
-		if (!RegisteredType.TypeDescriptors[this.type]){
-			console.error(`Could not find registered type "${type}". Make sure you've called RegisteredType.Register('${type}', {type})`)
+
+		if (!RegisteredType.TypeDescriptors[this.type]) {
+			Logger.error(`Could not find registered type "${type}". Make sure you've called RegisteredType.Register('${type}', {type})`)
 		}
 		//this constructor should only run once, to instantiate from type field
-		if(skipLookup){
+		if (skipLookup) {
 			return this
 		}
 		//instantiate from type register
 		let typeDescriptor = RegisteredType.TypeDescriptors[this.type]
-		return typeDescriptor({...initArgs, skipLookup: true})
+		return typeDescriptor({ ...initArgs, skipLookup: true })
 
-		function isEmptyObject(obj){
+		function isEmptyObject(obj) {
 			return Object.keys(obj).length === 0 && obj.constructor === Object
 		}
 	},
-	props: {
+	deepProps: {
 		type: undefined
 	}
 })
 
 /**
- * Awaitables run until their isDoneUpdate() condition is satisfied (e.g. AWAIT) or stopUpdate() is called
+ * Updatables run until their isDoneUpdate() condition is satisfied (e.g. AWAIT) or stopUpdate() is called
  */
-const Awaitable = compose({
+const Updatable = compose({
+	statics: {
+		//TODO: investigate id system
+		LastId: 0,
+		Updatables: {}
+	},
 	methods: {
 		//inheritors to override isDoneUpdate
-		isDoneUpdate(){
+		isDoneUpdate() {
 			return false
 		},
-		//TODO: NEXT find out why update() results in an max call stack size exceeded (infinite loop)
 		update() {
 			if (this._isUpdateSuspended) {
 				return
@@ -66,48 +83,94 @@ const Awaitable = compose({
 				this.onUpdate()
 			}
 			if (this.isDoneUpdate()) {
-				this.stopUpdate({isDoneUpdate: true})
+				this.stopUpdate({
+					isDoneUpdate: true
+				})
 			}
 		},
 		async startUpdate() {
+			if (DEBUG) {
+				Logger.log(`START - ${this._id} - ${this.type}`)
+			}
 			this._isUpdateSuspended = false
 			let resolve
 			let awaitCondition = new Promise(r => resolve = r)
 			this._resolver = resolve
-			return { 
+			return {
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.startUpdate())),
 				awaitCondition: awaitCondition,
 				onStartUpdate: this.onStartUpdate ? this.onStartUpdate() : false
 			}
 		},
-		async stopUpdate({isDoneUpdate, resolveArg}) {
+		async stopUpdate({
+			isDoneUpdate,
+			resolveArg
+		}) {
+			if (DEBUG) {
+				Logger.log(`STOP - ${this._id} - ${this.type}`)
+			}
 			this._isUpdateSuspended = true
 			return {
+				children: Promise.all(this._childUpdatables.map(updatable => updatable.stopUpdate({
+					isDoneUpdate,
+					resolveArg
+				}))),
 				onDoneUpdate: isDoneUpdate && this.onDoneUpdate ? this.onDoneUpdate() : false,
-				onStopUpdate: this.onStopUpdate ? this.onStopUpdate({isDoneUpdate, resolveArg}) : false,
+				onStopUpdate: this.onStopUpdate ? this.onStopUpdate({
+					isDoneUpdate,
+					resolveArg
+				}) : false,
 				resolve: this._resolver(resolveArg)
 			}
 		},
 		async pauseUpdate() {
+			if (DEBUG) {
+				Logger.log(`PAUSE - ${this._id} - ${this.type}`)
+			}
 			this._isUpdateSuspended = true
 			return {
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.pauseUpdate())),
 				onPauseUpdate: this.onPauseUpdate ? this.onPauseUpdate() : false
 			}
 		},
 		async resumeUpdate() {
+			if (DEBUG) {
+				Logger.log(`RESUME - ${this._id} - ${this.type}`)
+			}
 			this._isUpdateSuspended = false
 			return {
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.resumeUpdate())),
 				onResumeUpdate: this.onResumeUpdate ? this.onResumeUpdate() : false
+			}
+		},
+		addChild(updatable) {
+			this._childUpdatables.push(updatable)
+		},
+		addChildren(updatables) {
+			for (let updatable of updatables) {
+				this._childUpdatables.push(updatable)
 			}
 		}
 	},
-	props: {
+	init({
+		type
+	}) {
+		Updatable.LastId += 1
+		this._id = Updatable.LastId
+		Updatable.Updatables[this._id] = this
+		this.type = type ? type : this.type
+	},
+	deepProps: {
+		type: 'Updatable',
 		_isUpdateSuspended: true,
-		_resolver: (resolveArg) => {}
+		_childUpdatables: [], //Updatable()
+		_resolver: (resolveArg) => {},
+		_id: 0
 	}
 })
 
 const Time = compose({
-	statics:{
+	statics: {
 		DeltaTime: 0,
 		Now: () => performance.now(),
 		UpdateDeltaTime: () => {
@@ -117,8 +180,11 @@ const Time = compose({
 		}
 	},
 	methods: {
-		getTimestamp(){
+		getTimestamp() {
 			return this._time
+		},
+		toString(){
+			return `${(this._time / 1000 / 60).toString().padStart(2, '0')}:${(this._time / 1000).toString().padStart(2, '0')}`
 		}
 	},
 	init({
@@ -131,7 +197,8 @@ const Time = compose({
 		ms = ms ? ms : 0
 		this._time = (min * 60 * 1000) + (sec * 1000) + ms
 	},
-	props: {
+	deepProps: {
+		type: 'Time',
 		_time: 0 //in ms
 	},
 })
@@ -139,15 +206,18 @@ exports.Time = Time
 
 //TODO: consider replacing Time/TimeSpan with more robust time library
 const TimeSpan = compose({
-	methods:{
+	methods: {
 		getTimeLengthMilliseconds() {
 			return this._end.getTimestamp() - this._start.getTimestamp()
 		},
-		getStartTime(){
+		getStartTime() {
 			return this._start
 		},
-		getEndTime(){
+		getEndTime() {
 			return this._end
+		},
+		toString() {
+			return `${this.start},${this._end}`
 		}
 	},
 	init({
@@ -157,15 +227,15 @@ const TimeSpan = compose({
 		this._start = Time(start)
 		this._end = Time(end)
 	},
-	props: {
-		_start: Time(),
+	deepProps: {
+		type: 'TimeSpan',
+		_start: null,//Time(),
 		_end: Time()
 	}
 })
 exports.TimeSpan = TimeSpan
 
-//TODO: finish implementing this
-const Timer = compose(Awaitable, {
+const Timer = compose(Updatable, {
 	methods: {
 		onUpdate() {
 			this._timeLeft = this._timeLeft - Time.DeltaTime
@@ -173,8 +243,11 @@ const Timer = compose(Awaitable, {
 		isDoneUpdate() {
 			return this._timeLeft <= 0
 		},
-		getTimeLengthMilliseconds(){
+		getTimeLengthMilliseconds() {
 			return this._time
+		},
+		toString(){
+			return this._time.toString()
 		}
 	},
 	init({
@@ -183,148 +256,149 @@ const Timer = compose(Awaitable, {
 		this._time = Time(time)
 		this._timeLeft = this._time.getTimestamp()
 	},
-	props: {
+	deepProps: {
 		type: 'Timer',
-		_time: Time(),
+		_time: null,//Time(),
 		_timeLeft: 0
 	},
 })
 exports.Timer = Timer
 
-const Op = compose(RegisteredType, Awaitable, {
+const Op = compose(RegisteredType, Updatable, {
 	methods: {
 		eval() {
 			//to be overriden by user
 			return false
+		},
+		toString() {
+			return this._args.reduce((s, arg) => `${s}${arg},`, '' + this.type)
 		}
 	},
 	init({
-			opArgs
-		}) {
-		this.opArgs = opArgs
+		opArgs
+	}) {
+		this._args = opArgs
 		//BAD IDEA: allow operator to modify parent state
 		//this.scope = scope
 	},
-	props:{
-		opArgs: []
+	deepProps: {
+		type: 'Operation',
+		_args: []
 	}
 })
 exports.Op = Op
 
-const Exp = compose(Awaitable, {
+const Exp = compose(Updatable, {
 	methods: {
-		onStartUpdate(){
-			this._ops.forEach(op => op.startUpdate())
-		},
-		onStopUpdate({isDoneUpdate, resolveArg}) {
-			this._ops.forEach(op => op.stopUpdate({isDoneUpdate, resolveArg}))
-		},
-		onPauseUpdate() {
-			this._ops.forEach(op => op.pauseUpdate())
-		},
-		onResumeUpdate() {
-			this._ops.forEach(op => op.resumeUpdate())
-		},
-		onUpdate() {
-			this._ops.forEach(op => op.update())
-		},
 		isDoneUpdate() {
 			//default to true if no ops were supplied
 			return this._ops.every(op => op.eval())
+		},
+		toString(){
+			return this._ops.reduce( (s, op) => `${s}${op} - `, '')
 		}
 	},
 	init({
 		ops
 	}) {
 		this._ops = ops ? ops.map(opArgs => Op(opArgs)) : this._ops
+		this.addChildren(this._ops)
 	},
-	props: {
+	deepProps: {
+		type: 'Expression',
 		_ops: [] //Op()
 	}
 })
 exports.Exp = Exp
-const Transition = compose(RegisteredType, Awaitable, {
+
+const Transition = compose(RegisteredType, Updatable, {
 	methods: {
 		async onStartTransitionUpdate() { /* Inheritor to override */ },
-		async onStartUpdate(){
+		async onStartUpdate() {
 			return {
 				//TODO: analyze load strategy on start
 				onLoad: await this.load(),
-				onStartUpdate: await this.onStartTransitionUpdate(),
-				onStartUpdateExp: await this._expression.startUpdate(),
+				onStartUpdate: await this.onStartTransitionUpdate()
 			}
 		},
 		async onStopTransitionUpdate() { /* Inheritor to override */ },
-		async onStopUpdate({isDoneUpdate, resolveArg}) {
+		async onStopUpdate({
+			isDoneUpdate,
+			resolveArg
+		}) {
 			return {
-				onStopUpdateTimer: this._timer.stopUpdate({isDoneUpdate, resolveArg}),
-				onStopUpdateExp: this._expression.stopUpdate({isDoneUpdate, resolveArg}),
-				onStopUpdate: await this.onStopTransitionUpdate({isDoneUpdate, resolveArg})
+				onStopUpdate: await this.onStopTransitionUpdate({
+					isDoneUpdate,
+					resolveArg
+				})
 			}
 		},
 		async onPauseTransitionUpdate() { /* Inheritor to override */ },
 		async onPauseUpdate() {
 			return {
-				onPauseUpdateTimer: this._timer.pauseUpdate(),
-				onPauseUpdateExp: this._expression.pauseUpdate(),
 				onPauseUpdate: await this.onPauseTransitionUpdate()
 			}
 		},
 		async onResumeTransitionUpdate() { /* Inheritor to override */ },
 		async onResumeUpdate() {
 			return {
-				onResumeUpdateTimer: this._timer.resumeUpdate(),
-				onResumeUpdateExp: this._expression.resumeUpdate(),
 				onResumeUpdate: await this.onResumeTransitionUpdate()
 			}
 		},
 		onTransitionUpdate() { /* Inheritor to override */ },
 		onUpdate() {
-			this._expression.update()
-			
 			//let interp = this._timer.update()
 			//TODO: apply transition over curr and next
 			this.onTransitionUpdate()
 		},
 		/** A transition is "done" when its expression has been satisfied AND:
 		 * 1 - the timer is up
-		 * 2 - the current awaitable stops
-		 * 3 - the next awaitable starts
+		 * 2 - the current updatable stops
+		 * 3 - the next updatable starts
 		 **/
-		isDoneUpdate(){
+		isDoneUpdate() {
 			return this._expression.isDoneUpdate()
 		},
-		async onDoneUpdate(){
-			this._curr.setState( State.OUT_TRANSITION )
-			this._next.setState(State.IN_TRANSITION )
+		async onDoneUpdate() {
+			this._curr.setState(State.OUT_TRANSITION)
+			this._next.setState(State.IN_TRANSITION)
 			//TODO: determine whether curr's state is done or should be put into background
 			return {
-				onDoneUpdateTimer: await this._timer.startUpdate(),
-				onStopUpdateCurr: await this._curr.stopUpdate({isDoneUpdate:true}),
+				onStopUpdateCurr: await this._curr.stopUpdate({
+					isDoneUpdate: true
+				}),
 				onStartUpdateNext: await this._next.startUpdate(),
 			}
 		},
-		async load(){
+		async load() {
 			return this._next.load()
+		},
+		toString(){
+			return `${this._expression} - ${this._timer}`
 		}
 	},
 	init({
 		exp,
-		timer,
+		time,
 		curr,
 		next
 	}) {
 		this._curr = curr
 		this._next = next
-		this._timer = timer
-		this._expression = exp
+
+		this._timer = Timer({time})
+		this.addChild(this._timer)
+
+		this._expression = Exp({exp})
+		this.addChild(this._expression)
 	},
-	props: {
-		_curr: Awaitable(),
-		_prev: Awaitable(),
-		_next: Awaitable(),
-		_timer: Timer(),
-		_expression: Exp()
+	deepProps: {
+		_curr: null,//Updatable(),
+		_prev: null,//Updatable(),
+		_next: null,//Updatable(),
+		_timer: null,//Timer(),
+		_expression: null,//Exp(),
+		type: 'Transition'
 	}
 })
 exports.Transition = Transition
@@ -346,93 +420,88 @@ exports.Transition = Transition
  }, [])
  */
 
- const State = {
- 	PRELOAD: 'PRELOAD',
- 	LOAD: 'LOAD',
- 	READY: 'READY',
- 	IN_TRANSITION: 'IN_TRANSITION',
- 	UPDATE: 'UPDATE',
- 	BACKGROUND: 'BACKGROUND',
- 	PAUSE: 'PAUSE',
- 	OUT_TRANSITION: 'OUT_TRANSITION',
- 	STOP: 'STOP',
- 	UNLOAD: 'UNLOAD',
- 	DONE: 'DONE'
- }
- exports.State = State
+const State = {
+	PRELOAD: 'PRELOAD',
+	LOAD: 'LOAD',
+	READY: 'READY',
+	IN_TRANSITION: 'IN_TRANSITION',
+	UPDATE: 'UPDATE',
+	BACKGROUND: 'BACKGROUND',
+	PAUSE: 'PAUSE',
+	OUT_TRANSITION: 'OUT_TRANSITION',
+	STOP: 'STOP',
+	UNLOAD: 'UNLOAD',
+	DONE: 'DONE'
+}
+exports.State = State
 
-const Unit = compose(RegisteredType, Awaitable, {
+const Unit = compose(RegisteredType, Updatable, {
 	statics: {
 		ActiveUnits: [],
-		History: [],
-		//TODO: investigate id system
-		LastId: 0
+		History: []
 	},
 	methods: {
-		setState( state ){
+		setState(state) {
 			this.state = state
 		},
-		async onStartUpdate(){
+		async onStartUpdate() {
 			Unit.ActiveUnits.push(this)
 			Unit.History.push(this._scriptPath)
 			let results = {}
-			//wait until all transitions start
-			results.onStartUpdateTransitions = await Promise.all(this._transitions.map( t => t.startUpdate()))
-			
+
 			this.state = State.UPDATE
 
-			if(this.onStartUnitUpdate){
+			if (this.onStartUnitUpdate) {
 				results.onStartUnitUpdate = await this.onStartUnitUpdate()
 			}
-			
+
 			return results
 		},
-		async onStopUpdate({isDoneUpdate, resolveArg}){
+		async onStopUpdate({
+			isDoneUpdate,
+			resolveArg
+		}) {
 			let results = {}
-			//wait until all transitions start
-			results.onStopUpdateTransitions = await Promise.all(this._transitions.map(t => t.onStopUpdate({isDoneUpdate, resolveArg})))
 			//remove this unit from active units
 			Unit.ActiveUnits.splice(Unit.ActiveUnits.indexOf(this), 1)
 			this.state = State.STOP
 
 			if (this.onStopUnitUpdate) {
-				results = await this.onStopUnitUpdate()
+				results = await this.onStopUnitUpdate({
+					isDoneUpdate,
+					resolveArg
+				})
 			}
+			return results
 		},
 		async onPauseUpdate() {
 			let results = {}
-			//wait until all transitions start
-			results.onPauseUpdateTransitions = await Promise.all(this._transitions.map(t => t.onPauseUpdate()))
-
 			this.lastState = this.state
 			this.state = State.PAUSE
 
 			if (this.onPauseUnitUpdate) {
 				results = await this.onPauseUnitUpdate()
 			}
+			return results
 		},
 		async onResumeUpdate() {
 			let results = {}
-			//wait until all transitions start
-			results.onResumeUpdateTransitions = await Promise.all(this._transitions.map(t => t.onResumeUpdate()))
-
 			this.state = this.lastState
 
 			if (this.onResumeUnitUpdate) {
 				results = await this.onResumeUnitUpdate()
 			}
+			return results
 		},
-		onUpdate(){
-			//update transitions
-			this._transitions.forEach(t => t.update())
+		onUpdate() {
 			//update scripts
 			this.updateScript()
-			
-			if(this.onUnitUpdate){
+
+			if (this.onUnitUpdate) {
 				this.onUnitUpdate()
 			}
 		},
-		updateScript(){
+		updateScript() {
 			if (this._script) {
 				if (this._isFirstUpdate) {
 					this._isFirstUpdate = false
@@ -448,35 +517,33 @@ const Unit = compose(RegisteredType, Awaitable, {
 		},
 	},
 	init({
-			transitions,
-			scriptPath
-		}) {
-		this._id = Unit.LastId++
-		
+		transitions,
+		scriptPath
+	}) {
 		this._scriptPath = scriptPath
 		this._script = require(scriptPath)
-
+//TODO: NEXT find out why _childrenUpdatables is double adding children
 		if (transitions) {
-			this._transitions = transitions.map(({
-						type,
-						exp,
-						time,
-						next
-					}) => Transition({
-					type,
-					timer: Timer({ time }),
-					curr: this,
-					next: next ? Unit(next) : this,
-					exp: Exp(exp)
-				})
-			)
+			this.transitions = transitions.map(({
+				type,
+				exp,
+				time,
+				next
+			}) => Transition({
+				type,
+				time,
+				curr: this,
+				next: next ? Unit(next) : this,
+				exp
+			}))
+
+			this.addChildren(this.transitions)
 		}
 	},
-	props: {
+	deepProps: {
 		_scriptPath: '',
 		_script: {},
-		transitions: [],
-		_id: 0
+		transitions: []
 	}
 })
 exports.Unit = Unit
@@ -485,133 +552,183 @@ exports.Unit = Unit
  * MODELS
  * */
 
- const Text = compose({
- 	init({
- 		text
- 	}) {
- 		this._text = text
- 	},
- 	props: {
- 		_text: ''
- 	}
- })
- exports.Text = Text
+const ActionLine = compose(Updatable, {
+	methods: {
+		async onStartUpdate() {
+			Logger.log(this._text)
+		},
+		onUpdate() {
+			//TODO: animated closed captions
+		},
+		getRuntime() {
+			return this._timer.getTimeLengthMilliseconds()
+		},
+		isDoneUpdate() {
+			return this._timer.isDoneUpdate()
+		},
+		toString(){
+			return this._text
+		}
+	},
+	init({
+		text,
+		time
+	}) {
+		this._text = text
+		this._timer = Timer({
+			time
+		})
+		this.addChild(this._timer)
+	},
+	deepProps: {
+		_text: '',
+		_timer: null,//Timer(),
+		type: 'ActionLine'
+	}
+})
+exports.ActionLine = ActionLine
 
- const ActionLine = compose(Awaitable, {
- 	methods: {
- 		async onStartUpdate() {
- 			console.log(this._text)
- 			return ({
- 				onStartUpdateTimer: this._timer.startUpdate()
- 			})
- 		},
- 		onUpdate() {
- 			this._timer.update()
- 			//TODO: animated closed captions
- 		},
- 		getRuntime() {
- 			return this._timer.getTimeLengthMilliseconds()
-		 },
-		 isDoneUpdate(){
-			 return this._timer.isDoneUpdate()
-		 }
- 	},
- 	init({
- 		text,
- 		time
- 	}) {
- 		this._text = Text({
- 			text
- 		})
- 		this._timer = Timer({
- 			time
- 		})
- 	},
- 	props: {
- 		_text: Text(),
- 		_timer: Timer()
- 	}
- })
- exports.ActionLine = ActionLine
-
- const ActionBlock = compose(Op, {
- 	methods: {
- 		getActiveLine() {
- 			return this.actionLines[this._activeLineIdx]
- 		},
- 		getRuntime() {
-			return this.actionLines.reduce((totalLength, line) => totalLength + line.getRuntime(), 0 )
- 		},
- 		setNextActiveLine() {
- 			++this._activeLineIdx
- 		},
- 		onUpdate() {
- 			this.getActiveLine().update()
- 			if (this.getActiveLine().isDoneUpdate()) {
- 				this.setNextActiveLine()
- 			}
- 		},
- 		isDoneUpdate() {
- 			return this.getActiveLine().isDoneUpdate()
- 		},
- 	},
- 	init({
- 		actionLines
- 	}) {
-		 //return null for props type declarations
-		if(!actionLines){
+const ActionBlock = compose(Op, {
+	methods: {
+		getActiveLine() {
+			return this._actionLines[this._activeLineIdx]
+		},
+		getRuntime() {
+			return this._actionLines.reduce((totalLength, line) => totalLength + line.getRuntime(), 0)
+		},
+		setNextActiveLine() {
+			++this._activeLineIdx
+		},
+		onStartUpdate(){
+			this.getActiveLine().start()
+		},
+		onUpdate() {
+			this.getActiveLine().update()
+			if (this.getActiveLine().isDoneUpdate()) {
+				this.setNextActiveLine()
+				this.getActiveLine().start()
+			}
+		},
+		isDoneUpdate() {
+			return this.getActiveLine().isDoneUpdate()
+		},
+	},
+	init({
+		actionLines
+	}) {
+		//return null for deepProps type declarations
+		if (!actionLines) {
 			return null
 		}
- 		this.actionLines = actionLines.map(actionLine => ActionLine({
- 			actionLine
- 		}))
+		this._actionLines = actionLines.map(actionLine => ActionLine({
+			actionLine
+		}))
 
- 		this._runtime = sumLineRuntimes(this._actionLines)
+		this._runtime = sumLineRuntimes(this._actionLines)
 
- 		function sumLineRuntimes(actionLines) {
- 			return actionLines.reduce((runLength, line) => runLength + line.getRuntime(), 0)
- 		}
- 	},
- 	props: {
- 		_actionLines: [], //ActionLine()
- 		_activeLineIdx: 0,
-		 _runtime: Time(),
-		 type: 'ActionBlock'
- 	}
- })
- exports.ActionBlock = ActionBlock
- RegisteredType.Register('ActionBlock', ActionBlock)
+		function sumLineRuntimes(actionLines) {
+			return actionLines.reduce((runLength, line) => runLength + line.getRuntime(), 0)
+		}
+	},
+	deepProps: {
+		_actionLines: [], //ActionLine()
+		_activeLineIdx: 0,
+		_runtime: null,//Time(),
+		type: 'ActionBlock'
+	}
+})
+exports.ActionBlock = ActionBlock
+RegisteredType.Register('ActionBlock', ActionBlock)
+
+
+const SceneHeading = compose({
+	methods: {
+		toString() {
+			return `${this._sceneLocation}. ${this._sceneName} - ${this._timeOfDay}`
+		}
+	},
+	init({
+		timeOfDay,
+		sceneName,
+		sceneLocation
+	}) {
+		this._timeOfDay = timeOfDay
+		this._sceneName = sceneName
+		this._sceneLocation = sceneLocation
+	},
+	deepProps: {
+		_timeOfDay: '',
+		_sceneName: '',
+		_sceneLocation: ''
+	}
+})
+exports.SceneHeading = SceneHeading
+
+const ShotHeading = compose({
+	methods: {
+		toString() {
+			return `${this._cameraType} - ${this._cameraSource ? (this.cameraSource + ', ' + this.cameraTarget) : this._cameraTarget} - ${this._time.toString()}`
+		}
+	},
+	init({
+		cameraType,
+		cameraSource,
+		cameraTarget,
+		time
+	}) {
+		this._cameraType = cameraType
+		this._cameraSource = cameraSource
+		this._cameraTarget = cameraTarget
+		this._time = Timer({ time })
+	},
+	deepProps: {
+		_cameraType: '',
+		_cameraSource: '',
+		_cameraTarget: '',
+		_time: null//Timer()
+	}
+})
+exports.ShotHeading = ShotHeading
+
 
 //shot as a unit
-const Shot = compose(Unit, {	
+const Shot = compose(Unit, {
 	statics: {
 		//TODO: implement these loaders
 		ModelLoader: async (asset) => {},
 		AnimLoader: async (asset) => {}
 	},
 	methods: {
-		async onStartUnitUpdate(){
+		async onStartUnitUpdate() {
 			this.setupCamera()
 			this.startAnimations()
+			Logger.log(`${this._sceneHeading}\n${this._shotHeading}`)
+			let optionNum = 0
+			for (let t of this.transitions){
+				Logger.log(`${optionNum}) ${t}`)
+				++optionNum
+			}
 		},
 		async load() {
-			if(this._isLoaded){
+			if (this._isLoaded) {
 				return
 			} else {
 				this._isLoaded = true
 			}
 			this.state = State.LOAD
-			
+
 			//load assets for this unit and its children
 			this.models = await load(this.models, Shot.ModelLoader)
 			this.anims = await load(this.anims, Shot.AnimLoader)
 
 			this.state = State.READY
 
-			return {done: true}
+			return {
+				done: true
+			}
 
 			//create ModelLoader classes
-			async function load(assets, loader) { 
+			async function load(assets, loader) {
 				/* TODO: implement this
 				return Promise.all(Object.keys(this.models).map(
 					handle => loader(assets[handle])))
@@ -620,12 +737,12 @@ const Shot = compose(Unit, {
 			}
 		},
 		setupCamera() {
-				//TODO
+			//TODO
 		},
 		startAnimations() {
 			//TODO
 		},
-		async unload(){
+		async unload() {
 			this.state = State.UNLOAD
 			//TODO
 			this.state = State.DONE
@@ -639,11 +756,11 @@ const Shot = compose(Unit, {
 	},
 	//init takes in a json definition
 	init({
-			sceneHeading,
-			shotHeading
-		}) {
-		this.sceneHeading = SceneHeading(sceneHeading)
-		this.shotHeading = ShotHeading(shotHeading)
+		sceneHeading,
+		shotHeading
+	}) {
+		this._sceneHeading = SceneHeading(sceneHeading)
+		this._shotHeading = ShotHeading(shotHeading)
 		let modelsPath = `${this._scriptPath}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
 		let animsPath = `${this._scriptPath}/anims`
@@ -653,92 +770,55 @@ const Shot = compose(Unit, {
 			try {
 				return glob.sync(`${next}/*.${ext}`)
 			} catch (error) {
-				console.console.error(error);
+				Logger.error(error);
 
 			}
 		}
 	},
-	props: {
+	deepProps: {
 		type: 'Shot',
 		_isFirstUpdate: true,
-		_isLoaded: false
+		_isLoaded: false,
+		_sceneHeading: null,//SceneHeading(),
+		_shotHeading: null//ShotHeading()
 	}
 })
 exports.Shot = Shot
 RegisteredType.Register('Shot', Shot)
 
-const SceneHeading = compose({
-	init({
-		timeOfDay,
-		sceneName,
-		sceneLocation
-	}) {
-		this._timeOfDay = timeOfDay
-		this._sceneName = sceneName
-		this._sceneLocation = sceneLocation
-	},
-	props:{
-		_timeOfDay: '',
-		_sceneName: '',
-		_sceneLocation: ''
-	}
-})
-exports.SceneHeading = SceneHeading
-
-const ShotHeading = compose({
-	init({
-		cameraType,
-		cameraSource,
-		cameraTarget,
-		timeSpan
-	}) {
-		this._cameraType = cameraType
-		this._cameraSource = cameraSource
-		this._cameraTarget = cameraTarget
-		this._timeSpan = TimeSpan(timeSpan)
-	},
-	props: {
-		_cameraType: '',
-		_cameraSource: '',
-		_cameraTarget: '',
-		_timeSpan: TimeSpan()
-	}
-})
-exports.ShotHeading = ShotHeading
-
 /**
  * User Defined Transitions
  */
 
- const Cut = compose(Transition,{
-	 props: {
-		 type: 'Cut'
-	 },
-	 init(){
+const Cut = compose(Transition, {
+		init() {
 
-	 }
- })
- RegisteredType.Register('Cut', Cut)
+		},
+		deepProps: {
+			type: 'Cut'
+		}
+})
+RegisteredType.Register('Cut', Cut)
 
- //TODO: define FadeIn separate from Cut
-const FadeIn = compose(Cut,{
-	props: {
-		type: 'FadeIn'
+//TODO: define FadeIn separate from Cut
+const FadeIn = compose(Transition, {
+	init() {
+
 	},
-	init(){
-
+	deepProps: {
+		type: 'FadeIn'
 	}
- })
- RegisteredType.Register('FadeIn', FadeIn)
+})
+RegisteredType.Register('FadeIn', FadeIn)
 
 /**
  * User Defined Operations
  */
 
- //TODO: finish implementing this
+//TODO: finish implementing this
 const Select = compose(Op, {
 	methods: {
-		onTransitionUpdate(){
+		onTransitionUpdate() {
 			//TODO: anchor handle to correct location
 		},
 		eval() {
@@ -751,7 +831,7 @@ const Select = compose(Op, {
 	}) {
 		this.handle = handle
 	},
-	props: {
+	deepProps: {
 		type: 'Select',
 		handle: null //TODO: define a handler type
 	},
@@ -766,17 +846,23 @@ Op.Register('OneShot', OneShot)
 
 const TimeWindow = compose(Op, {
 	methods: {
-		async onStartUpdate(){
-			this._timeOffset = Time({ms: Time.Now()})
+		async onStartUpdate() {
+			this._timeOffset = Time({
+				ms: Time.Now()
+			})
 		},
-		async onStopUpdate(){
+		async onStopUpdate() {
 			this._timeOffset = Time()
 		},
 		async onPauseUpdate() {
-			this._timeOffset = Time({ms: Time.Now() - this._timeOffset.getTimestamp()})
+			this._timeOffset = Time({
+				ms: Time.Now() - this._timeOffset.getTimestamp()
+			})
 		},
-		async onResumeUpdate(){
-			this._timeOffset = Time({ms: Time.Now() + this._timeOffset.getTimestamp()})
+		async onResumeUpdate() {
+			this._timeOffset = Time({
+				ms: Time.Now() + this._timeOffset.getTimestamp()
+			})
 		},
 		eval() {
 			let start = this._timeOffset.getTimestamp() + this._timeSpan.getStartTime().getTimestamp()
@@ -784,10 +870,12 @@ const TimeWindow = compose(Op, {
 			return Time.Now() >= start && Time.Now() <= end
 		}
 	},
-	init({timeSpan}) {
+	init({
+		timeSpan
+	}) {
 		this._timeSpan = TimeSpan(timeSpan)
 	},
-	props: {
+	deepProps: {
 		type: 'TimeWindow',
 		_timeSpan: TimeSpan(),
 		_timeOffset: Time()
@@ -800,7 +888,7 @@ Op.Register('TimeWindow', TimeWindow)
  * Test Drivers
  */
 const UpdateDriver = compose({
-	statics:{
+	statics: {
 		DefaultTickRate: 16, //in ms
 	},
 	methods: {
@@ -808,14 +896,14 @@ const UpdateDriver = compose({
 		testUpdate() {
 			timeoutUpdater()
 			let _resolver
-			return new Promise( resolve => _resolver = resolve)
+			return new Promise(resolve => _resolver = resolve)
 
-			function timeoutUpdater(){
+			function timeoutUpdater() {
 				setTimeout(function () {
 					//TODO: drive Time.UpdateDeltaTime() from rendering engine loop
 					Time.UpdateDeltaTime()
 					Unit.ActiveUnits.forEach(unit => unit.update())
-					if(Unit.ActiveUnits.every(unit => unit.isDoneUpdate())){
+					if (Unit.ActiveUnits.every(unit => unit.isDoneUpdate())) {
 						_resolver()
 					}
 					timeoutUpdater()
