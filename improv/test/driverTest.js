@@ -31,7 +31,8 @@ const unitDef = {
 			}
 		}
 	},
-	actionLines: [{
+	actionLines: [
+		{
 			time: {
 				min: 0,
 				sec: 3

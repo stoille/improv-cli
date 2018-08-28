@@ -69,15 +69,9 @@ t.test(`shotInit ...`, t => {
 					cameraType: 'EWS',
 					cameraSource: null,
 					cameraTarget: 'OLD BAPTIST CHURCH FRONT',
-					timeSpan: {
-						start: {
-							min: 0,
-							sec: 0
-						},
-						end: {
-							min: 0,
-							sec: 15
-						}
+					time: {
+						min: 0,
+						sec: 15
 					}
 				},
 				transitions: [{
