@@ -90,7 +90,7 @@ const Updatable = compose({
 		},
 		async startUpdate() {
 			if (DEBUG) {
-				Logger.log(`START - ${this._id} - ${this.type}`)
+				Logger.log(`========= START - ${this._id} - ${this.type} =========\n${this}\n=========`)
 			}
 			this._isUpdateSuspended = false
 			let resolve
@@ -107,7 +107,7 @@ const Updatable = compose({
 			resolveArg
 		}) {
 			if (DEBUG) {
-				Logger.log(`STOP - ${this._id} - ${this.type}`)
+				Logger.log(`========= STOP - ${this._id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = true
 			return {
@@ -125,7 +125,7 @@ const Updatable = compose({
 		},
 		async pauseUpdate() {
 			if (DEBUG) {
-				Logger.log(`PAUSE - ${this._id} - ${this.type}`)
+				Logger.log(`========= PAUSE - ${this._id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = true
 			return {
@@ -135,7 +135,7 @@ const Updatable = compose({
 		},
 		async resumeUpdate() {
 			if (DEBUG) {
-				Logger.log(`RESUME - ${this._id} - ${this.type}`)
+				Logger.log(`========= RESUME - ${this._id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = false
 			return {
@@ -145,8 +145,20 @@ const Updatable = compose({
 		},
 		addChild(updatable) {
 			this._childUpdatables.push(updatable)
+			return updatable
 		},
 		addChildren(updatables) {
+			for (let updatable of updatables) {
+				this._childUpdatables.push(updatable)
+			}
+			return updatables
+		},
+		removeChild(updatable) {
+			return this._childUpdatables.splice(this._childUpdatables.indexOf(updatable), 1)
+		},
+		removeChildren(updatables) {
+			//remove passed updatables from childupdatables
+			this._childUpdatables = this._childUpdatables.filter( u => updatables.find( uu => uu._id === u._id) )
 			for (let updatable of updatables) {
 				this._childUpdatables.push(updatable)
 			}
@@ -164,7 +176,7 @@ const Updatable = compose({
 		type: 'Updatable',
 		_isUpdateSuspended: true,
 		_childUpdatables: [], //Updatable()
-		_resolver: (resolveArg) => {},
+		_resolver: resolveArg => resolveArg,
 		_id: 0
 	}
 })
@@ -184,7 +196,9 @@ const Time = compose({
 			return this._time
 		},
 		toString(){
-			return `${(this._time / 1000 / 60).toString().padStart(2, '0')}:${(this._time / 1000).toString().padStart(2, '0')}`
+			return `${Math.round(this._time / 1000 / 60).toString().
+				padStart(2, '0')}:${Math.round(this._time / 1000).toString().
+					padStart(2, '0')}`
 		}
 	},
 	init({
@@ -217,7 +231,7 @@ const TimeSpan = compose({
 			return this._end
 		},
 		toString() {
-			return `${this.start},${this._end}`
+			return `${this._start},${this._end}`
 		}
 	},
 	init({
@@ -269,21 +283,15 @@ const Op = compose(RegisteredType, Updatable, {
 		eval() {
 			//to be overriden by user
 			return false
-		},
-		toString() {
-			return this._args.reduce((s, arg) => `${s}${arg},`, '' + this.type)
 		}
 	},
-	init({
-		opArgs
-	}) {
-		this._args = opArgs
+	init() {
+		//return {...this, ...initArgs}
 		//BAD IDEA: allow operator to modify parent state
 		//this.scope = scope
 	},
 	deepProps: {
-		type: 'Operation',
-		_args: []
+		type: 'Operation'
 	}
 })
 exports.Op = Op
@@ -295,13 +303,14 @@ const Exp = compose(Updatable, {
 			return this._ops.every(op => op.eval())
 		},
 		toString(){
-			return this._ops.reduce( (s, op) => `${s}${op} - `, '')
+			//return all the ops as strings
+			let s = this._ops.reduce((s, op) => `${s}${op} - `, ' ')
+			//chop off the last char "-"
+			return s.slice(0, s.length - 2)
 		}
 	},
-	init({
-		ops
-	}) {
-		this._ops = ops ? ops.map(opArgs => Op(opArgs)) : this._ops
+	init(ops) {
+		this._ops = ops ? ops.map(initArgs => Op(initArgs)) : this._ops
 		this.addChildren(this._ops)
 	},
 	deepProps: {
@@ -374,7 +383,7 @@ const Transition = compose(RegisteredType, Updatable, {
 			return this._next.load()
 		},
 		toString(){
-			return `${this._expression} - ${this._timer}`
+			return `${this._expression ? `${this._expression}` : ''}\n\t${this.type} to: ${this._next.getShotHeading()}, from: ${this._curr.getShotHeading()}\n`
 		}
 	},
 	init({
@@ -389,8 +398,10 @@ const Transition = compose(RegisteredType, Updatable, {
 		this._timer = Timer({time})
 		this.addChild(this._timer)
 
-		this._expression = Exp({exp})
-		this.addChild(this._expression)
+		if(exp){
+			this._expression = Exp(exp)
+			this.addChild(this._expression)
+		}
 	},
 	deepProps: {
 		_curr: null,//Updatable(),
@@ -515,6 +526,9 @@ const Unit = compose(RegisteredType, Updatable, {
 				}
 			}
 		},
+		toStringUnit(){
+			return this.transitions.reduce( (s, t, idx) => s += `${idx}) ${t}\n`, '')
+		}
 	},
 	init({
 		transitions,
@@ -522,7 +536,7 @@ const Unit = compose(RegisteredType, Updatable, {
 	}) {
 		this._scriptPath = scriptPath
 		this._script = require(scriptPath)
-//TODO: NEXT find out why _childrenUpdatables is double adding children
+
 		if (transitions) {
 			this.transitions = transitions.map(({
 				type,
@@ -567,7 +581,7 @@ const ActionLine = compose(Updatable, {
 			return this._timer.isDoneUpdate()
 		},
 		toString(){
-			return this._text
+			return `${this._text} - ${this._timer}`
 		}
 	},
 	init({
@@ -596,33 +610,35 @@ const ActionBlock = compose(Op, {
 		getRuntime() {
 			return this._actionLines.reduce((totalLength, line) => totalLength + line.getRuntime(), 0)
 		},
-		setNextActiveLine() {
+		advanceToNextLine() {
 			++this._activeLineIdx
+			return this.getActiveLine()
 		},
 		onStartUpdate(){
-			this.getActiveLine().start()
+			this.getActiveLine().startUpdate()
 		},
 		onUpdate() {
-			this.getActiveLine().update()
 			if (this.getActiveLine().isDoneUpdate()) {
-				this.setNextActiveLine()
-				this.getActiveLine().start()
+				this.removeChild(this.getActiveLine())
+				this.addChild(this.advanceToNextLine())
 			}
 		},
 		isDoneUpdate() {
 			return this.getActiveLine().isDoneUpdate()
 		},
+		toString() {
+			//convert args to strings
+			let actionLines = this._actionLines ? this._actionLines.reduce((s, al) => `${s}${al}`, '') : ''
+			//trim last ","
+			actionLines = actionLines.slice(0, actionLines.length - 1)
+			return `${actionLines}`
+		}
 	},
 	init({
 		actionLines
 	}) {
-		//return null for deepProps type declarations
-		if (!actionLines) {
-			return null
-		}
-		this._actionLines = actionLines.map(actionLine => ActionLine({
-			actionLine
-		}))
+		this._actionLines = actionLines.map(actionLine => ActionLine(actionLine))
+		this.addChild(this.getActiveLine())
 
 		this._runtime = sumLineRuntimes(this._actionLines)
 
@@ -644,70 +660,95 @@ RegisteredType.Register('ActionBlock', ActionBlock)
 const SceneHeading = compose({
 	methods: {
 		toString() {
-			return `${this._sceneLocation}. ${this._sceneName} - ${this._timeOfDay}`
+			return `${this._locationType}. ${this._sceneName}, ${this._location} - ${this._timeOfDay}`
 		}
 	},
 	init({
 		timeOfDay,
 		sceneName,
-		sceneLocation
+		location,
+		locationType
 	}) {
 		this._timeOfDay = timeOfDay
 		this._sceneName = sceneName
-		this._sceneLocation = sceneLocation
+		this._location = location
+		this._locationType = locationType
 	},
 	deepProps: {
 		_timeOfDay: '',
 		_sceneName: '',
-		_sceneLocation: ''
+		_location: '',
+		_locationType: '',
 	}
 })
 exports.SceneHeading = SceneHeading
 
+const CameraMovement = compose({
+	methods: {
+		toString() {
+			return `${this._movementType} - ${this._timer ? this._timer : ''}`
+		}
+	},
+	init({
+		movementType,
+		time
+	}) {
+		this._movementType = movementType
+		if(time){
+			this._timer = Timer({
+				time
+			})
+		}
+	},
+	deepProps: {
+		_movementType: '', //'EASE_IN',
+		_timer: null //Timer()
+	}
+})
+exports.CameraMovement = CameraMovement
+
 const ShotHeading = compose({
 	methods: {
 		toString() {
-			return `${this._cameraType} - ${this._cameraSource ? (this.cameraSource + ', ' + this.cameraTarget) : this._cameraTarget} - ${this._time.toString()}`
+			return `${this._cameraType} - ${this._cameraSource ? `${this._cameraSource}, ${this._cameraTarget}` : this._cameraTarget} - ${this._cameraMovement ? `${this._cameraMovement} -` : ''} ${this._timer}`
 		}
 	},
 	init({
 		cameraType,
 		cameraSource,
 		cameraTarget,
+		cameraMovement,
 		time
 	}) {
 		this._cameraType = cameraType
 		this._cameraSource = cameraSource
 		this._cameraTarget = cameraTarget
-		this._time = Timer({ time })
+		this._cameraMovement = CameraMovement(cameraMovement)
+		this._timer = Timer({ time })
 	},
 	deepProps: {
 		_cameraType: '',
 		_cameraSource: '',
 		_cameraTarget: '',
-		_time: null//Timer()
+		_cameraMovement: null, //CameraMovement
+		_timer: null//Timer()
 	}
 })
 exports.ShotHeading = ShotHeading
-
 
 //shot as a unit
 const Shot = compose(Unit, {
 	statics: {
 		//TODO: implement these loaders
-		ModelLoader: async (asset) => {},
-		AnimLoader: async (asset) => {}
+		ModelLoader: async asset => asset,
+		AnimLoader: async asset => asset
 	},
 	methods: {
 		async onStartUnitUpdate() {
 			this.setupCamera()
 			this.startAnimations()
-			Logger.log(`${this._sceneHeading}\n${this._shotHeading}`)
-			let optionNum = 0
-			for (let t of this.transitions){
-				Logger.log(`${optionNum}) ${t}`)
-				++optionNum
-			}
+
+			Logger.log(this.toString())
 		},
 		async load() {
 			if (this._isLoaded) {
@@ -728,7 +769,7 @@ const Shot = compose(Unit, {
 			}
 
 			//create ModelLoader classes
-			async function load(assets, loader) {
+			async function load(/*assets, loader*/) {
 				/* TODO: implement this
 				return Promise.all(Object.keys(this.models).map(
 					handle => loader(assets[handle])))
@@ -752,15 +793,25 @@ const Shot = compose(Unit, {
 			let results = {}
 			results.unload = await this.unload()
 			return results
+		},
+		getShotHeading(){
+			return this._shotHeading
+		},
+		toString(){
+			return `${this._sceneHeading}\n${this._shotHeading}\n${this.toStringUnit()}`
 		}
 	},
 	//init takes in a json definition
 	init({
 		sceneHeading,
-		shotHeading
+		shotHeading,
+		actionLines
 	}) {
 		this._sceneHeading = SceneHeading(sceneHeading)
 		this._shotHeading = ShotHeading(shotHeading)
+		this._actionBlock = ActionBlock({actionLines})
+		this.addChild(this._actionBlock)
+
 		let modelsPath = `${this._scriptPath}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
 		let animsPath = `${this._scriptPath}/anims`
@@ -780,7 +831,8 @@ const Shot = compose(Unit, {
 		_isFirstUpdate: true,
 		_isLoaded: false,
 		_sceneHeading: null,//SceneHeading(),
-		_shotHeading: null//ShotHeading()
+		_shotHeading: null, //ShotHeading()
+		_actionBlock: null, //ActionBlock()
 	}
 })
 exports.Shot = Shot
@@ -791,6 +843,11 @@ RegisteredType.Register('Shot', Shot)
  */
 
 const Cut = compose(Transition, {
+		methods:{
+			toString(){
+				return `id:${this.id}`
+			}
+		},
 		init() {
 
 		},
@@ -802,6 +859,8 @@ RegisteredType.Register('Cut', Cut)
 
 //TODO: define FadeIn separate from Cut
 const FadeIn = compose(Transition, {
+	methods:{
+	},
 	init() {
 
 	},
@@ -825,22 +884,38 @@ const Select = compose(Op, {
 			//TODO: return true if user selection intersects with the handle's anchor
 			return true
 		},
+		toString() {
+			return `SELECT - ${this._handle}`
+		}
 	},
 	init({
 		handle,
 	}) {
-		this.handle = handle
+		this._handle = handle
 	},
 	deepProps: {
 		type: 'Select',
-		handle: null //TODO: define a handler type
+		_handle: null //TODO: define a handler type
 	},
 })
 exports.Select = Select
 Op.Register('Select', Select)
 
 //TODO: finish implementing this
-const OneShot = compose(Select)
+const OneShot = compose(Op, {
+	methods:{
+		toString(){
+			return 'ONE_SHOT'
+		}
+	},
+	init(transition){
+		this._transition = transition
+	},
+	deepProps:{
+		type: 'OneShot',
+		_transition: null
+	}
+})
 exports.OneShot = OneShot
 Op.Register('OneShot', OneShot)
 
@@ -868,6 +943,9 @@ const TimeWindow = compose(Op, {
 			let start = this._timeOffset.getTimestamp() + this._timeSpan.getStartTime().getTimestamp()
 			let end = this._timeOffset.getTimestamp() + this._timeSpan.getEndTime().getTimestamp()
 			return Time.Now() >= start && Time.Now() <= end
+		},
+		toString() {
+			return `${this._timeSpan}`
 		}
 	},
 	init({
@@ -877,8 +955,8 @@ const TimeWindow = compose(Op, {
 	},
 	deepProps: {
 		type: 'TimeWindow',
-		_timeSpan: TimeSpan(),
-		_timeOffset: Time()
+		_timeSpan: null,//TimeSpan(),
+		_timeOffset: null//Time()
 	},
 })
 exports.TimeWindow = TimeWindow
