@@ -1,6 +1,7 @@
 FADE IN -
 EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON -
-EWS - OLD BAPTIST CHURCH FRONT - EASE IN - 15
+EWS - OLD BAPTIST CHURCH FRONT - EASE IN - 15 - 
+AWAIT - PICKUP - KEY, SELECT - MAN CAP
 Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church. He clears his throat and coughs.
 
 	ONESHOT - SELECT - MAN - 5,10
@@ -25,21 +26,21 @@ Over the dense hiss and buzz of a humid summer afternoon we see an old man pace 
 	AFTER - SELECT - MAN CAP
 	AFTER - SELECT - OLD BAPTIST CHURCH DOOR
 		SELECT - MAN
-			LONG SHOT - CHURCH FRONT - 00:04
+			LONG SHOT - CHURCH FRONT - 00:04 - 
+			AWAIT - SELECT - BUSH
 			The long church doors tower above a wraparound porch. A glimmer in the bush catches our eye.
 			
-				AWAIT - SELECT - BUSH
-					LONG SHOT - MAN, BUSH - 00:04
+				SELECT - BUSH
+					LONG SHOT - MAN, BUSH - 00:04 -
+					AWAIT - PICKUP - KEY
 					A light breeze picks up as we notice a key in the bush.
 						
-						AWAIT - PICKUP - KEY
+						PICKUP - KEY
 							The man bends down to investigate.
 							CU - MAN FACE - 00:04
 							We see an old key in the palm of his cracked hands.
 
 	He paces back and forth.
-
-	AWAIT - PICKUP - KEY - SELECT - MAN CAP
 
 EWS - CHURCH - 00:02
 

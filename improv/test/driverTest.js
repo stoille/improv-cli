@@ -5,34 +5,29 @@ const unitDef = {
 	type: 'Shot',
 	scriptPath: './improv',
 	sceneHeading: {
-		type: 'SceneHeading',
-		timeOfDay: 'NOON',
+		type: 'SceneHading',
+		locationType: 'EXT',
 		sceneName: 'OLD BAPTIST CHURCH',
-		sceneLocation: 'KENTUCKY'
+		location: 'KENTUCKY',
+		timeOfDay: 'NOON',
 	},
 	shotHeading: {
 		type: 'ShotHeading',
 		cameraType: 'EWS',
 		cameraSource: null,
 		cameraTarget: 'OLD BAPTIST CHURCH FRONT',
-		movement: {
-			type: 'EASE_IN',
-			start: 0,
-			end: 2
+		cameraMovement: {
+			movementType: 'EASE_IN',
+			time: {
+					sec: 2
+				}
 		},
-		timeSpan: {
-			start: {
-				min: 0,
-				sec: 0
-			},
-			end: {
-				min: 0,
-				sec: 15
-			}
+		time: {
+			min: 0,
+			sec: 15
 		}
 	},
-	actionLines: [
-		{
+	actionLines: [{
 			time: {
 				min: 0,
 				sec: 3
@@ -53,13 +48,15 @@ const unitDef = {
 			min: 0,
 			sec: 3
 		},
-		exp: {
-			ops: [{
+		exp: [
+			{
 				type: 'OneShot'
-			}, {
+			},
+			{
 				type: 'Select',
 				handle: 'MAN'
-			}, {
+			},
+			{
 				type: 'TimeWindow',
 				timeSpan: {
 					start: {
@@ -69,29 +66,31 @@ const unitDef = {
 						sec: 10
 					}
 				}
-			}]
-		},
+			}
+		],
 		next: {
 			type: 'Shot',
 			scriptPath: './improv',
-			sceneHeading: {
-				timeOfDay: 'NOON',
-				sceneName: 'OLD BAPTIST CHURCH',
-				sceneLocation: 'KENTUCKY'
-			},
+			ceneHeading: {
+					type: 'SceneHeading',
+					locationType: 'EXT',
+					sceneName: 'OLD BAPTIST CHURCH',
+					location: 'KENTUCKY',
+					timeOfDay: 'NOON',
+				},
 			shotHeading: {
+				type: 'ShotHeading',
 				cameraType: 'EWS',
 				cameraSource: null,
 				cameraTarget: 'OLD BAPTIST CHURCH FRONT',
-				timeSpan: {
-					start: {
-						min: 0,
-						sec: 0
-					},
-					end: {
-						min: 0,
-						sec: 15
+				cameraMovement: {
+					movementType: 'EASE_IN',
+					time: {
+						sec: 2
 					}
+				},
+				time: {
+					sec: 15
 				}
 			},
 			transitions: [{
@@ -115,13 +114,12 @@ const unitDef = {
 		}
 	}]
 }
-t.test(`updateDriver ...`, t => {
+t.test(`updateDriver ...`, (t) => {
 	let unit = imp.Unit(unitDef)
 	let driver = imp.UpdateDriver({
 		unit
 	})
-	return driver.testUpdate()
-		.then(results => {
+	return driver.testUpdate().then( (results) => {
 			t.matchSnapshot(results, 'driverTest')
 			t.end()
 		})
