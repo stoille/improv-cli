@@ -51,6 +51,7 @@ const Updatable = compose({
 			if (this.onUpdate) {
 				this.onUpdate()
 			}
+			
 			if (this.isDoneUpdate()) {
 				this.stopUpdate({
 					isDoneUpdate: true
@@ -565,7 +566,6 @@ const ActionBlock = compose(Updatable, {
 		getRuntime() {
 			return this._actionLines.reduce((totalLength, line) => totalLength + line.getRuntime(), 0)
 		},
-		//TODO: NEXT Fix why action lines don't advance
 		advanceToNextLine() {
 			++this._activeLineIdx
 			return this.getActiveLine()
@@ -574,13 +574,18 @@ const ActionBlock = compose(Updatable, {
 			this.getActiveLine().startUpdate()
 		},
 		onUpdate() {
-			if (this.getActiveLine().isDoneUpdate()) {
-				this.removeChild(this.getActiveLine())
-				this.addChild(this.advanceToNextLine())
+			let activeLine = this.getActiveLine()
+			if (activeLine && activeLine.isDoneUpdate()) {
+				this.removeChild(activeLine)
+				let nextLine = this.advanceToNextLine()
+				if(nextLine){
+					nextLine.startUpdate()
+					this.addChild(nextLine)
+				}
 			}
 		},
 		isDoneUpdate() {
-			return this.getActiveLine().isDoneUpdate()
+			return this._activeLineIdx >= this._actionLines.length
 		},
 		toString() {
 			//convert args to strings
