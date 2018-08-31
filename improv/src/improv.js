@@ -9,6 +9,11 @@ const {
 
 const DEBUG = true
 
+function CreateFromExportedType(initArgs) {
+	let type = exports[initArgs.type]
+	return type(initArgs)
+}
+
 const Logger = compose({
 	statics:{
 		log(string){
@@ -17,47 +22,6 @@ const Logger = compose({
 		error(string){
 			console.error(string)
 		}
-	}
-})
-
-const RegisteredType = compose({
-	statics: {
-		TypeDescriptors: {},
-		Register(type, typeDef) {
-			if (RegisteredType.TypeDescriptors[type] === undefined) {
-				RegisteredType.TypeDescriptors[type] = typeDef
-			}
-		}
-	},
-	init(initArgs) {
-		//return null for deepProps type declarations
-		if (isEmptyObject(initArgs)) {
-			return null
-		}
-		let {
-			type,
-			skipLookup
-		} = initArgs
-		//all inheritors of RegisteredType must define a type
-		this.type = type ? type : this.type
-
-		if (!RegisteredType.TypeDescriptors[this.type]) {
-			Logger.error(`Could not find registered type "${type}". Make sure you've called RegisteredType.Register('${type}', {type})`)
-		}
-		//this constructor should only run once, to instantiate from type field
-		if (skipLookup) {
-			return this
-		}
-		//instantiate from type register
-		let typeDescriptor = RegisteredType.TypeDescriptors[this.type]
-		return typeDescriptor({ ...initArgs, skipLookup: true })
-
-		function isEmptyObject(obj) {
-			return Object.keys(obj).length === 0 && obj.constructor === Object
-		}
-	},
-	deepProps: {
-		type: undefined
 	}
 })
 
@@ -79,6 +43,11 @@ const Updatable = compose({
 			if (this._isUpdateSuspended) {
 				return
 			}
+
+			for( let childUpdatable of this._childUpdatables){
+				childUpdatable.update()
+			}
+			
 			if (this.onUpdate) {
 				this.onUpdate()
 			}
@@ -90,7 +59,7 @@ const Updatable = compose({
 		},
 		async startUpdate() {
 			if (DEBUG) {
-				Logger.log(`========= START - ${this._id} - ${this.type} =========\n${this}\n=========`)
+				Logger.log(`========= START - ${this.id} - ${this.type} =========\n${this}\n=========`)
 			}
 			this._isUpdateSuspended = false
 			let resolve
@@ -107,7 +76,7 @@ const Updatable = compose({
 			resolveArg
 		}) {
 			if (DEBUG) {
-				Logger.log(`========= STOP - ${this._id} - ${this.type} =========`)
+				Logger.log(`========= STOP - ${this.id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = true
 			return {
@@ -125,7 +94,7 @@ const Updatable = compose({
 		},
 		async pauseUpdate() {
 			if (DEBUG) {
-				Logger.log(`========= PAUSE - ${this._id} - ${this.type} =========`)
+				Logger.log(`========= PAUSE - ${this.id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = true
 			return {
@@ -135,7 +104,7 @@ const Updatable = compose({
 		},
 		async resumeUpdate() {
 			if (DEBUG) {
-				Logger.log(`========= RESUME - ${this._id} - ${this.type} =========`)
+				Logger.log(`========= RESUME - ${this.id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = false
 			return {
@@ -154,11 +123,12 @@ const Updatable = compose({
 			return updatables
 		},
 		removeChild(updatable) {
-			return this._childUpdatables.splice(this._childUpdatables.indexOf(updatable), 1)
+			let idx = this._childUpdatables.findIndex(child => child.id === updatable.id)
+			return this._childUpdatables.splice(idx, 1)
 		},
 		removeChildren(updatables) {
 			//remove passed updatables from childupdatables
-			this._childUpdatables = this._childUpdatables.filter( u => updatables.find( uu => uu._id === u._id) )
+			this._childUpdatables = this._childUpdatables.filter( u => updatables.find( uu => uu.id !== u.id) )
 			for (let updatable of updatables) {
 				this._childUpdatables.push(updatable)
 			}
@@ -168,8 +138,8 @@ const Updatable = compose({
 		type
 	}) {
 		Updatable.LastId += 1
-		this._id = Updatable.LastId
-		Updatable.Updatables[this._id] = this
+		this.id = Updatable.LastId
+		Updatable.Updatables[this.id] = this
 		this.type = type ? type : this.type
 	},
 	deepProps: {
@@ -177,7 +147,7 @@ const Updatable = compose({
 		_isUpdateSuspended: true,
 		_childUpdatables: [], //Updatable()
 		_resolver: resolveArg => resolveArg,
-		_id: 0
+		id: 0
 	}
 })
 
@@ -278,24 +248,6 @@ const Timer = compose(Updatable, {
 })
 exports.Timer = Timer
 
-const Op = compose(RegisteredType, Updatable, {
-	methods: {
-		eval() {
-			//to be overriden by user
-			return false
-		}
-	},
-	init() {
-		//return {...this, ...initArgs}
-		//BAD IDEA: allow operator to modify parent state
-		//this.scope = scope
-	},
-	deepProps: {
-		type: 'Operation'
-	}
-})
-exports.Op = Op
-
 const Exp = compose(Updatable, {
 	methods: {
 		isDoneUpdate() {
@@ -307,20 +259,23 @@ const Exp = compose(Updatable, {
 			let s = this._ops.reduce((s, op) => `${s}${op} - `, ' ')
 			//chop off the last char "-"
 			return s.slice(0, s.length - 2)
+		},
+		getOps(){
+			return this._ops
 		}
 	},
 	init(ops) {
-		this._ops = ops ? ops.map(initArgs => Op(initArgs)) : this._ops
+		this._ops = ops ? ops.map(initArgs => CreateFromExportedType({...initArgs, exp: this})) : this._ops
 		this.addChildren(this._ops)
 	},
 	deepProps: {
 		type: 'Expression',
-		_ops: [] //Op()
+		_ops: [] //CreateFromExportedType()
 	}
 })
 exports.Exp = Exp
 
-const Transition = compose(RegisteredType, Updatable, {
+const Transition = compose(Updatable, {
 	methods: {
 		async onStartTransitionUpdate() { /* Inheritor to override */ },
 		async onStartUpdate() {
@@ -417,7 +372,7 @@ exports.Transition = Transition
 /**
  * transitions parsing logic:
  * this.exps = json.transitions.reduce((exps, op, idx, conds) => {
- 	let exp = Exps.GetOp(op)
+ 	let exp = Exps.GetCreateFromExportedType(op)
  	if (exp) {
  		let initArgs = conds.GetArgs(exps, idx)
  		let expInst = exp.create({
@@ -446,7 +401,7 @@ const State = {
 }
 exports.State = State
 
-const Unit = compose(RegisteredType, Updatable, {
+const Unit = compose(Updatable, {
 	statics: {
 		ActiveUnits: [],
 		History: []
@@ -547,7 +502,7 @@ const Unit = compose(RegisteredType, Updatable, {
 				type,
 				time,
 				curr: this,
-				next: next ? Unit(next) : this,
+				next: next ? CreateFromExportedType(next) : this,
 				exp
 			}))
 
@@ -602,7 +557,7 @@ const ActionLine = compose(Updatable, {
 })
 exports.ActionLine = ActionLine
 
-const ActionBlock = compose(Op, {
+const ActionBlock = compose(Updatable, {
 	methods: {
 		getActiveLine() {
 			return this._actionLines[this._activeLineIdx]
@@ -610,6 +565,7 @@ const ActionBlock = compose(Op, {
 		getRuntime() {
 			return this._actionLines.reduce((totalLength, line) => totalLength + line.getRuntime(), 0)
 		},
+		//TODO: NEXT Fix why action lines don't advance
 		advanceToNextLine() {
 			++this._activeLineIdx
 			return this.getActiveLine()
@@ -654,7 +610,6 @@ const ActionBlock = compose(Op, {
 	}
 })
 exports.ActionBlock = ActionBlock
-RegisteredType.Register('ActionBlock', ActionBlock)
 
 
 const SceneHeading = compose({
@@ -836,7 +791,6 @@ const Shot = compose(Unit, {
 	}
 })
 exports.Shot = Shot
-RegisteredType.Register('Shot', Shot)
 
 /**
  * User Defined Transitions
@@ -855,7 +809,7 @@ const Cut = compose(Transition, {
 			type: 'Cut'
 		}
 })
-RegisteredType.Register('Cut', Cut)
+exports.Cut = Cut
 
 //TODO: define FadeIn separate from Cut
 const FadeIn = compose(Transition, {
@@ -868,14 +822,14 @@ const FadeIn = compose(Transition, {
 		type: 'FadeIn'
 	}
 })
-RegisteredType.Register('FadeIn', FadeIn)
+exports.FadeIn = FadeIn
 
 /**
  * User Defined Operations
  */
 
 //TODO: finish implementing this
-const Select = compose(Op, {
+const Select = compose(Updatable, {
 	methods: {
 		onTransitionUpdate() {
 			//TODO: anchor handle to correct location
@@ -899,27 +853,34 @@ const Select = compose(Op, {
 	},
 })
 exports.Select = Select
-Op.Register('Select', Select)
 
-//TODO: finish implementing this
-const OneShot = compose(Op, {
+const OneShot = compose(Updatable, {
 	methods:{
+		eval(){
+			return this._hasFired === false
+		},
 		toString(){
 			return 'ONE_SHOT'
+		},
+		onUpdate(){
+			//if all the other ops pass set to true
+			if (this._exp.getOps().every(op => op.eval())) {
+				this._hasFired = true
+			}
 		}
 	},
-	init(transition){
-		this._transition = transition
+	init({exp}){
+		this._exp = exp
 	},
 	deepProps:{
 		type: 'OneShot',
-		_transition: null
+		_exp: null,
+		_hasFired: false
 	}
 })
 exports.OneShot = OneShot
-Op.Register('OneShot', OneShot)
 
-const TimeWindow = compose(Op, {
+const TimeWindow = compose(Updatable, {
 	methods: {
 		async onStartUpdate() {
 			this._timeOffset = Time({
@@ -960,7 +921,6 @@ const TimeWindow = compose(Op, {
 	},
 })
 exports.TimeWindow = TimeWindow
-Op.Register('TimeWindow', TimeWindow)
 
 /**
  * Test Drivers
