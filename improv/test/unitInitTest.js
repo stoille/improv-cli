@@ -1,6 +1,6 @@
 const t = require('tap')
 const {
-	Unit
+	Shot
 } = require('../src/improv')
 const {
 	stringify
@@ -120,7 +120,7 @@ const shotDef = {
 }
 
 t.test(`shotInit ...`, (t) => {
-	let shot = Unit(shotDef)
+	let shot = Shot(shotDef)
 	let s = stringify(shot)
 	//console.log(shot.type + ": "+s)
 	t.matchSnapshot(s, 'shotTest')

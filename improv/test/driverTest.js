@@ -115,7 +115,7 @@ const unitDef = {
 	}]
 }
 t.test(`updateDriver ...`, (t) => {
-	let unit = imp.Unit(unitDef)
+	let unit = imp.Shot(unitDef)
 	let driver = imp.UpdateDriver({
 		unit
 	})
