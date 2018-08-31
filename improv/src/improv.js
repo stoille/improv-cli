@@ -7,7 +7,7 @@ const {
 	performance
 } = require('perf_hooks')
 
-const DEBUG = true
+const DEBUG = false
 
 function CreateFromExportedType(initArgs) {
 	let type = exports[initArgs.type]
@@ -67,9 +67,10 @@ const Updatable = compose({
 			let awaitCondition = new Promise(r => resolve = r)
 			this._resolver = resolve
 			return {
-				children: await Promise.all(this._childUpdatables.map(updatable => updatable.startUpdate())),
+				onStartUpdate: this.onStartUpdate ? this.onStartUpdate() : false,
 				awaitCondition: awaitCondition,
-				onStartUpdate: this.onStartUpdate ? this.onStartUpdate() : false
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.startUpdate())),
+				
 			}
 		},
 		async stopUpdate({
@@ -81,16 +82,16 @@ const Updatable = compose({
 			}
 			this._isUpdateSuspended = true
 			return {
-				children: Promise.all(this._childUpdatables.map(updatable => updatable.stopUpdate({
-					isDoneUpdate,
-					resolveArg
-				}))),
 				onDoneUpdate: isDoneUpdate && this.onDoneUpdate ? this.onDoneUpdate() : false,
 				onStopUpdate: this.onStopUpdate ? this.onStopUpdate({
 					isDoneUpdate,
 					resolveArg
 				}) : false,
-				resolve: this._resolver(resolveArg)
+				resolve: this._resolver(resolveArg),
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.stopUpdate({
+					isDoneUpdate,
+					resolveArg
+				}))),
 			}
 		},
 		async pauseUpdate() {
@@ -99,8 +100,8 @@ const Updatable = compose({
 			}
 			this._isUpdateSuspended = true
 			return {
+				onPauseUpdate: this.onPauseUpdate ? this.onPauseUpdate() : false,
 				children: await Promise.all(this._childUpdatables.map(updatable => updatable.pauseUpdate())),
-				onPauseUpdate: this.onPauseUpdate ? this.onPauseUpdate() : false
 			}
 		},
 		async resumeUpdate() {
@@ -109,8 +110,8 @@ const Updatable = compose({
 			}
 			this._isUpdateSuspended = false
 			return {
+				onResumeUpdate: this.onResumeUpdate ? this.onResumeUpdate() : false,
 				children: await Promise.all(this._childUpdatables.map(updatable => updatable.resumeUpdate())),
-				onResumeUpdate: this.onResumeUpdate ? this.onResumeUpdate() : false
 			}
 		},
 		addChild(updatable) {
@@ -571,7 +572,7 @@ const ActionBlock = compose(Updatable, {
 			return this.getActiveLine()
 		},
 		onStartUpdate(){
-			this.getActiveLine().startUpdate()
+			//this.getActiveLine().startUpdate()
 		},
 		onUpdate() {
 			let activeLine = this.getActiveLine()
@@ -840,7 +841,7 @@ const Select = compose(Updatable, {
 			//TODO: anchor handle to correct location
 		},
 		eval() {
-			//TODO: return true if user selection intersects with the handle's anchor
+			//TODO: NEXT: return true if user selection intersects with the handle's anchor
 			return true
 		},
 		toString() {
