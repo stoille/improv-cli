@@ -27,21 +27,6 @@ const unitDef = {
 			sec: 15
 		}
 	},
-	actionLines: [{
-			time: {
-				min: 0,
-				sec: 3
-			},
-			text: 'Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church.'
-		},
-		{
-			time: {
-				min: 0,
-				sec: 1
-			},
-			text: 'He clears his throat and coughs.'
-		},
-	],
 	transitions: [{
 		type: 'FadeIn',
 		time: {
@@ -71,7 +56,7 @@ const unitDef = {
 		next: {
 			type: 'Shot',
 			scriptPath: './improv',
-			ceneHeading: {
+			sceneHeading: {
 					type: 'SceneHeading',
 					locationType: 'EXT',
 					sceneName: 'OLD BAPTIST CHURCH',
@@ -93,9 +78,7 @@ const unitDef = {
 					sec: 15
 				}
 			},
-			transitions: [{
-				type: "Cut"
-			}],
+			transitions: [],
 			actionLines: [{
 					time: {
 						min: 0,
@@ -112,6 +95,41 @@ const unitDef = {
 				},
 			]
 		}
+	},
+	{
+		type: 'Cut',
+		time: {
+			min: 0,
+			sec: 15
+		},
+		//NEXT: finish making units respect awaiting on action blocks with null next
+		exp: [{
+				type: 'Await',
+				exp: [{
+					type: 'ActionBlock',
+					actionLines: [{
+							time: {
+								min: 0,
+								sec: 3
+							},
+							text: 'Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church.'
+						},
+						{
+							time: {
+								min: 0,
+								sec: 1
+							},
+							text: 'He clears his throat and coughs.'
+						},
+					]
+				},
+				{
+					type: 'Select',
+					handle: 'MAN'
+				}]
+			}
+		],
+		next: null //null means it's the end of the runtime
 	}]
 }
 t.test(`updateDriver ...`, (t) => {

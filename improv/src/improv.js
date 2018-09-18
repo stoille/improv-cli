@@ -9,7 +9,7 @@ const {
 
 const DEBUG = false
 
-function CreateFromExportedType(initArgs) {
+function CreateConcreteType(initArgs) {
 	let type = exports[initArgs.type]
 	return type(initArgs)
 }
@@ -26,7 +26,7 @@ const Logger = compose({
 })
 
 /**
- * Updatables run until their isDoneUpdate() condition is satisfied (e.g. AWAIT) or stopUpdate() is called
+ * Updatables run until their isDoneUpdate() condition is satisfied or stopUpdate() is called
  */
 const Updatable = compose({
 	statics: {
@@ -53,9 +53,7 @@ const Updatable = compose({
 			}
 			
 			if (this.isDoneUpdate()) {
-				this.stopUpdate({
-					isDoneUpdate: true
-				})
+				this.stopUpdate()
 			}
 		},
 		async startUpdate() {
@@ -63,35 +61,20 @@ const Updatable = compose({
 				Logger.log(`========= START - ${this.id} - ${this.type} =========\n${this}\n=========`)
 			}
 			this._isUpdateSuspended = false
-			let resolve
-			let awaitCondition = new Promise(r => resolve = r)
-			this._resolver = resolve
 			return {
 				onStartUpdate: this.onStartUpdate ? this.onStartUpdate() : false,
-				awaitCondition: awaitCondition,
 				children: await Promise.all(this._childUpdatables.map(updatable => updatable.startUpdate())),
-				
 			}
 		},
-		async stopUpdate({
-			isDoneUpdate,
-			resolveArg
-		}) {
+		async stopUpdate(resolveArg) {
 			if (DEBUG) {
 				Logger.log(`========= STOP - ${this.id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = true
 			return {
-				onDoneUpdate: isDoneUpdate && this.onDoneUpdate ? this.onDoneUpdate() : false,
-				onStopUpdate: this.onStopUpdate ? this.onStopUpdate({
-					isDoneUpdate,
-					resolveArg
-				}) : false,
+				onStopUpdate: this.onStopUpdate ? this.onStopUpdate(resolveArg) : false,
 				resolve: this._resolver(resolveArg),
-				children: await Promise.all(this._childUpdatables.map(updatable => updatable.stopUpdate({
-					isDoneUpdate,
-					resolveArg
-				}))),
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.stopUpdate(resolveArg))),
 			}
 		},
 		async pauseUpdate() {
@@ -134,6 +117,12 @@ const Updatable = compose({
 			for (let updatable of updatables) {
 				this._childUpdatables.push(updatable)
 			}
+		},
+		getAwaitCondition(){
+			return this._awaitCondition
+		},
+		toString(){
+			return this.children.reduce((str, child) => `${str}${child}`, '')
 		}
 	},
 	init({
@@ -143,12 +132,16 @@ const Updatable = compose({
 		this.id = Updatable.LastId
 		Updatable.Updatables[this.id] = this
 		this.type = type ? type : this.type
+		let resolve
+		this._awaitCondition = new Promise(r => resolve = r)
+		this._resolver = resolve
 	},
 	deepProps: {
 		type: 'Updatable',
 		_isUpdateSuspended: true,
 		_childUpdatables: [], //Updatable()
 		_resolver: resolveArg => resolveArg,
+		_awaitCondition: null,
 		id: 0
 	}
 })
@@ -267,54 +260,76 @@ const Exp = compose(Updatable, {
 		}
 	},
 	init(ops) {
-		this._ops = ops ? ops.map(initArgs => CreateFromExportedType({...initArgs, exp: this})) : this._ops
+		this._ops = ops ? ops.map(initArgs => CreateConcreteType({...initArgs, exp: this})) : this._ops
 		this.addChildren(this._ops)
 	},
 	deepProps: {
 		type: 'Expression',
-		_ops: [] //CreateFromExportedType()
+		_ops: [] //CreateExportedType()
 	}
 })
 exports.Exp = Exp
 
+const State = {
+	PRELOAD: 'PRELOAD',
+	LOAD: 'LOAD',
+	READY: 'READY',
+	IN_TRANSITION: 'IN_TRANSITION',
+	UPDATE: 'UPDATE',
+	PAUSE: 'PAUSE',
+	OUT_TRANSITION: 'OUT_TRANSITION',
+	STOP: 'STOP',
+	UNLOAD: 'UNLOAD',
+	DONE: 'DONE'
+}
+exports.State = State
+
 const Transition = compose(Updatable, {
 	methods: {
-		async onStartTransitionUpdate() { /* Inheritor to override */ },
-		async onStartUpdate() {
+		async onStartTransition() { /* Inheritor to override */ },
+		async startTransition(){
+			this._curr.setState(State.OUT_TRANSITION)
+			this._next.setState(State.IN_TRANSITION)
+			
 			return {
 				//TODO: analyze load strategy on start
-				onLoad: await this.load(),
-				onStartUpdate: await this.onStartTransitionUpdate()
+				onNextLoad: await this._next.load(),
+				onNextStartUpdate: await this._next.startUpdate(),
+				onStartTransition: await this.onStartTransition(),
+				onStopTransition: await this._timer.then(r => this.stopTransition(r))
 			}
 		},
-		async onStopTransitionUpdate() { /* Inheritor to override */ },
-		async onStopUpdate({
-			isDoneUpdate,
-			resolveArg
-		}) {
+		async onStartUpdate() {
+			
+		},
+		async onStopTransition() { /* Inheritor to override */ },
+		async stopTransition(resolveArg) {
 			return {
-				onStopUpdate: await this.onStopTransitionUpdate({
-					isDoneUpdate,
-					resolveArg
-				})
+				onCurrStopUpdate: await this._curr.stopUpdate(resolveArg),
+				onNextStartUpdate: await this._next.startUpdate(),
+				onStopUpdate: await this.onStopTransition(resolveArg)
 			}
 		},
-		async onPauseTransitionUpdate() { /* Inheritor to override */ },
+		async onPauseTransition() { /* Inheritor to override */ },
 		async onPauseUpdate() {
 			return {
-				onPauseUpdate: await this.onPauseTransitionUpdate()
+				onPauseUpdate: await this.onPauseTransition()
 			}
 		},
-		async onResumeTransitionUpdate() { /* Inheritor to override */ },
+		async onResumeTransition() { /* Inheritor to override */ },
 		async onResumeUpdate() {
 			return {
-				onResumeUpdate: await this.onResumeTransitionUpdate()
+				onResumeUpdate: await this.onResumeTransition()
 			}
 		},
-		onTransitionUpdate() { /* Inheritor to override */ },
+		onTransitionUpdate() {
+			/* Inheritor to override  e.g. apply transition over curr and next. */
+		},
 		onUpdate() {
-			//let interp = this._timer.update()
-			//TODO: apply transition over curr and next
+			if (this._isTransitionStarted === false && this._expression.eval()) {
+				this._isTransitionStarted = true
+				this.startTransition()
+			}
 			this.onTransitionUpdate()
 		},
 		/** A transition is "done" when its expression has been satisfied AND:
@@ -323,21 +338,7 @@ const Transition = compose(Updatable, {
 		 * 3 - the next updatable starts
 		 **/
 		isDoneUpdate() {
-			return this._expression.isDoneUpdate()
-		},
-		async onDoneUpdate() {
-			this._curr.setState(State.OUT_TRANSITION)
-			this._next.setState(State.IN_TRANSITION)
-			//TODO: determine whether curr's state is done or should be put into background
-			return {
-				onStopUpdateCurr: await this._curr.stopUpdate({
-					isDoneUpdate: true
-				}),
-				onStartUpdateNext: await this._next.startUpdate(),
-			}
-		},
-		async load() {
-			return this._next.load()
+			return this._expression.isDoneUpdate() && this._timer.isDoneUpdate()
 		},
 		toString(){
 			return `${this._expression ? `${this._expression}` : ''}\n\t${this.type} to: ${this._next.getShotHeading()}, from: ${this._curr.getShotHeading()}\n`
@@ -361,20 +362,21 @@ const Transition = compose(Updatable, {
 		}
 	},
 	deepProps: {
-		_curr: null,//Updatable(),
-		_prev: null,//Updatable(),
-		_next: null,//Updatable(),
+		_curr: null,//Unit(),
+		_prev: null, //Unit(),
+		_next: null, //Unit(),
 		_timer: null,//Timer(),
 		_expression: null,//Exp(),
+		_isTransitionStarted: false,
 		type: 'Transition'
 	}
 })
 exports.Transition = Transition
 
 /**
- * transitions parsing logic:
- * this.exps = json.transitions.reduce((exps, op, idx, conds) => {
- 	let exp = Exps.GetCreateFromExportedType(op)
+ * transition parsing logic:
+ * this.exps = json.transition.reduce((exps, op, idx, conds) => {
+ 	let exp = Exps.CetcreateExportedType(op)
  	if (exp) {
  		let initArgs = conds.GetArgs(exps, idx)
  		let expInst = exp.create({
@@ -388,21 +390,6 @@ exports.Transition = Transition
  }, [])
  */
 
-const State = {
-	PRELOAD: 'PRELOAD',
-	LOAD: 'LOAD',
-	READY: 'READY',
-	IN_TRANSITION: 'IN_TRANSITION',
-	UPDATE: 'UPDATE',
-	BACKGROUND: 'BACKGROUND',
-	PAUSE: 'PAUSE',
-	OUT_TRANSITION: 'OUT_TRANSITION',
-	STOP: 'STOP',
-	UNLOAD: 'UNLOAD',
-	DONE: 'DONE'
-}
-exports.State = State
-
 const Unit = compose(Updatable, {
 	statics: {
 		ActiveUnits: [],
@@ -414,10 +401,11 @@ const Unit = compose(Updatable, {
 		},
 		async onStartUpdate() {
 			Unit.ActiveUnits.push(this)
-			Unit.History.push(this._scriptPath)
+			//TODO: empty history once moving past unit that can't be revisited
+			Unit.History.push(this)
 			let results = {}
 
-			this.state = State.UPDATE
+			this.setState(State.UPDATE)
 
 			if (this.onStartUnitUpdate) {
 				results.onStartUnitUpdate = await this.onStartUnitUpdate()
@@ -425,20 +413,15 @@ const Unit = compose(Updatable, {
 
 			return results
 		},
-		async onStopUpdate({
-			isDoneUpdate,
-			resolveArg
-		}) {
+		async onStopUpdate(resolveArg) {
 			let results = {}
 			//remove this unit from active units
 			Unit.ActiveUnits.splice(Unit.ActiveUnits.indexOf(this), 1)
-			this.state = State.STOP
+
+			this.setState(State.STOP)
 
 			if (this.onStopUnitUpdate) {
-				results = await this.onStopUnitUpdate({
-					isDoneUpdate,
-					resolveArg
-				})
+				results = await this.onStopUnitUpdate(resolveArg)
 			}
 			return results
 		},
@@ -462,7 +445,6 @@ const Unit = compose(Updatable, {
 			return results
 		},
 		onUpdate() {
-			//update scripts
 			this.updateScript()
 
 			if (this.onUnitUpdate) {
@@ -483,8 +465,8 @@ const Unit = compose(Updatable, {
 				}
 			}
 		},
-		toStringUnit(){
-			return this.transitions.reduce( (s, t, idx) => s += `${idx}) ${t}\n`, '')
+		transitionToString(){
+			return this.transition.reduce( (s, t, idx) => s += `${idx}) ${t}\n`, '')
 		}
 	},
 	init({
@@ -495,28 +477,23 @@ const Unit = compose(Updatable, {
 		this._script = require(scriptPath)
 
 		if (transitions) {
-			this.transitions = transitions.map(({
-				type,
-				exp,
-				time,
-				next
-			}) => Transition({
-				type,
-				time,
-				curr: this,
-				next: next ? CreateFromExportedType(next) : this,
-				exp
-			}))
-
-			this.addChildren(this.transitions)
+			let concreteTransitions = transitions.reduce((t, {type, exp, time, next}) => {
+				if(next){
+					return [...t, CreateConcreteType({type, time, exp, curr: this, next: CreateConcreteType(next)})]
+				} else {
+					return t
+				}
+				
+			}, [])
+			this.addChildren(concreteTransitions)
 		}
 	},
 	deepProps: {
 		_scriptPath: '',
 		_script: {},
-		transitions: []
+		transition: []
 	}
-})
+	})
 exports.Unit = Unit
 
 /**
@@ -580,7 +557,6 @@ const ActionBlock = compose(Updatable, {
 				this.removeChild(activeLine)
 				let nextLine = this.advanceToNextLine()
 				if(nextLine){
-					nextLine.startUpdate()
 					this.addChild(nextLine)
 				}
 			}
@@ -758,8 +734,9 @@ const Shot = compose(Unit, {
 		getShotHeading(){
 			return this._shotHeading
 		},
+		//TODO: NEXT figure out the right way to present options after printing the action block
 		toString(){
-			return `${this._sceneHeading}\n${this._shotHeading}\n${this.toStringUnit()}`
+			return `${this._sceneHeading}\n${this._shotHeading}`
 		}
 	},
 	//init takes in a json definition
@@ -770,8 +747,14 @@ const Shot = compose(Unit, {
 	}) {
 		this._sceneHeading = SceneHeading(sceneHeading)
 		this._shotHeading = ShotHeading(shotHeading)
+
+		//this.transition
 		this._actionBlock = ActionBlock({actionLines})
 		this.addChild(this._actionBlock)
+
+		this._actionBlock.getAwaitCondition().then( () => {
+			Logger.log(`this works`)
+		})
 
 		let modelsPath = `${this._scriptPath}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
@@ -822,7 +805,7 @@ const FadeIn = compose(Transition, {
 	methods:{
 	},
 	init() {
-
+		this._type = this.type
 	},
 	deepProps: {
 		type: 'FadeIn'
@@ -837,7 +820,7 @@ exports.FadeIn = FadeIn
 //TODO: finish implementing this
 const Select = compose(Updatable, {
 	methods: {
-		onTransitionUpdate() {
+		onUpdate() {
 			//TODO: anchor handle to correct location
 		},
 		eval() {
