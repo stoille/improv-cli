@@ -26,7 +26,7 @@ const Logger = compose({
 })
 
 /**
- * Updatables run until their isDoneUpdate() condition is satisfied or stopUpdate() is called
+ * Updatables run until their isDone() condition is satisfied or stop() is called
  */
 const Updatable = compose({
 	statics: {
@@ -35,8 +35,11 @@ const Updatable = compose({
 		Updatables: {}
 	},
 	methods: {
-		//inheritors to override isDoneUpdate
-		isDoneUpdate() {
+		//inheritors to override eval()
+		isDone() {
+			return this.eval()
+		},
+		eval() {
 			return false
 		},
 		update() {
@@ -52,49 +55,49 @@ const Updatable = compose({
 				this.onUpdate()
 			}
 			
-			if (this.isDoneUpdate()) {
-				this.stopUpdate()
+			if (this.isDone()) {
+				this.stop()
 			}
 		},
-		async startUpdate() {
+		async start() {
 			if (DEBUG) {
 				Logger.log(`========= START - ${this.id} - ${this.type} =========\n${this}\n=========`)
 			}
 			this._isUpdateSuspended = false
 			return {
-				onStartUpdate: this.onStartUpdate ? this.onStartUpdate() : false,
-				children: await Promise.all(this._childUpdatables.map(updatable => updatable.startUpdate())),
+				onStart: this.onStart ? this.onStart() : false,
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.start())),
 			}
 		},
-		async stopUpdate(resolveArg) {
+		async stop(resolveArg) {
 			if (DEBUG) {
 				Logger.log(`========= STOP - ${this.id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = true
 			return {
-				onStopUpdate: this.onStopUpdate ? this.onStopUpdate(resolveArg) : false,
+				onStop: this.onStop ? this.onStop(resolveArg) : false,
 				resolve: this._resolver(resolveArg),
-				children: await Promise.all(this._childUpdatables.map(updatable => updatable.stopUpdate(resolveArg))),
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.stop(resolveArg))),
 			}
 		},
-		async pauseUpdate() {
+		async pause() {
 			if (DEBUG) {
 				Logger.log(`========= PAUSE - ${this.id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = true
 			return {
-				onPauseUpdate: this.onPauseUpdate ? this.onPauseUpdate() : false,
-				children: await Promise.all(this._childUpdatables.map(updatable => updatable.pauseUpdate())),
+				onPause: this.onPause ? this.onPause() : false,
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.pause())),
 			}
 		},
-		async resumeUpdate() {
+		async resume() {
 			if (DEBUG) {
 				Logger.log(`========= RESUME - ${this.id} - ${this.type} =========`)
 			}
 			this._isUpdateSuspended = false
 			return {
-				onResumeUpdate: this.onResumeUpdate ? this.onResumeUpdate() : false,
-				children: await Promise.all(this._childUpdatables.map(updatable => updatable.resumeUpdate())),
+				onResume: this.onResume ? this.onResume() : false,
+				children: await Promise.all(this._childUpdatables.map(updatable => updatable.resume())),
 			}
 		},
 		addChild(updatable) {
@@ -219,7 +222,7 @@ const Timer = compose(Updatable, {
 		onUpdate() {
 			this._timeLeft = this._timeLeft - Time.DeltaTime
 		},
-		isDoneUpdate() {
+		eval() {
 			return this._timeLeft <= 0
 		},
 		getTimeLengthMilliseconds() {
@@ -245,8 +248,7 @@ exports.Timer = Timer
 
 const Exp = compose(Updatable, {
 	methods: {
-		isDoneUpdate() {
-			//default to true if no ops were supplied
+		eval(){
 			return this._ops.every(op => op.eval())
 		},
 		toString(){
@@ -294,32 +296,32 @@ const Transition = compose(Updatable, {
 			return {
 				//TODO: analyze load strategy on start
 				onNextLoad: await this._next.load(),
-				onNextStartUpdate: await this._next.startUpdate(),
+				onNextStart: await this._next.start(),
 				onStartTransition: await this.onStartTransition(),
 				onStopTransition: await this._timer.then(r => this.stopTransition(r))
 			}
 		},
-		async onStartUpdate() {
+		async onStart() {
 			
 		},
 		async onStopTransition() { /* Inheritor to override */ },
 		async stopTransition(resolveArg) {
 			return {
-				onCurrStopUpdate: await this._curr.stopUpdate(resolveArg),
-				onNextStartUpdate: await this._next.startUpdate(),
-				onStopUpdate: await this.onStopTransition(resolveArg)
+				onCurrStop: await this._curr.stop(resolveArg),
+				onNextStart: await this._next.start(),
+				onStop: await this.onStopTransition(resolveArg)
 			}
 		},
 		async onPauseTransition() { /* Inheritor to override */ },
-		async onPauseUpdate() {
+		async onPause() {
 			return {
-				onPauseUpdate: await this.onPauseTransition()
+				onPause: await this.onPauseTransition()
 			}
 		},
 		async onResumeTransition() { /* Inheritor to override */ },
-		async onResumeUpdate() {
+		async onResume() {
 			return {
-				onResumeUpdate: await this.onResumeTransition()
+				onResume: await this.onResumeTransition()
 			}
 		},
 		onTransitionUpdate() {
@@ -337,8 +339,8 @@ const Transition = compose(Updatable, {
 		 * 2 - the current updatable stops
 		 * 3 - the next updatable starts
 		 **/
-		isDoneUpdate() {
-			return this._expression.isDoneUpdate() && this._timer.isDoneUpdate()
+		eval() {
+			return this._timer.isDone()
 		},
 		toString(){
 			return `${this._expression ? `${this._expression}` : ''}\n\t${this.type} to: ${this._next.getShotHeading()}, from: ${this._curr.getShotHeading()}\n`
@@ -399,7 +401,7 @@ const Unit = compose(Updatable, {
 		setState(state) {
 			this.state = state
 		},
-		async onStartUpdate() {
+		async onStart() {
 			Unit.ActiveUnits.push(this)
 			//TODO: empty history once moving past unit that can't be revisited
 			Unit.History.push(this)
@@ -413,34 +415,34 @@ const Unit = compose(Updatable, {
 
 			return results
 		},
-		async onStopUpdate(resolveArg) {
+		async onStop(resolveArg) {
 			let results = {}
 			//remove this unit from active units
 			Unit.ActiveUnits.splice(Unit.ActiveUnits.indexOf(this), 1)
 
 			this.setState(State.STOP)
 
-			if (this.onStopUnitUpdate) {
-				results = await this.onStopUnitUpdate(resolveArg)
+			if (this.onStopUnit) {
+				results = await this.onStopUnit(resolveArg)
 			}
 			return results
 		},
-		async onPauseUpdate() {
+		async onPause() {
 			let results = {}
 			this.lastState = this.state
 			this.state = State.PAUSE
 
-			if (this.onPauseUnitUpdate) {
-				results = await this.onPauseUnitUpdate()
+			if (this.onPauseUnit) {
+				results = await this.onPauseUnit()
 			}
 			return results
 		},
-		async onResumeUpdate() {
+		async onResume() {
 			let results = {}
 			this.state = this.lastState
 
-			if (this.onResumeUnitUpdate) {
-				results = await this.onResumeUnitUpdate()
+			if (this.onResumeUnit) {
+				results = await this.onResumeUnit()
 			}
 			return results
 		},
@@ -502,7 +504,7 @@ exports.Unit = Unit
 
 const ActionLine = compose(Updatable, {
 	methods: {
-		async onStartUpdate() {
+		async onStart() {
 			Logger.log(this._text)
 		},
 		onUpdate() {
@@ -511,8 +513,8 @@ const ActionLine = compose(Updatable, {
 		getRuntime() {
 			return this._timer.getTimeLengthMilliseconds()
 		},
-		isDoneUpdate() {
-			return this._timer.isDoneUpdate()
+		eval() {
+			return this._timer.isDone()
 		},
 		toString(){
 			return `${this._text} - ${this._timer}`
@@ -548,12 +550,12 @@ const ActionBlock = compose(Updatable, {
 			++this._activeLineIdx
 			return this.getActiveLine()
 		},
-		onStartUpdate(){
-			//this.getActiveLine().startUpdate()
+		onStart(){
+			//this.getActiveLine().start()
 		},
 		onUpdate() {
 			let activeLine = this.getActiveLine()
-			if (activeLine && activeLine.isDoneUpdate()) {
+			if (activeLine && activeLine.isDone()) {
 				this.removeChild(activeLine)
 				let nextLine = this.advanceToNextLine()
 				if(nextLine){
@@ -561,7 +563,7 @@ const ActionBlock = compose(Updatable, {
 				}
 			}
 		},
-		isDoneUpdate() {
+		eval() {
 			return this._activeLineIdx >= this._actionLines.length
 		},
 		toString() {
@@ -725,7 +727,7 @@ const Shot = compose(Unit, {
 			//TODO
 			this.state = State.DONE
 		},
-		async onStopUnitUpdate() {
+		async onStopUnit() {
 			//TODO: investigate optimizing unloading on stop
 			let results = {}
 			results.unload = await this.unload()
@@ -871,20 +873,20 @@ exports.OneShot = OneShot
 
 const TimeWindow = compose(Updatable, {
 	methods: {
-		async onStartUpdate() {
+		async onStart() {
 			this._timeOffset = Time({
 				ms: Time.Now()
 			})
 		},
-		async onStopUpdate() {
+		async onStop() {
 			this._timeOffset = Time()
 		},
-		async onPauseUpdate() {
+		async onPause() {
 			this._timeOffset = Time({
 				ms: Time.Now() - this._timeOffset.getTimestamp()
 			})
 		},
-		async onResumeUpdate() {
+		async onResume() {
 			this._timeOffset = Time({
 				ms: Time.Now() + this._timeOffset.getTimestamp()
 			})
@@ -930,7 +932,7 @@ const UpdateDriver = compose({
 					//TODO: drive Time.UpdateDeltaTime() from rendering engine loop
 					Time.UpdateDeltaTime()
 					Unit.ActiveUnits.forEach(unit => unit.update())
-					if (Unit.ActiveUnits.every(unit => unit.isDoneUpdate())) {
+					if (Unit.ActiveUnits.every(unit => unit.isDone())) {
 						_resolver()
 					}
 					timeoutUpdater()
@@ -941,7 +943,7 @@ const UpdateDriver = compose({
 	init({
 		unit
 	}) {
-		unit.startUpdate()
+		unit.start()
 	}
 })
 exports.UpdateDriver = UpdateDriver
