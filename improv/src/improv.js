@@ -64,10 +64,10 @@ const Updatable = compose({
 				Logger.log(`========= START - ${this.id} - ${this.type} =========\n${this}\n=========`)
 			}
 			this._isUpdateSuspended = false
-			return {
+			return ({
 				onStart: this.onStart ? this.onStart() : false,
 				children: await Promise.all(this._childUpdatables.map(updatable => updatable.start())),
-			}
+			})
 		},
 		async stop(resolveArg) {
 			if (DEBUG) {
@@ -646,10 +646,13 @@ const CameraMovement = compose({
 })
 exports.CameraMovement = CameraMovement
 
-const ShotHeading = compose({
+const ShotHeading = compose(Updatable, {
 	methods: {
 		toString() {
 			return `${this._cameraType} - ${this._cameraSource ? `${this._cameraSource}, ${this._cameraTarget}` : this._cameraTarget} - ${this._cameraMovement ? `${this._cameraMovement} -` : ''} ${this._timer}`
+		},
+		eval(){
+			return this._timer.isDone()
 		}
 	},
 	init({
@@ -664,6 +667,7 @@ const ShotHeading = compose({
 		this._cameraTarget = cameraTarget
 		this._cameraMovement = CameraMovement(cameraMovement)
 		this._timer = Timer({ time })
+		this.addChild(this._timer)
 	},
 	deepProps: {
 		_cameraType: '',
@@ -757,7 +761,7 @@ const Shot = compose(Unit, {
 		this._actionBlock.getAwaitCondition().then( () => {
 			Logger.log(`this works`)
 		})
-
+/* TODO: list model/anims support
 		let modelsPath = `${this._scriptPath}/models`
 		this.models = listFilesWithExt(modelsPath, '.fbx')
 		let animsPath = `${this._scriptPath}/anims`
@@ -771,6 +775,7 @@ const Shot = compose(Unit, {
 
 			}
 		}
+		*/
 	},
 	deepProps: {
 		type: 'Shot',
