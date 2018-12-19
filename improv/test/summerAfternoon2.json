@@ -1,0 +1,78 @@
+{
+	"initial": "stop",
+	"states": {
+		"stop": {
+			"on": {
+				"load": "load"
+			}
+		},
+		"load": {
+			"on": {
+				"play": "play"
+			}
+		},
+		"pause": {
+			"on": {
+				"play": "play"
+			}
+		},
+		"background": {
+			"on": {
+				"play": "play"
+			},
+			"states": {
+				"Actions": {
+					"initial": "stop",
+					"states": {
+						"stop": {},
+						"play": {
+							"text": ""
+						}
+					}
+				}
+			}
+		},
+		"play": {
+			"parallel": true,
+			"states": {
+				"Camera": {
+					"parallel": true,
+					"states": {
+						"cameraType": {
+							"initial": "EWS",
+							"states": {
+								"EWS": {}
+							}
+						},
+						"cameraMovement": {
+							"initial": "EASE IN",
+							"states": {
+								"EASE IN": {}
+							}
+						},
+						"cameraTransition": {
+							"initial": "CUT",
+							"states": {
+								"CUT": {}
+							}
+						}
+					}
+				},
+				"Actions": {
+					"initial": "stop",
+					"states": {
+						"stop": {},
+						"play": {
+							"text": ""
+						}
+					}
+				},
+				"Conditionals": {
+					"initial": "CHURCH FRONT",
+					"on": {},
+					"states": {}
+				}
+			}
+		}
+	}
+}

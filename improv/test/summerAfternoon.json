@@ -1,0 +1,441 @@
+{
+	"id": "KENTUCKY",
+	"initial": "CHURCH FRONT",
+	"states": {
+		"CHURCH FRONT": {
+			"initial": "preload",
+			"on": {
+				"update": [{
+					"target": "CHURCH",
+					"cond": "this.run.guards.BUSHES.isStarted.value && this.run.guards.TREE.isStarted.value"
+				}]
+			},
+			"states": {
+				"preload": {
+					"on": {
+						"load": "load"
+					}
+				},
+				"load": {
+					"parallel": true,
+					"on": {
+						"update": [{
+							"target": "ready",
+							"cond": "this.isLoaded.value"
+						}]
+					},
+					"states": {
+						"isLoaded": {
+							"initial": "false",
+							"states": {
+								"false": {
+									"on": {
+										"update": [{
+											"target": "true",
+											"cond": "this.unit.run.action.isLoaded.value && this.unit.run.guards.BUSHES.isLoaded.value && this.unit.run.guards.TREE.isLoaded.value"
+										}]
+									}
+								},
+								"true": {}
+							}
+						}
+					}
+				},
+				"ready": {
+					"on": {
+						"preload": "preload",
+						"update": "run"
+					}
+				},
+				"run": {
+					"parallel": true,
+					"on": {
+						"stop": "ready"
+					},
+					"states": {
+						"isStarted": {
+							"initial": "false",
+							"states": {
+								"false": {
+									"on": {
+										"update": "true"
+									}
+								},
+								"true": {}
+							}
+						},
+						"viewType": {
+							"initial": "EWS",
+							"states": {
+								"EWS": {}
+							}
+						},
+						"viewMovement": {
+							"initial": "play",
+							"states": {
+								"play": {
+									"on": {
+										"pause": "pause"
+									},
+									"text": ""
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							}
+						},
+						"viewTransition": {
+							"initial": "play",
+							"states": {
+								"play": {
+									"on": {
+										"pause": "pause"
+									},
+									"text": ""
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							}
+						},
+						"action": {
+							"initial": "play",
+							"states": {
+								"play": {
+									"initial": "0",
+									"on": {
+										"pause": "pause"
+									},
+									"states": {
+										"0": {
+											"text": "Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church.",
+											"time": "5",
+											"on": {
+												"done": "1"
+											}
+										},
+										"1": {
+											"text": "He clears his throat and coughs.",
+											"time": 10,
+											"on": {
+												"done": "2"
+											}
+										},
+										"2": {
+											"text": "The man paces touch and forth until we touch his TREE and he picks touch and forth until we touch his TREE  the BUSHES.",
+											"time": 10,
+											"on": {
+												"done": "2"
+											}
+										}
+									}
+
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							}
+						},
+						"guards": {
+							"parallel": true,
+							"states": {
+								"BUSHES": {
+									"initial": "preload",
+									"on": {
+										"done": "ready"
+									},
+									"states": {
+										"preload": {
+											"on": {
+												"load": "load"
+											}
+										},
+										"load": {
+											"parallel": true,
+											"on": {
+												"update": [{
+													"target": "ready",
+													"cond": "this.isLoaded.value"
+												}]
+											},
+											"states": {
+												"isLoaded": {
+													"initial": "false",
+													"states": {
+														"false": {
+															"on": {
+																"update": [{
+																	"target": "true",
+																	"cond": "this.unit.run.action.isLoaded.value"
+																}]
+															}
+														},
+														"true": {}
+													}
+												}
+											}
+										},
+										"ready": {
+											"on": {
+												"preload": "preload",
+												"update": [{
+													"target": "run",
+													"cond": "this.unit.input.isSelected('BUSHES')"
+												}]
+											}
+										},
+										"run": {
+											"parallel": true,
+											"on": {
+												"stop": "ready"
+											},
+											"states": {
+												"isStarted": {
+													"initial": "false",
+													"states": {
+														"false": {
+															"on": {
+																"update": "true"
+															}
+														},
+														"true": {}
+													}
+												},
+												"action": {
+													"initial": "play",
+													"states": {
+														"play": {
+															"initial": "0",
+															"on": {
+																"pause": "pause"
+															},
+															"states": {
+																"0": {
+																	"text": "The bushes sway in a light breeze.",
+																	"on": {
+																		"done": "0"
+																	}
+																}
+															}
+														},
+														"pause": {
+															"on": {
+																"play": "play"
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								},
+								"TREE": {
+									"initial": "preload",
+									"on": {
+										"done": "ready"
+									},
+									"states": {
+										"preload": {
+											"on": {
+												"load": "load"
+											}
+										},
+										"load": {
+											"parallel": true,
+											"on": {
+												"update": [{
+													"target": "ready",
+													"cond": "this.isLoaded.value"
+												}]
+											},
+											"states": {
+												"isLoaded": {
+													"initial": "false",
+													"states": {
+														"false": {
+															"on": {
+																"update": [{
+																	"target": "true",
+																	"cond": "this.unit.run.action.isLoaded.value"
+																}]
+															}
+														},
+														"true": {}
+													}
+												}
+											}
+										},
+										"ready": {
+											"on": {
+												"preload": "preload",
+												"update": {
+													"target": "run",
+													"cond": "this.unit.input.isSelected('TREE')"
+												}
+											}
+										},
+										"isStarted": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": "true"
+													}
+												},
+												"true": {}
+											}
+										},
+										"run": {
+											"parallel": true,
+											"on": {
+												"stop": "ready"
+											},
+											"states": {
+												"action": {
+													"initial": "play",
+													"states": {
+														"play": {
+															"initial": "0",
+															"on": {
+																"pause": "pause"
+															},
+															"states": {
+																"0": {
+																	"text": "The trees sway in the light breeze.",
+																	"on": {
+																		"done": "0"
+																	}
+																}
+															}
+														},
+														"pause": {
+															"on": {
+																"play": "play"
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"CHURCH": {
+			"initial": "preload",
+			"states": {
+				"preload": {
+					"on": {
+						"load": "load"
+					}
+				},
+				"load": {
+					"on": {
+						"done": "ready"
+					}
+				},
+				"ready": {
+					"on": {
+						"preload": "preload",
+						"update": "run"
+					}
+				},
+				"isStarted": {
+					"initial": "false",
+					"states": {
+						"false": {
+							"on": {
+								"update": "true"
+							}
+						},
+						"true": {}
+					}
+				},
+				"run": {
+					"parallel": true,
+					"on": {
+						"stop": "ready"
+					},
+					"states": {
+						"view": {
+							"parallel": true,
+							"states": {
+								"type": {
+									"initial": "MEDIUM",
+									"states": {
+										"MEDIUM": {}
+									}
+								},
+								"movement": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"on": {
+												"pause": "pause"
+											},
+											"text": ""
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								},
+								"transition": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"on": {
+												"done": "ready"
+											},
+											"type": ""
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								},
+								"action": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"initial": "a",
+											"on": {
+												"pause": "pause"
+											},
+											"states": {
+												"a": {
+													"text": "The man coughs violently. He looks at the BUSHES in his hand.",
+													"time": "5"
+												}
+											}
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								}
+							}
+						},
+						"guards": {}
+					}
+				}
+			}
+		}
+	}
+}

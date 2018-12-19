@@ -1,48 +1,70 @@
-FADE IN -
-EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON -
-EWS - OLD BAPTIST CHURCH FRONT - EASE IN - 15 - 
-AWAIT - PICKUP - KEY, SELECT - MAN CAP
-Over the dense hiss and buzz of a humid summer afternoon we see an old man pace along the porch of an old baptist church. He clears his throat and coughs.
+FADE IN:
 
-	ONESHOT - SELECT - MAN - 5,10
+EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON
+EWS - CHURCH FRONT - EASE IN - 5 - 15
+
+Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church. - 5 
+
+He clears his throat and coughs. - 10
+
+	#transitions execute in parallel as soon as their expression is true (i.e. a selector)
+	SELECT - BUSHES
+		The bushes sway in a light breeze.
+		
+	SELECT - TREE
+		The trees sway in the light breeze.
+
+The man paces back and forth until we touch his cap and he picks up the key. - 10 
+
+	ONESHOT - SELECT - MAN CAP
+		The man adjusts his cap.
+
+	ONESHOT - SELECT - MAN
 		The man pauses to speak.
 		Old Man: Hello?
 
-	SELECT - MAN CAP - AFTER - SELECT - MAN
+	AFTER - MAN, SELECT - MAN CAP
 		He anxiously brushes through his hair and crumples his cap while he paces. He pauses in contemplation and strokes his beard.
 		
-		CU - MAN FACE - 00:04
+		CU - MAN FACE
 		We see the old man's wrinkled face.
 
-			AFTER - VISITED - OLD BAPTIST CHURCH FRONT - FIRST - DIALOGUE
-				Old Man: Is there anybody out there?
-			AFTER - VISITED - OLD BAPTIST CHURCH DOOR - FIRST - DIALOGUE
-				Old Man: Is there anybody in there?
-			AFTER - VISITED - MAN OLD BAPTIST CHURCH FRONT - FIRST - DIALOGUE
-				Old Man: Is there anybody in there?
-			AFTER - VISITED - MAN CAP - FIRST - DIALOGUE
-				Old Man: Hmph...
+		#QUEUE can execute things in a sequence 
+		#FIRST copies the parent context (except the "FIRST" condition) and instead attaches "FIRST" to each child expression
+			FIRST - DIALOGUE
+				AFTER - CHURCH FRONT
+					Old Man: Is there anybody out there?
+				AFTER - OLD BAPTIST CHURCH DOOR
+					Old Man: Is there anybody in there?
+				AFTER - MAN
+					Old Man: Is there anybody in there?
+				AFTER - MAN CAP
+					Old Man: Hmph...
 
-	AFTER - SELECT - MAN CAP
-	AFTER - SELECT - OLD BAPTIST CHURCH DOOR
-		SELECT - MAN
-			LONG SHOT - CHURCH FRONT - 00:04 - 
-			AWAIT - SELECT - BUSH
-			The long church doors tower above a wraparound porch. A glimmer in the bush catches our eye.
-			
-				SELECT - BUSH
-					LONG SHOT - MAN, BUSH - 00:04 -
-					AWAIT - PICKUP - KEY
-					A light breeze picks up as we notice a key in the bush.
-						
-						PICKUP - KEY
-							The man bends down to investigate.
-							CU - MAN FACE - 00:04
-							We see an old key in the palm of his cracked hands.
+	AFTER - MAN CAP
+	AFTER - OLD BAPTIST CHURCH DOOR
+		LONG SHOT - CHURCH FRONT - 00:04
+		The long church doors tower above a wraparound porch. 
+		
+		A glimmer in the bush catches our eye.
 
-	He paces back and forth.
+			CUT: SELECT - BUSH
+				LONG SHOT - MAN, BUSH - 00:04 -
+				A light breeze picks up... 
+				
+					CUT: PICKUP - KEY
+						as we notice a key in the bush.
+					
+					PICKUP - KEY
+						The man bends down to investigate.
+						CU - MAN FACE - 00:04
+						We see an old key in the palm of his cracked hands.
 
-EWS - CHURCH - 00:02
+#transition does not begin until its condition is satisfied
+#transitions contain hidden condition of last ActionBlock e.g. the man paces back and forth...
+CUT: PICKUP - KEY, SELECT - MAN - CAP 
+	
+MEDIUM - CHURCH - 00:02
 
 The man coughs violently. He looks at the key in his hand.
 
@@ -52,11 +74,23 @@ The man wipes his brow and looks up.
 
 MCU - MAN - 00:02
 
-He looks up at us. The church's cross drapes a long shadow over his face.
+He looks up at us. 
 
 Old Man: hmph.
 
-	SELECT - OLD BAPTIST CHURCH DOOR
+	AFTER - WAIT - 00:02
+
+		Old Man: hmmmm...
+
+	AFTER - WAIT - 00:02
+
+		The man stretches and yawns.
+
+		Old Man: [yawning]
+
+The church's cross drapes a long shadow over his face.
+
+	SELECT - MAN
 		The Old Man shuffles over to the door.
 
 		CU - MAN HAND - 00:02
@@ -66,15 +100,18 @@ Old Man: hmph.
 
 		Bats burst out of the door. They fly across the silhouette of the cross cast against the bright sky. We hear church bells.
 
-	AWAIT - SELECT - Man
+CUT: MAN
 
 HIGH ANGLE - MAN RIGHT - 00:02
 
-The man cowers. 
+The man cowers then eases up and huffs.
 
-	AWAIT - SELECT - CHURCH DOOR
+He blinks idley.
 
-He eases up and huffs. Kicking a pebble, he shuffles into the sancturary.
+	SELECT - CHURCH DOOR
+		Kicking a pebble, he shuffles into the sancturary.
+
+CUT: CHURCH DOOR
 
 FULL - CHURCH DOOR - EASE IN - 00:05
 

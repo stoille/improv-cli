@@ -2,20 +2,16 @@ const t = require('tap')
 //const cmd = require('../src/commands')
 
 const scriptName = 'summerAfternoon'
-const scriptPath = `../scripts/${scriptName}.imp`
+const scriptPath = `../scripts/${scriptName}.json`
 
-import { Machine } from 'xstate'
-const summerAfternoon = require('./summerAfternoon.json')
+const Machine = require('xstate').Machine
 
 t.test(`readScriptFile: ${scriptPath}...`, t => {
 	var fs = require('fs')
-	fs.readFile(summerAfternoon, "utf8", (err, text) => {
-	if (err) {
-		console.error('readScriptFileAndParse:' + err)
-		reject(err)
-	}
-	const machine = Machine()
-	resolve(ps)
+	fs.readFile(scriptPath, "utf8", (err, json) => {
+		const machine = Machine(json)
+		t.matchSnapshot(machine.value, scriptPath)
+		t.end()
 	})
 	/*
 	return cmd.readScriptFileAndParse(scriptPath).then(parsedScript =>
