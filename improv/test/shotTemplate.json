@@ -1,0 +1,100 @@
+{
+	"initial": "preload",
+	"id":"unit",
+	"states": {
+		"preload": {
+			"on": {
+				"load": "load"
+			}
+		},
+		"load": {
+			"on": {
+				"done": "ready"
+			}
+		},
+		"ready": {
+			"on": {
+				"start": "update"
+			}
+		},
+		"hasStarted": {
+			"initial": "false",
+			"states": {
+				"false": {
+					"on": {
+						"start": "true"
+					}
+				},
+				"true": {}
+			}
+		},
+		"update": {
+			"parallel": true,
+			"on": {
+				"preload": "preload"
+			},
+			"states": {
+				"view": {
+					"parallel": true,
+					"states": {
+						"viewType": {
+							"initial": "EWS",
+							"states": {
+								"EWS": {}
+							}
+						},
+						"viewMovement": {
+							"initial": "play",
+							"states": {
+								"play": {
+									"on": {
+										"pause": "pause"
+									},
+									"text": ""
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							}
+						},
+						"viewTransition": {
+							"initial": "play",
+							"states": {
+								"play": {
+									"on": {
+										"pause": "pause"
+									},
+									"text": ""
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							}
+						},
+						"actions": {
+							"initial": "play",
+							"states": {
+								"play": {
+									"on": {
+										"pause": "pause"
+									},
+									"text": ""
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							}
+						}
+					}
+				},
+				"guards": {}
+			}
+		}
+	}
+}

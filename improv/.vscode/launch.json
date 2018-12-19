@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
+      "type": 
       "request": "launch",
       "name": "generate nearly grammar",
       "console": "integratedTerminal",
@@ -30,17 +30,18 @@
       "type": "node",
       "request": "launch",
       "name": "test",
+      "program": "${workspaceFolder}/test/driverTest.js",
       "console": "integratedTerminal",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "test"
-      ]
-    },
-    {
-      "type": "node",
-      "request": "attach",
-      "name": "Attach to Process",
-      "port": 56868
+      //"runtimeExecutable": "npm",
+      //"runtimeArgs": [
+        //"--debug=5858",
+        //"--inspect-brk=5858",
+        //"test"
+      //],
+      //"protocol": "inspector",
+      //"address": "localhost",
+      //"port": 5858,
+      //"timeout": 30000
     }
   ]
 }

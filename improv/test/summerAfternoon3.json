@@ -1,0 +1,405 @@
+{
+	"id":"KENTUCKY",
+	"initial": "CHURCH FRONT",
+	"states": {
+		"CHURCH FRONT": {
+			"initial": "preload",
+			"on": {
+				"update": [{
+					"target": "CHURCH",
+					"cond": "visited(BUSHES) && visited(TREE)"
+				}]
+			},
+			"states": {
+				"preload": {
+					"on": {
+						"load": "load"
+					}
+				},
+				"load": {
+					"parallel":true,
+					"states":{
+						"action":{},
+						"BUSHES":{},
+						"TREE":{}
+					},
+					"on": {
+						"done": [{
+							"target": "ready",
+							"cond": "action,guards"
+						}]
+					}
+				},
+				"ready": {
+					"on": {
+						"preload": "preload",
+						"start": "run"
+					}
+				},
+				"hasStarted": {
+					"initial": "false",
+					"states": {
+						"false": {
+							"on": {
+								"start": "true"
+							}
+						},
+						"true": {}
+					}
+				},
+				"run": {
+					"parallel": true,
+					"on": {
+						"stop": "ready"
+					},
+					"states": {
+						"view": {
+							"parallel": true,
+							"states": {
+								"type": {
+									"initial": "EWS",
+									"states": {
+										"EWS": {}
+									}
+								},
+								"movement": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"on": {
+												"pause": "pause"
+											},
+											"text": ""
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								},
+								"transition": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"on": {
+												"pause": "pause"
+											},
+											"text": ""
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								},
+								"action": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"initial": "0",
+											"on": {
+												"pause": "pause"
+											},
+											"states": {
+												"0": {
+													"text": "Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church.",
+													"time": "5",
+													"on": {
+														"done": "1"
+													}
+												},
+												"1": {
+													"text": "He clears his throat and coughs.",
+													"time": 10,
+													"on": {
+														"done": "2"
+													}
+												},
+												"2": {
+													"text": "The man paces back and forth until we touch his cap and he picks up the key.",
+													"time": 10,
+													"on": {
+														"done": "2"
+													}
+												}
+											}
+
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								}
+							}
+						},
+						"guards": {
+								"parallel": true,
+								"states": {
+									"BUSHES": {
+										"initial": "preload",
+										"on": {
+											"done": "ready"
+										},
+										"states": {
+											"preload": {
+												"on": {
+													"load": "load"
+												}
+											},
+											"load": {
+												"on": {
+													"done": "ready"
+												}
+											},
+											"ready": {
+												"on": {
+													"preload": "preload",
+													"update": [{
+														"target": "run",
+														"cond": "select(BUSHES)"
+													}]
+												}
+											},
+											"hasStarted": {
+												"initial": "false",
+												"states": {
+													"false": {
+														"on": {
+															"start": "true"
+														}
+													},
+													"true": {}
+												}
+											},
+											"run": {
+												"parallel": true,
+												"on": {
+													"stop": "ready"
+												},
+												"states": {
+													"view": {
+														"parallel": true,
+														"states": {
+															"action": {
+																"initial": "play",
+																"states": {
+																	"play": {
+																		"initial": "0",
+																		"on": {
+																			"pause": "pause"
+																		},
+																		"states": {
+																			"0": {
+																				"text": "The bushes sway in a light breeze.",
+																				"on": {
+																					"done": "0"
+																				}
+																			}
+																		}
+																	},
+																	"pause": {
+																		"on": {
+																			"play": "play"
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									},
+									"TREE": {
+										"initial": "preload",
+										"on": {
+											"done": "ready"
+										},
+										"states": {
+											"preload": {
+												"on": {
+													"load": "load"
+												}
+											},
+											"load": {
+												"on": {
+													"done": "ready"
+												}
+											},
+											"ready": {
+												"on": {
+													"preload": "preload",
+													"update": {
+														"target": "run",
+														"cond": "select(TREE)"
+													}
+												}
+											},
+											"hasStarted": {
+												"initial": "false",
+												"states": {
+													"false": {
+														"on": {
+															"start": "true"
+														}
+													},
+													"true": {}
+												}
+											},
+											"run": {
+												"parallel": true,
+												"on": {
+													"stop": "ready"
+												},
+												"states": {
+													"view": {
+														"parallel": true,
+														"states": {
+															"action": {
+																"initial": "play",
+																"states": {
+																	"play": {
+																		"initial": "0",
+																		"on": {
+																			"pause": "pause"
+																		},
+																		"states": {
+																			"0": {
+																				"text": "The trees sway in the light breeze.",
+																				"on": {
+																					"done": "0"
+																				}
+																			}
+																		}
+																	},
+																	"pause": {
+																		"on": {
+																			"play": "play"
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+					}
+				}
+			}
+		},
+		"CHURCH": {
+			"initial": "preload",
+			"states": {
+				"preload": {
+					"on": {
+						"load": "load"
+					}
+				},
+				"load": {
+					"on": {
+						"done": "ready"
+					}
+				},
+				"ready": {
+					"on": {
+						"preload": "preload",
+						"start": "run"
+					}
+				},
+				"hasStarted": {
+					"initial": "false",
+					"states": {
+						"false": {
+							"on": {
+								"start": "true"
+							}
+						},
+						"true": {}
+					}
+				},
+				"run": {
+					"parallel": true,
+					"on": {
+						"stop": "ready"
+					},
+					"states": {
+						"view": {
+							"parallel": true,
+							"states": {
+								"type": {
+									"initial": "MEDIUM",
+									"states": {
+										"MEDIUM": {}
+									}
+								},
+								"movement": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"on": {
+												"pause": "pause"
+											},
+											"text": ""
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								},
+								"transition": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"on": {
+												"done": "ready"
+											},
+											"text": ""
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								},
+								"action": {
+									"initial": "play",
+									"states": {
+										"play": {
+											"initial": "a",
+											"on": {
+												"pause": "pause"
+											},
+											"states": {
+												"a": {
+													"text": "The man coughs violently. He looks at the key in his hand.",
+													"time": "5"
+												}
+											}
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								}
+							}
+						},
+						"guards": {}
+					}
+				}
+			}
+		}
+	}
+}
