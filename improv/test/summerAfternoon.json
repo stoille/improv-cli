@@ -32,7 +32,7 @@
 									"on": {
 										"update": [{
 											"target": "true",
-											"cond": "this.unit.run.action.isLoaded.value && this.unit.run.guards.BUSHES.isLoaded.value && this.unit.run.guards.TREE.isLoaded.value"
+											"cond": "this.unit.run.action.load.isLoaded.value && this.unit.run.guards.BUSHES.load.isLoaded.value && this.unit.run.guards.TREE.load.isLoaded.value"
 										}]
 									}
 								},
@@ -103,8 +103,44 @@
 							}
 						},
 						"action": {
-							"initial": "play",
+							"initial": "preload",
+							"parallel": true,
 							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"parallel": true,
+									"on": {
+										"update": [
+											{
+												"target": "ready",
+												"cond": "this.isLoaded.value"
+											}
+										]
+									},
+									"states": {
+										"isLoaded": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"load": "true"
+													}
+												},
+												"true": {}
+											}
+										}
+									}
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": "play"
+									}
+								},
 								"play": {
 									"initial": "0",
 									"on": {
@@ -172,7 +208,7 @@
 															"on": {
 																"update": [{
 																	"target": "true",
-																	"cond": "this.unit.run.action.isLoaded.value"
+																	"cond": "this.unit.run.action.load.isLoaded.value"
 																}]
 															}
 														},
@@ -209,7 +245,43 @@
 												},
 												"action": {
 													"initial": "play",
+													"parallel":true,
 													"states": {
+														"preload": {
+															"on": {
+																"load": "load"
+															}
+														},
+														"load": {
+															"parallel": true,
+															"on": {
+																"update": [
+																	{
+																		"target": "ready",
+																		"cond": "this.isLoaded.value"
+																	}
+																]
+															},
+															"states": {
+																"isLoaded": {
+																	"initial": "false",
+																	"states": {
+																		"false": {
+																			"on": {
+																				"load": "true"
+																			}
+																		},
+																		"true": {}
+																	}
+																}
+															}
+														},
+														"ready": {
+															"on": {
+																"preload": "preload",
+																"update": "play"
+															}
+														},
 														"play": {
 															"initial": "0",
 															"on": {
@@ -262,7 +334,7 @@
 															"on": {
 																"update": [{
 																	"target": "true",
-																	"cond": "this.unit.run.action.isLoaded.value"
+																	"cond": "this.unit.run.action.load.isLoaded.value"
 																}]
 															}
 														},
@@ -299,7 +371,43 @@
 											"states": {
 												"action": {
 													"initial": "play",
+													"parallel":true,
 													"states": {
+														"preload": {
+															"on": {
+																"load": "load"
+															}
+														},
+														"load": {
+															"parallel": true,
+															"on": {
+																"update": [
+																	{
+																		"target": "ready",
+																		"cond": "this.isLoaded.value"
+																	}
+																]
+															},
+															"states": {
+																"isLoaded": {
+																	"initial": "false",
+																	"states": {
+																		"false": {
+																			"on": {
+																				"load": "true"
+																			}
+																		},
+																		"true": {}
+																	}
+																}
+															}
+														},
+														"ready": {
+															"on": {
+																"preload": "preload",
+																"update": "play"
+															}
+														},
 														"play": {
 															"initial": "0",
 															"on": {
@@ -410,7 +518,43 @@
 								},
 								"action": {
 									"initial": "play",
+									"parallel":true,
 									"states": {
+										"preload": {
+											"on": {
+												"load": "load"
+											}
+										},
+										"load": {
+											"parallel": true,
+											"on": {
+												"update": [
+													{
+														"target": "ready",
+														"cond": "this.isLoaded.value"
+													}
+												]
+											},
+											"states": {
+												"isLoaded": {
+													"initial": "false",
+													"states": {
+														"false": {
+															"on": {
+																"load": "true"
+															}
+														},
+														"true": {}
+													}
+												}
+											}
+										},
+										"ready": {
+											"on": {
+												"preload": "preload",
+												"update": "play"
+											}
+										},
 										"play": {
 											"initial": "a",
 											"on": {
