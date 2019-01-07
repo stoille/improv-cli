@@ -1,24 +1,31 @@
 
-
+calendars
+planning
+scheduling
+budgeting
+powerpoint slides/presentations
+public speaking
 
 /* "another world" aesthetic grounded in 2000's future tech where apps, drones and micro tech take root */ 
 
 Logo idea: "Wake. Work. Sleep. Die." Death swallows a man running along a road paved in debt. Images of his family, friends, and colleagues judgingly gaze down upon him from the sky. Moneybags in hand, the ferryman welcomes him across the stix.
 
-During the start of the 22nd century an online wellness platform offers the hope of emotional prosperity. In exchange for sharing health data, users are assigned a virtual coach that targets the subconscious fears holding them back from achieving their life goals. While undergoing a personalized self help regimen of daily introspection and positive affirmations, participants see results but also experience changes that they could never have expected.
+At the start of the 22nd century an online wellness platform offers the hope of emotional prosperity. In exchange for sharing health data, users are assigned a virtual coach that targets the subconscious fears holding them back from achieving their life goals. While undergoing a personalized self help regimen of daily introspection and positive affirmations, participants see results but also experience changes that they could never have expected.
 
 
 We wakeup. 
 
-We avoid jogging.
+We pop in airpods and jog around a swampy lake while playing The Light Cone, Edgar Froese. 
 
-We goto work. 
+We drive to the train station and catch the train to work. 
+
+We arrive at work. It's mundane. Gray. The only colors are on the computer screen and outside. We goof off a little and only get a little work done before going to lunch.
 
 We work, eat in a dark office to avoid socializing at lunch and get panic attacks. We finish up a powerpoint and look at the due date. Tomorrow.
 
 We ride home on the train and run into a child that reminds us of our own. His parents lovingly scurry him off the train on their stop and they all laugh together.
 
-We come home to find our child getting bathed by our wife. She shrugs off contact and points to the dining room. 
+We arrive home while the sun is setting. We find our child getting bathed by our wife. She shrugs off contact and points to the dining room. 
 
 We eat dinner.
 
@@ -33,29 +40,57 @@ OPEN - OFFICE
 	READ - SAPIENS
 		We pick up the dusty book and wipe it off. Open to the page with the different human species and scoff. Then put down the book.
 
-TODO: AWAIT
+//TODO: AWAIT
+
 
 While sleeping in bed next to our snoring wife. We scroll through a social network.
 
-SCROLL - PHONE
-	We scroll through a social network and occasionally see an ad for an emotional health quiz. 
-	
-	TODO: Fill in other nifty social network things inside app.
+	SCROLL - PHONE
+		We scroll through a social network and occasionally see an ad for an emotional health quiz. 
+		
+		TODO: Fill in other nifty social network things inside app.
 
-CUT: TOUCH - QUIZ
-	We see an Ad for an emotional health quiz. 
+		CUT: TOUCH - QUIZ
+			We see an Ad for an emotional health quiz. 
 
- while feed we take an anxiety survey, discover we have severe anxiety, begin crying when we answer the question "I feel futile.", and click on an advertisement of a happy couple looking at the clouds looking over a big city from their balcony.
+		while feed we take an anxiety survey, discover we have severe anxiety, begin crying when we answer the question "I feel futile.", and click on an advertisement of a happy couple looking at the clouds looking over a big city from their balcony.
 
-Coach: Embark upon a journey towards self actualization. Through the power of suggestion, Undenial is a health program that can provide powerful relief for those experiencing feelings of anxiety or dispair. <blink>Try now</blink> or <blink>Subscribe</blink> to extend your free trial.
-*DISCLAIMER: Prolonged use of this program is associated with several cognitive and physical side effects. See the whitepaper for a complete list.
+		Coach: Congratulations on your <i>complimentary journey</i><b>*</b> towards self actualization<b>**</b>. Undenial is a health program that uses the power of suggestion to provide powerful relief for those prone to experiencing feelings of anxiety or dispair. <blink>Try now</blink> 
+		*Complimentary: one free L1 path per customer. Prolonged use of this program is associated with several cognitive and physical side effects. See the whitepaper for a complete list.
 
-CUT: TOUCH - TRYNOWBUTTON
-Coach: There is no elevator to success. You have to take the stairs or make others carry you up the stairs. If you are bored with life. If you don't get up with a burning desire to do things. You don't have enough <blink>goals</blink> or you are like, not working towards your goals, which is kind of the same thing.
+			TOUCH - WHITEPAPER
+				We see diagrams and such.
 
-Coach: Quitters never win. Winners never <blink>quit</blink>.
+				WARNING: Use of this program may induce physical side effects such as palpatations, dizzyness, light-headedness, fatigue, visual distortion, and numbness or a loss of sensation in the extremities, accompanyed by feelings of loneliness, shame, depression, anger, and a general sense of dread. This is completely normal and temporary. Everyone manages stress differently. It is only after recognizing our current state of denial that we can unwind the trauma it's inflicted on the mind to free it of its preocupation with damaging thought patterns. We may only choose to live in the <blink>now</blink>.
 
-We laugh at the advertisement and shrug. Ready to try anything. We look back at the app and see that a delivery has been scheduled. We take off our facemask, get up out of bed and look outside our house. It is windy outside. A drone comes and drops off a package. 
+		CUT: TOUCH - TRYNOWBUTTON
+
+		Coach: There is no elevator to success. You have to take the stairs or make others carry you up the stairs. 
+
+		We laugh in our facemask at the advertisement and nod knowingly.
+
+		We cut back to the ad.
+
+		Coach: If you are bored with life. If you don't get up with a burning desire to do things. You don't have enough <blink>goals</blink> or you are like, not working towards your goals, which is kind of the same thing. 
+
+		We take off the facemask and think to ourselves in the dark but continue hearing the voice.
+
+		Coach: Remember. Quitters never win. Winners never <blink>quit!</blink>. Which are you? 
+
+		CUT: TOUCH - FACEMASK
+
+		Ready to try anything. We put our facemask back on.
+
+		We see the ad has two buttons. From here we can go back to scrolling.
+
+			TOUCH - QUITTER
+				we go back to scrolling the web.
+
+		CUT: TOUCH - WINNER
+
+CUT: TOUCH - WINNER
+
+We see a map and that a delivery has been scheduled. We take off our facemask, get up out of bed and look outside our house. It is windy outside. A drone comes and drops off a package. 
 
 CUT: TOUCH - PACKAGE
 
@@ -65,27 +100,26 @@ CUT: TAP - PACKAGE
 
 We tear the packaging and find a fitbit looking device inside with a pair of headphones. We snap it on and it, with a series of emoticons, tells us we need to charge before syncing the headphones. We bumble around the house looking for a power wire and wake up our wife with the noise. She wakes up in bed. We charge the device. We stumble back into the bedroom and lay down. We see our wife's dissapointed face before pulling down the facemask. Our wife sees us tapping in the air, recognizes we are online, gives a huff of disapproval and rolls over. The app opens a menu before us leaving only one available plan since we do not have enough funds for the others.
 
-	The Living Debt Free Path >> Call and ask for plan details
-	The Social Media Guru Path >> 10,000
-	The Meaningful Contributor to Society Path >> 5,000
-	The Crypto Trader Path >> 3,000
-	The Fitness and Health Path >> 2,000
-	The Startup Path Path >> 2,000
-	The Senior Executive Path >> 600
-	The Manager's Path >> FREE FOR A LIMITED TIME!*
-	The Career Change Path >> Unavailable until next Tax Cycle
+Choose your path
+L7, The Living Debt Free Master >> Call and ask for plan details
+L7, The Social Media Guru >> 10,000
+L6, The Meaningful Contributor to Society >> 5,000
+L5, The Crypto Trading Expert >> 3,000
+L5, The Health and Fitness Guru >> 2,000
+L4, The Startup Founder >> 2,000
+L3, The Senior Executive >> 600
+L2, The Optimist >> Unavailable until next Tax Cycle
+L1, The Manager >> Complimentary
 
-TOUCH - BUTTON
-	Unlock a path towards personal growth tailored to help you become a better leader.** **Anonymized biometric data from your wellness charms will be used to help us improve services and may occasionally be shared with trusted partner affiliates.
+CUT: TOUCH - MANAGER BUTTON
+	The Manager's Path, Unlock a path towards personal growth tailored to help you become a better leader.** **Anonymized biometric data from your wellness charms will be used to help us improve services and may occasionally be shared with trusted partner affiliates.
 
 Take out airpods.
 
-TOUCH - AIRPODS
+CUT: TOUCH - AIRPODS
 	Put in airpods that are removeable and just have the outline of white plastic in them.  We hear three tones. A computer generated voice begins to talk.
 
 	Coach: How to use these affirmations. These recordings have been scientifically designed to help you realize your full potential. To become your ultimate self by overcoming fears and replacing negative self talk with positive affirmations. To unlock your full potential you must reprogram your core thinking process. This can only be achieved through repetition, either while conscious and focusing on the affirmations, playing them in the background while you undertake mundane and/or repetitive tasks, or while you are asleep. Simply choose the affirmation that you wish to unlock, set the track to repeat mode, and play the track non-stop. This can be especially effective when played while you sleep as your brain will absorb the positive affirmation deep into your subconscious where many of your personal problems reside. Many people find it helpful to address one issue at a time. Others will find it helpful to cycle through and reprogram their thinking on a number of issues at a time. The most important thing is repetition, to listen to each track again, and again.
-
-	WARNING: Use of this program may induce physical side effects such as palpatations, dizzyness, light-headedness, fatigue, visual distortion, and numbness or a loss of sensation in the extremities, accompanyed by feelings of loneliness, shame, depression, anger, and a general sense of dread. This is completely normal and temporary. Everyone manages stress differently. It is only after recognizing our current state of denial that we can unwind the trauma it's inflicted on the mind and free it of its preocupation with damaging thought patterns. Only we can choose to live in the <blink>now</blink>.
 
 	We squint reading that last line.
 
@@ -143,11 +177,19 @@ Coach: My boss thinks my powerpoint presentations are insightful and informative
 
 We do mundane tasks like clicking on a terminal and creating powerpoint presentations. We align schedules and read emails. The time passes quickly. We are surprised by how much we get done.
 
-TODO: We come home and repeat this cycle but experience anxiety, tremors, panic attacks, and morbid fantasies. We try to stop the motivational therapy. We see a doctor who warns us about the danger of stress. We take medication. We secretly use the motivational tool again after it reminds us not to give up. We find ourselves in bed with our wife and child. We all get older and age like a long stop animation. We each decay. An earthquake ends it. Our wife holds us trembling and seizing. We fade out.
+TODO: We come home and repeat this cycle but experience anxiety, tremors, panic attacks, and morbid fantasies. We try to stop the motivational therapy. We see a doctor who warns us about the danger of stress. We take medication. We secretly use the motivational tool again after it reminds us not to give up. We awake to a nightmare sequence and find a journal in front of us.
+
+	OPEN - JOURNAL
+		We see a diary placed on a table and open it up.
+		"November 3rd, 2105, I see spiders crawling on me. They enter my eyes and open up my third eye of consciousness. They invade my mind and turn it around. They allow me to overcome my fear of death. They make life beautiful. They allow me to breath. They stop me from shaking. They make my hands less numb. They remind me that every waking moment we must lose ourselves in the story we create for ourselves. <redacted>Except these are just drugs.</redacted> We all end up alone and eventually die. Our children will too. How terrifying."
+
+		Self: I don't remember writing this.
+	
+	We find ourselves in bed with our wife and child. We all get older and age like a long stop animation. We each decay. An earthquake ends it. Our wife holds us trembling and seizing. We fade out.
 
 FADE OUT:
 
-CAPTION: 6 Months later
+CAPTION: Heroic Expiation. 6 Months later
 
 MED - TRANQUILITY ST - 
 Jogging again. Faster now.
@@ -196,7 +238,3 @@ Run off into the sunset.
 FADE TO BLACK:
 
 Credits
-
-OPEN - JOURNAL
-		We see a diary placed on a table and open it up.
-		"November 3rd, 2158, I see spiders crawling on me. They enter my eyes and open up my third eye of consciousness. They invade my mind and turn it around. They allow me to overcome my fear of death. They make life beautiful. They allow me to breath. They stop me from shaking. They make my hands less numb. They remind me that every waking moment we must lose ourselves in the story we create for ourselves. <redacted>Except these are just drugs.</redacted> We all end up alone and eventually die. Our children will too. How terrifying."
