@@ -7,7 +7,7 @@
 			"on": {
 				"update": [{
 					"target": "CHURCH",
-					"cond": "this.run.guards.BUSHES.isStarted.value && this.run.guards.TREE.isStarted.value"
+					"cond": "this.states.run.BUSHES.isStarted.value && this.states.run.TREE.isStarted.value"
 				}]
 			},
 			"states": {
@@ -21,7 +21,7 @@
 					"on": {
 						"update": [{
 							"target": "ready",
-							"cond": "this.isLoaded.value"
+							"cond": "this.states.load.isLoaded.value"
 						}]
 					},
 					"states": {
@@ -32,7 +32,7 @@
 									"on": {
 										"update": [{
 											"target": "true",
-											"cond": "this.unit.run.action.load.isLoaded.value && this.unit.run.guards.BUSHES.load.isLoaded.value && this.unit.run.guards.TREE.load.isLoaded.value"
+											"cond": "this.states.run.action.load.isLoaded.value && this.states.run.BUSHES.load.isLoaded.value && this.states.run.TREE.load.isLoaded.value"
 										}]
 									}
 								},
@@ -114,12 +114,10 @@
 								"load": {
 									"parallel": true,
 									"on": {
-										"update": [
-											{
-												"target": "ready",
-												"cond": "this.isLoaded.value"
-											}
-										]
+										"update": [{
+											"target": "ready",
+											"cond": "this.states.load.isLoaded.value"
+										}]
 									},
 									"states": {
 										"isLoaded": {
@@ -178,180 +176,57 @@
 								}
 							}
 						},
-						"guards": {
-							"parallel": true,
+						"BUSHES": {
+							"initial": "preload",
+							"on": {
+								"done": "ready"
+							},
 							"states": {
-								"BUSHES": {
-									"initial": "preload",
+								"preload": {
 									"on": {
-										"done": "ready"
+										"load": "load"
+									}
+								},
+								"load": {
+									"parallel": true,
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": "this.states.load.isLoaded.value"
+										}]
 									},
 									"states": {
-										"preload": {
-											"on": {
-												"load": "load"
-											}
-										},
-										"load": {
-											"parallel": true,
-											"on": {
-												"update": [{
-													"target": "ready",
-													"cond": "this.isLoaded.value"
-												}]
-											},
+										"isLoaded": {
+											"initial": "false",
 											"states": {
-												"isLoaded": {
-													"initial": "false",
-													"states": {
-														"false": {
-															"on": {
-																"update": [{
-																	"target": "true",
-																	"cond": "this.unit.run.action.load.isLoaded.value"
-																}]
-															}
-														},
-														"true": {}
-													}
-												}
-											}
-										},
-										"ready": {
-											"on": {
-												"preload": "preload",
-												"update": [{
-													"target": "run",
-													"cond": "this.unit.input.isSelected('BUSHES')"
-												}]
-											}
-										},
-										"run": {
-											"parallel": true,
-											"on": {
-												"stop": "ready"
-											},
-											"states": {
-												"isStarted": {
-													"initial": "false",
-													"states": {
-														"false": {
-															"on": {
-																"update": "true"
-															}
-														},
-														"true": {}
+												"false": {
+													"on": {
+														"update": [{
+															"target": "true",
+															"cond": "this.states.run.action.load.isLoaded.value"
+														}]
 													}
 												},
-												"action": {
-													"initial": "play",
-													"parallel":true,
-													"states": {
-														"preload": {
-															"on": {
-																"load": "load"
-															}
-														},
-														"load": {
-															"parallel": true,
-															"on": {
-																"update": [
-																	{
-																		"target": "ready",
-																		"cond": "this.isLoaded.value"
-																	}
-																]
-															},
-															"states": {
-																"isLoaded": {
-																	"initial": "false",
-																	"states": {
-																		"false": {
-																			"on": {
-																				"load": "true"
-																			}
-																		},
-																		"true": {}
-																	}
-																}
-															}
-														},
-														"ready": {
-															"on": {
-																"preload": "preload",
-																"update": "play"
-															}
-														},
-														"play": {
-															"initial": "0",
-															"on": {
-																"pause": "pause"
-															},
-															"states": {
-																"0": {
-																	"text": "The bushes sway in a light breeze.",
-																	"on": {
-																		"done": "0"
-																	}
-																}
-															}
-														},
-														"pause": {
-															"on": {
-																"play": "play"
-															}
-														}
-													}
-												}
+												"true": {}
 											}
 										}
 									}
 								},
-								"TREE": {
-									"initial": "preload",
+								"ready": {
 									"on": {
-										"done": "ready"
+										"preload": "preload",
+										"update": [{
+											"target": "run",
+											"cond": "this.states.input.isSelected('BUSHES')"
+										}]
+									}
+								},
+								"run": {
+									"parallel": true,
+									"on": {
+										"stop": "ready"
 									},
 									"states": {
-										"preload": {
-											"on": {
-												"load": "load"
-											}
-										},
-										"load": {
-											"parallel": true,
-											"on": {
-												"update": [{
-													"target": "ready",
-													"cond": "this.isLoaded.value"
-												}]
-											},
-											"states": {
-												"isLoaded": {
-													"initial": "false",
-													"states": {
-														"false": {
-															"on": {
-																"update": [{
-																	"target": "true",
-																	"cond": "this.unit.run.action.load.isLoaded.value"
-																}]
-															}
-														},
-														"true": {}
-													}
-												}
-											}
-										},
-										"ready": {
-											"on": {
-												"preload": "preload",
-												"update": {
-													"target": "run",
-													"cond": "this.unit.input.isSelected('TREE')"
-												}
-											}
-										},
 										"isStarted": {
 											"initial": "false",
 											"states": {
@@ -363,70 +238,184 @@
 												"true": {}
 											}
 										},
-										"run": {
+										"action": {
+											"initial": "play",
 											"parallel": true,
-											"on": {
-												"stop": "ready"
-											},
 											"states": {
-												"action": {
-													"initial": "play",
-													"parallel":true,
+												"preload": {
+													"on": {
+														"load": "load"
+													}
+												},
+												"load": {
+													"parallel": true,
+													"on": {
+														"update": [{
+															"target": "ready",
+															"cond": "this.states.load.isLoaded.value"
+														}]
+													},
 													"states": {
-														"preload": {
-															"on": {
-																"load": "load"
-															}
-														},
-														"load": {
-															"parallel": true,
-															"on": {
-																"update": [
-																	{
-																		"target": "ready",
-																		"cond": "this.isLoaded.value"
-																	}
-																]
-															},
+														"isLoaded": {
+															"initial": "false",
 															"states": {
-																"isLoaded": {
-																	"initial": "false",
-																	"states": {
-																		"false": {
-																			"on": {
-																				"load": "true"
-																			}
-																		},
-																		"true": {}
-																	}
-																}
-															}
-														},
-														"ready": {
-															"on": {
-																"preload": "preload",
-																"update": "play"
-															}
-														},
-														"play": {
-															"initial": "0",
-															"on": {
-																"pause": "pause"
-															},
-															"states": {
-																"0": {
-																	"text": "The trees sway in the light breeze.",
+																"false": {
 																	"on": {
-																		"done": "0"
+																		"load": "true"
 																	}
-																}
-															}
-														},
-														"pause": {
-															"on": {
-																"play": "play"
+																},
+																"true": {}
 															}
 														}
+													}
+												},
+												"ready": {
+													"on": {
+														"preload": "preload",
+														"update": "play"
+													}
+												},
+												"play": {
+													"initial": "0",
+													"on": {
+														"pause": "pause"
+													},
+													"states": {
+														"0": {
+															"text": "The bushes sway in a light breeze.",
+															"on": {
+																"done": "0"
+															}
+														}
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						},
+						"TREE": {
+							"initial": "preload",
+							"on": {
+								"done": "ready"
+							},
+							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"parallel": true,
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": "this.states.load.isLoaded.value"
+										}]
+									},
+									"states": {
+										"isLoaded": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": [{
+															"target": "true",
+															"cond": "this.states.run.action.load.isLoaded.value"
+														}]
+													}
+												},
+												"true": {}
+											}
+										}
+									}
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": {
+											"target": "run",
+											"cond": "this.states.input.isSelected('TREE')"
+										}
+									}
+								},
+								"isStarted": {
+									"initial": "false",
+									"states": {
+										"false": {
+											"on": {
+												"update": "true"
+											}
+										},
+										"true": {}
+									}
+								},
+								"run": {
+									"parallel": true,
+									"on": {
+										"stop": "ready"
+									},
+									"states": {
+										"action": {
+											"initial": "play",
+											"parallel": true,
+											"states": {
+												"preload": {
+													"on": {
+														"load": "load"
+													}
+												},
+												"load": {
+													"parallel": true,
+													"on": {
+														"update": [{
+															"target": "ready",
+															"cond": "this.states.load.isLoaded.value"
+														}]
+													},
+													"states": {
+														"isLoaded": {
+															"initial": "false",
+															"states": {
+																"false": {
+																	"on": {
+																		"load": "true"
+																	}
+																},
+																"true": {}
+															}
+														}
+													}
+												},
+												"ready": {
+													"on": {
+														"preload": "preload",
+														"update": "play"
+													}
+												},
+												"play": {
+													"initial": "0",
+													"on": {
+														"pause": "pause"
+													},
+													"states": {
+														"0": {
+															"text": "The trees sway in the light breeze.",
+															"on": {
+																"done": "0"
+															}
+														}
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
 													}
 												}
 											}
@@ -435,6 +424,7 @@
 								}
 							}
 						}
+
 					}
 				}
 			}
@@ -518,7 +508,7 @@
 								},
 								"action": {
 									"initial": "play",
-									"parallel":true,
+									"parallel": true,
 									"states": {
 										"preload": {
 											"on": {
@@ -528,12 +518,10 @@
 										"load": {
 											"parallel": true,
 											"on": {
-												"update": [
-													{
-														"target": "ready",
-														"cond": "this.isLoaded.value"
-													}
-												]
+												"update": [{
+													"target": "ready",
+													"cond": "this.states.load.isLoaded.value"
+												}]
 											},
 											"states": {
 												"isLoaded": {
