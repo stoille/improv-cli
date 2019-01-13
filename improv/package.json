@@ -1,6 +1,6 @@
 {
   "name": "improv",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "main": "commander.js",
   "license": "BSD0",
   "dependencies": {
@@ -13,11 +13,11 @@
     "lowdb": "^1.0.0",
     "nearley": "^2.13.0",
     "stampit": "^4.1.2",
-    "xstate": "^3.1.0"
+    "xstate": "^4.2.3"
   },
   "scripts": {
     "generate-grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.js",
-    "compile": "node ./commander.js",
+    "compile": "node ./src/commander.js",
     "test": "cd test; tap ./driverTest.js"
   },
   "devDependencies": {

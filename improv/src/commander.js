@@ -7,7 +7,7 @@ program
   .description('improv compiler')
   .command('parse <scriptPath>')
   .alias('p')
-  .description('parses an .improv script file')
+  .description('parses an improv (.imp) script file')
   .option('-j, --json', 'print to JSON')
   .action((scriptPath, cmd) => {
     readScriptFileAndParse(scriptPath, cmd.json)
