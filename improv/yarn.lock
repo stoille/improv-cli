@@ -2349,9 +2349,9 @@ write-file-atomic@^2.3.0:
     imurmurhash "^0.1.4"
     signal-exit "^3.0.2"
 
-xstate@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/xstate/-/xstate-3.1.0.tgz#93e29563ab331ea1cb6271760698bd56cc2f6931"
+xstate@^4.2.3:
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/xstate/-/xstate-4.2.3.tgz#d715e5a8d6e285b23d6d809f330dd71d161bf52e"
 
 y18n@^3.2.1:
   version "3.2.1"
