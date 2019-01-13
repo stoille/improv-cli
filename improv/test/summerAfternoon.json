@@ -189,44 +189,6 @@
 										"true": {}
 									}
 								},
-								"viewType": {
-									"initial": "EWS",
-									"states": {
-										"EWS": {}
-									}
-								},
-								"viewMovement": {
-									"initial": "play",
-									"states": {
-										"play": {
-											"on": {
-												"pause": "pause"
-											},
-											"text": ""
-										},
-										"pause": {
-											"on": {
-												"play": "play"
-											}
-										}
-									}
-								},
-								"viewTransition": {
-									"initial": "play",
-									"states": {
-										"play": {
-											"on": {
-												"pause": "pause"
-											},
-											"text": ""
-										},
-										"pause": {
-											"on": {
-												"play": "play"
-											}
-										}
-									}
-								},
 								"lines": {
 									"initial": "0",
 									"states": {
@@ -312,44 +274,6 @@
 											}
 										},
 										"true": {}
-									}
-								},
-								"viewType": {
-									"initial": "EWS",
-									"states": {
-										"EWS": {}
-									}
-								},
-								"viewMovement": {
-									"initial": "play",
-									"states": {
-										"play": {
-											"on": {
-												"pause": "pause"
-											},
-											"text": ""
-										},
-										"pause": {
-											"on": {
-												"play": "play"
-											}
-										}
-									}
-								},
-								"viewTransition": {
-									"initial": "play",
-									"states": {
-										"play": {
-											"on": {
-												"pause": "pause"
-											},
-											"text": ""
-										},
-										"pause": {
-											"on": {
-												"play": "play"
-											}
-										}
 									}
 								},
 								"lines": {
