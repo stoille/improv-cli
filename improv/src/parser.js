@@ -55,7 +55,7 @@ class Unit {
 		switch (stmt.rule) {
 			case 'comment':
 				obj = {
-					text: obj.join('')
+					text: obj
 				}
 				this.decorators.push(obj)
 				break
@@ -85,7 +85,7 @@ class Unit {
 				}
 				this.scene.shots.push(obj)
 				break
-			case 'exp':
+			case 'cond':
 				this.copyLastShotFromParentIfHaveNone()
 				obj = {
 					condition: obj,

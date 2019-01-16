@@ -1,14 +1,14 @@
 FADE IN:
 #comments are ignored on newlines
 EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON #comments are ignored on post lines
-EWS - CHURCH FRONT - EASE IN - 5 - 15
+EWS - CHURCH FRONT - EASE IN - 5,15
 
-Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church. - 5 
+Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church.
 
 He clears his throat and coughs. - 10
 
 	#transitions execute in parallel as soon as their expression is true (i.e. a selector)
-	SELECT - BUSHES
+	SELECT - BUSHES | SELECT - TREE
 		The bushes sway in a light breeze.
 		
 	SELECT - TREE
