@@ -17,7 +17,7 @@
   },
   "scripts": {
     "generate-grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.js",
-    "compile": "node ./src/commander.js",
+    "compileTest": "node ./src/commander.js parse --json ./scripts/summerAfternoonSm.imp",
     "test": "cd test; tap ./driverTest.js"
   },
   "devDependencies": {

@@ -42,6 +42,24 @@
       //"address": "localhost",
       //"port": 5858,
       //"timeout": 30000
-    }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "compile summerAfternoon",
+      "console": "integratedTerminal",
+      //"runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--inspect-brk=5858",
+        "./src/commander.js",
+        "parse",
+        "--json",
+        "./scripts/summerAfternoonSm.imp"
+        //"compileTest",
+      ],
+      "protocol": "inspector",
+      "address": "localhost",
+      "port": 5858
+    },
   ]
 }
