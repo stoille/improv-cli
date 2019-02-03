@@ -1,5 +1,5 @@
 {
-	"id": "KENTUCKY",
+	"id": "root",
 	"initial": "CHURCH_FRONT",
 	"states": {
 		"CHURCH_FRONT": {

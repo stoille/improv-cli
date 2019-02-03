@@ -1,182 +1,340 @@
-const nearley = require("nearley")
-const grammar = require("./grammar")
-
-var rootUnits = []
+const nearley = require('nearley')
+const grammar = require('./grammar')
 
 function parseLine(lineText) {
-	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), { keepHistory: false })
+	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), {
+		keepHistory: false
+	})
 	parser.feed(lineText)
 	//HACK: enforce rule precedence ambiguity - why doesn't nearly.js do this?
-	let results = {}
+	let results = {
+		depth: 0
+	}
 	for (let idx in parser.results) {
 		let result = parser.results[idx]
 		results[result.rule] = result
 	}
 	if (results.activeObjects) return results.activeObjects
-	if( results.sceneHeading ) return results.sceneHeading
-	if( results.shot ) return results.shot
-	if( results.action ) return results.action
-	if( results.transition ) return results.transition
-	if( results.dialogue ) return results.dialogue
-	if( results.await ) return results.await
-	if( results.exp ) return results.exp
-	if( results.comment ) return results.comment
-	return null
+	if (results.sceneHeading) return results.sceneHeading
+	if (results.shot) return results.shot
+	if (results.action) return results.action
+	if (results.transition) return results.transition
+	if (results.dialogue) return results.dialogue
+	if (results.cond) return results.cond
+	if (results.comment) return results.comment
+	return results
 }
 
-class Unit {
-	constructor(parent) {
-		this.parent = null
-		this.decorators = []
-		this.scene= {}
-		if(parent){
-			this.parent = parent
-			this.scene = Object.assign({},parent.scene)
-			this.scene.shots = []
-			delete this.scene.transition
-		}
+//post-processing statements
+function ingestStmt(state, stmt) {
+	let s = Object.assign({}, state)
+	let isArray = stmt.result.length
+	let obj = isArray ? stmt.result : Object.assign({}, stmt.result)
+
+	//TODO: error checking
+	switch (stmt.rule) {
+		case 'comment':
+			if (!s.comments) {
+				s.comments = []
+			}
+			s.comments += obj.comment
+			break
+		case 'sceneHeading':
+			s.sceneHeading = obj.sceneHeading
+			break
+		case 'shot':
+			s.id = obj.viewSource.root
+			s.states.action.states.load.update = [{
+				target: 'ready',
+				cond: `#${s.id}.action.states.load.loaded`,
+				in: `#${s.id}.action.states.load.loaded`,
+			}]
+			s.states.action.states.play.viewType = obj.viewType
+			if (obj.viewMovement){
+				s.states.action.states.play.viewMovement.viewMovementType = obj.viewMovementType
+			}
+			break
+		case 'action':
+			s.states.action.states.play.states.lines.states = obj.map((a, idx) => ({
+				text: a.text,
+				time: a.time,
+				on: {
+					onDone: (idx + 1).toString()
+				}
+			})).reduce((al, a, idx) => {
+				al[idx] = a
+				return al
+			}, {})
+			break
+		case 'transition':
+			s.states.action.states.load.on.update = [...s.states.action.states.load.on.update, {
+				target: 'ready',
+				cond: `loaded`,
+				in: `loaded`,
+			}]
+			s.states.action.states.play.states.viewTransition.viewTransitionType = obj.viewTransitionType
+			break
+		case 'cond':
+			s.id = `${obj.reduce((s, c) => s ? `${s},${c.rhs.root}` : c.rhs.root, null)}`
+			s.states.action.states.load.on.update = [...s.states.action.states.load.on.update, {
+				target: 'ready',
+				cond: `#${s.id}.${s.id}.load.loaded`,
+				in: `#${s.id}.${s.id}.load.loaded`
+			}]
+			s.states.action.states.ready.on[obj.op] = [{
+				target: 'play',
+				cond: getOp(obj.op)
+			}]
+			break
 	}
+	return s
+}
 
-	get lastShot (){
-		return this.scene && this.scene.shots && this.scene.shots.length && this.scene.shots[this.scene.shots.length - 1]
-	}
-
-	copyLastShotFromParentIfHaveNone(){
-		if(this.parent && this.scene.shots.length === 0){
-			this.scene.shots = [Object.assign({}, this.parent.lastShot)]
-			this.lastShot.actions = []
-		}
-	}
-
-	//post-processing statements
-	ingestStmt(stmt){
-		let isArray = stmt.result.length
-		let obj = isArray ? stmt.result : Object.assign({}, stmt.result)
-		switch (stmt.rule) {
-			case 'comment':
-				obj = {
-					text: obj
-				}
-				this.decorators.push(obj)
-				break
-			case 'activeObjects':
-				this.lastShot.activeObjects = obj.map(d=>d.trim())
-				break
-			case 'sceneHeading':
-				this.scene = Object.assign(obj, this.scene)
-				this.scene.shots = []
-				break
-			case 'shot':
-				//active objects declaration
-				if (this.parent && this.parent.lastShot.activeObjects) {
-					obj.activeObjects = this.parent.lastShot.activeObjects.slice()
-				} else {
-					obj.activeObjects = []
-				}
-
-				//action declaration
-				obj.actions = []
-
-				//camera source/target
-				if (!obj.camSource || obj.camSource.root === '') {
-					obj.camSource = obj.camTarget
-				} else if (!obj.camTarget || obj.camTarget.root === '') {
-					obj.camTarget = obj.camSource
-				}
-				this.scene.shots.push(obj)
-				break
-			case 'cond':
-				this.copyLastShotFromParentIfHaveNone()
-				obj = {
-					condition: obj,
-					child: this
-				}
-				this.parent.lastShot.actions.push(obj)
-				break
-			case 'await':
-				let stmtToConditions = stmt => {
-					if (stmt && stmt.rule) {
-						let op = stmt.result.op
-						let lhs = stmtToConditions(stmt.result.lhs)
-						let rhs = stmtToConditions(stmt.result.rhs)
-						let time = stmt.result.time
-						return ({
-							op,
-							time,
-							lhs,
-							rhs
-						})
-					} else if (stmt && stmt.result) {
-						return stmt.result
-					}
-					return stmt
-				}
-				this.await = stmtToConditions(obj.rhs)
-				break;
-			case 'dialogue':
-				this.copyLastShotFromParentIfHaveNone()
-				this.lastShot.actions.push(obj)
-				break
-			case 'action':
-				this.copyLastShotFromParentIfHaveNone()
-				this.lastShot.actions.push(obj)
-				break
-			case 'transition':
-				this.scene[stmt.rule] = obj
-				break
-			default:
-				this[stmt.rule] = obj
-				break
-		}
+function getOp(op, args) {
+	switch (op) {
+		case 'TOUCH':
+			return `isTouching('${args}')`
+			break
+		default:
+			return `${op}('${args}')`
+			break
 	}
 }
 
-const canSkipLine = l => !l || l === '\n' || l === ''
+const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
 const canSkipStmt = s => !s || typeof s === 'number'
+let lineCursor = 0
 
-module.exports.parseLines = (lines) => {
-	let currUnit = null
-	let lastStmt = null
-	let lineNum = 0
-	
+function parseLines(lines, depth = 0, lastStmt, lastLine) {
+	let states = {}
+	let state = newState()
+
 	//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
-	for(let line of lines){
-		++lineNum;
-		if (canSkipLine(line)) {continue}
-		var currStmt = parseLine(line)
-		if (canSkipStmt(currStmt)) {
-			console.error(`Error Ln ${lineNum}: ${line}`)
+	//for each line
+	// advance lines until next unit at tab level
+	// make unit recursively
+	while (lineCursor < lines.length) {
+		let line = lines[lineCursor++]
+		let stmt = parseLine(line)
+
+		let tabDecreased = stmt && stmt.depth < depth
+		if (tabDecreased) {
+			break
+		}
+
+		if (isEmptyOrSpaces(line)) {
 			continue
 		}
 
-		const isAwait = stmt => stmt.rule === 'await'
-		const isActiveObjectDeclaration = lastStmt && lastStmt.rule === 'activeObjects'
-		const tabDecreased = lastStmt && currStmt.depth < lastStmt.depth
-
-		const isEndOfUnit = (currStmt, lastStmt) => isAwait(currStmt) 
-			|| (isActiveObjectDeclaration === false && tabDecreased)
-		if (isEndOfUnit(currStmt, lastStmt)) {
-			let depth = lastStmt.depth - currStmt.depth
-			while (depth--) {
-				currUnit = currUnit.parent
-			}
-		}
-		
-		let isCurrStmtControl = currStmt.rule === 'exp'
-		const isStartOfUnit = (currStmt, lastStmt) => lastStmt === null || isAwait(lastStmt) || isCurrStmtControl
-		if (isStartOfUnit(currStmt, lastStmt)){
-			let newUnit = new Unit(currUnit)
-
-			if (isCurrStmtControl === false) {
-				rootUnits.push(newUnit)
-			}
-
-			currUnit = newUnit
+		try {
+			lintStmt(stmt, lastStmt, line, lastLine, lineCursor)
+		} catch (error) {
+			console.error(error)
+			continue
 		}
 
-		currUnit.ingestStmt(currStmt)
+		state = ingestStmt(state, stmt)
+		if (state.error) {
+			console.error(state.error)
+			continue
+		}
+		if (state.id) {
+			states[state.id] = state
+		}
 
-		lastStmt = currStmt
+		if (stmt.rule === 'cond') {
+			let childStates = parseLines(lines, depth + 1, lastStmt, lastLine)
+			let ns = newState(state)
+			ns.states = { ...ns.states,
+				...childStates
+			}
+			states[ns.id] = ns
+		}
+
+		const stateEnd = lastStmt && lastStmt.rule === 'action' && (stmt.rule === 'transition' || stmt.rule === 'sceneHeading' || stmt.rule === 'shot')
+		if (stateEnd) {
+			state = newState(state)
+		}
+
+		if (stmt.rule !== 'comment') {
+			lastStmt = stmt
+			lastLine = line
+		}
 	}
-	return rootUnits
+	return states
+}
+module.exports.parseLines = parseLines
+
+function lintStmt(stmt, lastStmt, line, lastLine, lineCursor) {
+	if (!lastStmt) {
+		return
+	}
+	let lines = `\n${lineCursor-1}:${lastLine}\n${lineCursor}:${line}`
+	switch (stmt.rule) {
+		case 'transition':
+			switch (lastStmt.rule) {
+				case 'comment':
+				case 'action':
+					break
+				default:
+					throw `Error: transition must follow an action.${lines}`
+			}
+			break
+		case 'sceneHeading':
+			switch (lastStmt.rule) {
+				case 'comment':
+				case 'action':
+				case 'transition':
+					break
+				default:
+					throw `Error: sceneHeading must follow an action or a transition${lines}`
+					break;
+			}
+			break
+		case 'shot':
+			switch (lastStmt.rule) {
+				case 'comment':
+				case 'action':
+				case 'transition':
+				case 'sceneHeading':
+					break
+				default:
+					throw `Error: shot heading must follow an action, transition or sceneHeading${lines}`
+					break;
+			}
+			break
+		case 'action':
+			switch (lastStmt.rule) {
+				case 'comment':
+				case 'action':
+				case 'shot':
+				case 'cond':
+					break
+				default:
+					throw `Error: action must follow a shot heading, or another action${lines}`
+					break;
+			}
+			break
+		case 'cond':
+			switch (lastStmt.rule) {
+				case 'comment':
+				case 'action':
+				case 'shot':
+				case 'cond':
+					break
+				default:
+					throw `Error: conditions must follow an action, shot heading, or a previous condition${lines}`
+					break;
+			}
+			break
+	}
+}
+
+function newState(prevState) {
+	let state = ({
+		id: prevState ? prevState.id : undefined,
+		parallel: true,
+		on: {
+			update: []
+		},
+		states: {
+			action: {
+				initial: "preload",
+				states: {
+					preload: {
+						on: {
+							load: "load"
+						}
+					},
+					load: {
+						initial: "loading",
+						on: {
+							update: []
+						},
+						states: {
+							loading: {
+								on: {
+									onDone: "loaded"
+								}
+							},
+							loaded: {}
+						}
+					},
+					ready: {
+						on: {
+							preload: "preload",
+							update: []
+						}
+					},
+					play: {
+						parallel: true,
+						viewType: prevState ? prevState.states.action.states.play.viewType : undefined,
+						on: {
+							pause: "pause"
+						},
+						states: {
+							isStarted: {
+								initial: "false",
+								states: {
+									false: {
+										on: {
+											update: "true"
+										}
+									},
+									true: {}
+								}
+							},
+							lines: {
+								initial: "0",
+								states: {}
+							},
+							viewMovement: {
+								initial: "play",
+								viewMovementType: prevState ?prevState.states.action.states.play.viewMovementType : undefined,
+								states: {
+									play: {
+										on: {
+											pause: "pause"
+										}
+									},
+									pause: {
+										on: {
+											play: "play"
+										}
+									}
+								}
+							},
+							viewTransition: {
+								initial: "play",
+								viewTransitionType: prevState ? prevState.states.action.states.play.viewTransitionType : undefined,
+								states: {
+									play: {
+										on: {
+											pause: "pause"
+										}
+									},
+									pause: {
+										on: {
+											play: "play"
+										}
+									}
+								}
+							}
+						}
+					},
+					pause: {
+						on: {
+							play: "play"
+						}
+					}
+				}
+			}
+		}
+	})
+	if (prevState && prevState.viewType) {
+		state.viewType = prevState.viewType
+		state.viewMovement = prevState.viewMovement
+		state.viewTransition = prevState.viewTransition
+	}
+	return state
 }
