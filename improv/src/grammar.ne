@@ -26,7 +26,7 @@ function generateTime(time){
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> TAB:? (comment|transition|sceneHeading|shotHeading|action|dialogue|cond) comment:?{%
+unitLine -> TAB:? (comment|transition|sceneHeading|shot|action|dialogue|cond) comment:?{%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
 	([tab, d, comment]) => {
 		if(comment) { d.comment = comment }
@@ -35,9 +35,9 @@ unitLine -> TAB:? (comment|transition|sceneHeading|shotHeading|action|dialogue|c
 	}
 %}
 
-transition -> transitionType ":" {% (d) => { 
-	return rule('transition',{transitionType:d[0]}) } %}
-transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0][0] %}
+transition -> transitionType ":" _ cond:? {% ([transitionType, _, __, cond]) => { 
+	return rule('transition',{transitionType:transitionType[0], cond:cond ? cond.result : null}) } %}
+transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
 
 sceneHeading -> scenePlacement sceneName sceneTime {% 
 	([scenePlacement, sceneName, sceneTime]) => {
@@ -50,20 +50,20 @@ sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"A
 
 SEP -> _ "-" _ {% id %}
 
-shotHeading -> camType camSubject:? camSubject:? camMovement:? timeSpan _ "," _ timeSpan {%
-	([camType, camSource, camTarget, camMovement, transitionTime, shotTime]) => rule('shotHeading', {camType, camSource, camTarget, camMovement, transitionTime: generateTime(transitionTime), time: generateTime(shotTime)})
+shot -> viewType viewSubject viewSubject:? viewMovement:? (timeSpan _ ("," _ timeSpan):?):? {%
+	([viewType, viewSource, viewTarget, viewMovement, transitionTime, shotTime]) => rule('shot', {viewType, viewSource, viewTarget, viewMovement, transitionTime: generateTime(transitionTime), time: generateTime(shotTime)})
 %}
-camType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS") SEP:? {% d => d[0].join('') %}
-camSubject -> nameWS ("/" nameWS):* (SEP| _ "," _ ) {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
-camMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
+viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS") SEP {% d => d[0].join('') %}
+viewSubject -> nameWS ("/" nameWS):* (SEP| _ "," _ ):? {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
+viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
 timeSpan -> num:? ":":? num _ {% d => { 
 	return ({ min: d[0], sec: d[2] }) } %}
 num -> [0-9] [0-9]:? {% d => parseInt((d[0] ? d[0] : 0) + (d[1] ? d[1] : 1)) %}
 
-action -> sentence:+ {% ([_, lines]) => rule('action', { lines }) %}
+action -> sentence:+ {% ([body]) => rule('action', body) %}
 
-sentence -> ([A-Za-z,-] _):+ [.?!]:+ SEP:? timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text:text.join(''), time:generateTime(timeSpan)}) %} 
+sentence -> nameWS [.?!\r\n]:+ SEP:? timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text:text, time:generateTime(timeSpan)}) %} 
 
 name -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %}
 nameWS -> [a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
@@ -72,11 +72,12 @@ opName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
 dialogue -> nameWS ":" sentence:+ {% ([speaker, _, text]) => { 
 	return rule('dialogue', {speaker: speaker, lines: text}) } %}
 
-cond -> cond _ "," _ cond {% id %}
-	| (opName SEP):? nameWS ("/" nameWS):* SEP:? timeSpan:? {% ([opName, root, path, ss, time]) => {
+cond -> (opName SEP):? nameWS ("/" nameWS):* SEP:? timeSpan:? (_ "," _ cond):* {% ([opName, root, path, ss, time, conds]) => {
 			path = path.map( p => p[1])
 			opName = opName ? opName[0] : opName
-			return rule('cond', {op: opName, time: generateTime(time), rhs: selector(root, path)}) 
+			let c1 = {op: opName, time: generateTime(time), rhs: selector(root, path)}
+			let cn = conds ? [c1, ...conds.map(c => c[3].result[0])] : [c1]
+			return rule('cond', cn) 
 		}
 %}
 
