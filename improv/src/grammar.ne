@@ -50,11 +50,11 @@ sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"A
 
 SEP -> _ "-" _ {% id %}
 
-shot -> viewType viewSubject viewSubject:? viewMovement:? (timeSpan _ ("," _ timeSpan):?):? {%
-	([viewType, viewSource, viewTarget, viewMovement, transitionTime, shotTime]) => rule('shot', {viewType, viewSource, viewTarget, viewMovement, transitionTime: generateTime(transitionTime), time: generateTime(shotTime)})
+shot -> viewType viewSubject (_ "," _ viewSubject):? SEP:? viewMovement:? (timeSpan _ ("," _ timeSpan):?):? {%
+	([viewType, viewSource, viewTarget, _, viewMovement, transitionTime, shotTime]) => rule('shot', {viewType, viewSource, viewTarget:viewTarget ? viewTarget[3] : undefined, viewMovement, transitionTime: generateTime(transitionTime), time: generateTime(shotTime)})
 %}
 viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS") SEP {% d => d[0].join('') %}
-viewSubject -> nameWS ("/" nameWS):* (SEP| _ "," _ ):? {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
+viewSubject -> nameWS ("/" nameWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
 viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
 timeSpan -> num:? ":":? num _ {% d => { 

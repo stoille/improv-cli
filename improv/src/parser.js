@@ -51,7 +51,7 @@ function ingestStmt(state, stmt) {
 			}]
 			s.states.action.states.play.viewType = obj.viewType
 			if (obj.viewMovement){
-				s.states.action.states.play.viewMovement.viewMovementType = obj.viewMovementType
+				s.states.action.states.play.states.viewMovement.viewMovementType = obj.viewMovement
 			}
 			break
 		case 'action':
@@ -107,7 +107,7 @@ let lineCursor = 0
 
 function parseLines(lines, depth = 0, lastStmt, lastLine) {
 	let states = {}
-	let state = newState()
+	let parent = newState()
 
 	//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
 	//for each line
@@ -133,29 +133,22 @@ function parseLines(lines, depth = 0, lastStmt, lastLine) {
 			continue
 		}
 
-		state = ingestStmt(state, stmt)
-		if (state.error) {
-			console.error(state.error)
+		let child = ingestStmt(parent, stmt)
+		if (child.error) {
+			console.error(child.error)
 			continue
-		}
-		if (state.id) {
-			states[state.id] = state
 		}
 
 		if (stmt.rule === 'cond') {
 			let childStates = parseLines(lines, depth + 1, lastStmt, lastLine)
-			let ns = newState(state)
-			ns.states = { ...ns.states,
+			child.states = { ...child.states,
 				...childStates
 			}
-			states[ns.id] = ns
+			parent.states[child.id] = child
+		} else if(child.id){
+			states[child.id] = child
 		}
-
-		const stateEnd = lastStmt && lastStmt.rule === 'action' && (stmt.rule === 'transition' || stmt.rule === 'sceneHeading' || stmt.rule === 'shot')
-		if (stateEnd) {
-			state = newState(state)
-		}
-
+		
 		if (stmt.rule !== 'comment') {
 			lastStmt = stmt
 			lastLine = line
@@ -331,10 +324,5 @@ function newState(prevState) {
 			}
 		}
 	})
-	if (prevState && prevState.viewType) {
-		state.viewType = prevState.viewType
-		state.viewMovement = prevState.viewMovement
-		state.viewTransition = prevState.viewTransition
-	}
 	return state
 }
