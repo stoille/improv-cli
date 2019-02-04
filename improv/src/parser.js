@@ -107,7 +107,7 @@ let lineCursor = 0
 
 function parseLines(lines, depth = 0, lastStmt, lastLine) {
 	let states = {}
-	let parent = newState()
+	let parent = makeState()
 
 	//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
 	//for each line
@@ -133,20 +133,22 @@ function parseLines(lines, depth = 0, lastStmt, lastLine) {
 			continue
 		}
 
-		let child = ingestStmt(parent, stmt)
-		if (child.error) {
-			console.error(child.error)
+		let newState = ingestStmt(parent, stmt)
+		if (newState.error) {
+			console.error(newState.error)
 			continue
 		}
 
-		if (stmt.rule === 'cond') {
+		if(lastStmt && lastStmt.rule === 'action' && (stmt.rule === 'transition' || stmt.rule === 'sceneHeading' || stmt.rule === 'shot')){
+			parent = makeState(newState)
+		} else if (stmt.rule === 'cond') {
 			let childStates = parseLines(lines, depth + 1, lastStmt, lastLine)
-			child.states = { ...child.states,
+			newState.states = { ...newState.states,
 				...childStates
 			}
-			parent.states[child.id] = child
-		} else if(child.id){
-			states[child.id] = child
+			parent.states[newState.id] = newState
+		} else if(newState.id){
+			states[newState.id] = newState
 		}
 		
 		if (stmt.rule !== 'comment') {
@@ -223,7 +225,7 @@ function lintStmt(stmt, lastStmt, line, lastLine, lineCursor) {
 	}
 }
 
-function newState(prevState) {
+function makeState(prevState) {
 	let state = ({
 		id: prevState ? prevState.id : undefined,
 		parallel: true,
