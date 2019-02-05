@@ -4,7 +4,7 @@
 	"states": {
 		"CHURCH_FRONT": {
 			"id": "CHURCH_FRONT",
-			"parallel":true,
+			"parallel": true,
 			"on": {
 				"update": [{
 					"target": "CHURCH",
@@ -21,12 +21,12 @@
 							}
 						},
 						"load": {
-							"initial":"loading",
+							"initial": "loading",
 							"on": {
 								"update": [{
 									"target": "ready",
-									"cond": "#CHURCH_FRONT.action.load.loaded",
-									"in": "#CHURCH_FRONT.action.load.loaded"
+									"cond": "loaded",
+									"in": "loaded"
 								}]
 							},
 							"states": {
@@ -42,13 +42,14 @@
 							"on": {
 								"preload": "preload",
 								"update": [{
-									"target":"play",
+									"target": "play",
 									"cond": ["#CHURCH_FRONT.BUSHES.load.loaded", "#CHURCH_FRONT.TREE.load.loaded"]
 								}]
 							}
 						},
 						"play": {
 							"parallel": true,
+							"viewType": "EWS",
 							"on": {
 								"pause": "pause"
 							},
@@ -64,20 +65,40 @@
 										"true": {}
 									}
 								},
-								"viewType": {
-									"initial": "EWS",
+								"lines": {
+									"initial": "0",
 									"states": {
-										"EWS": {}
+										"0": {
+											"text": "Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church.",
+											"time": "5",
+											"on": {
+												"onDone": "1"
+											}
+										},
+										"1": {
+											"text": "He clears his throat and coughs.",
+											"time": 10,
+											"on": {
+												"onDone": "2"
+											}
+										},
+										"2": {
+											"text": "The man paces touch and forth until we touch his TREE and he picks touch and forth until we touch his TREE  the BUSHES.",
+											"time": 10,
+											"on": {
+												"onDone": "2"
+											}
+										}
 									}
 								},
 								"viewMovement": {
 									"initial": "play",
+									"viewMovementType": "EASE IN",
 									"states": {
 										"play": {
 											"on": {
 												"pause": "pause"
-											},
-											"text": ""
+											}
 										},
 										"pause": {
 											"on": {
@@ -88,12 +109,12 @@
 								},
 								"viewTransition": {
 									"initial": "play",
+									"viewTransitionType": "CUT",
 									"states": {
 										"play": {
 											"on": {
 												"pause": "pause"
-											},
-											"text": ""
+											}
 										},
 										"pause": {
 											"on": {
@@ -101,32 +122,6 @@
 											}
 										}
 									}
-								},
-								"lines": {
-									"initial": "0",
-									"states": {
-										"0": {
-											"text": "Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church.",
-											"time": "5",
-											"on": {
-												"onDone": "1"
-											}
-										},
-										"1": {
-											"text": "He clears his throat and coughs.",
-											"time": 10,
-											"on": {
-												"onDone": "2"
-											}
-										},
-										"2": {
-											"text": "The man paces touch and forth until we touch his TREE and he picks touch and forth until we touch his TREE  the BUSHES.",
-											"time": 10,
-											"on": {
-												"onDone": "2"
-											}
-										}
-									}
 								}
 							}
 						},
@@ -137,176 +132,169 @@
 						}
 					}
 				},
-				"BUSHES": {
-					"initial": "preload",
+				"BUSHES,BUSHES": {
+					"id": "BUSHES,BUSHES",
+					"parallel": true,
 					"states": {
-						"preload": {
-							"on": {
-								"load": "load"
-							}
-						},
-						"load": {
-							"initial": "loading",
-							"on": {
-								"update": [{
-									"target": "ready",
-									"cond": "#CHURCH_FRONT.BUSHES.load.loaded",
-									"in": "#CHURCH_FRONT.BUSHES.load.loaded"
-								}]
+						"action": {
+							"initial": "preload",
+							"preload": {
+								"on": {
+									"load": "load"
+								}
 							},
-							"states": {
-								"loading": {
-									"on": {
-										"onDone": "loaded"
-									}
+							"load": {
+								"initial": "loading",
+								"on": {
+									"update": [{
+										"target": "ready",
+										"cond": "loaded",
+										"in": "loaded"
+									}]
 								},
-								"loaded": {}
-							}
-						},
-						"ready": {
-							"on": {
-								"preload": "preload",
-								"TOUCH": [{
-									"target": "play",
-									"cond": "isTouching('CHURCH_FRONT.BUSHES')"
-								}]
-							}
-						},
-						"play": {
-							"parallel": true,
-							"on": {
-								"pause": "pause"
+								"states": {
+									"loading": {
+										"on": {
+											"onDone": "loaded"
+										}
+									},
+									"loaded": {}
+								}
 							},
-							"states": {
-								"isStarted": {
-									"initial": "false",
-									"states": {
-										"false": {
-											"on": {
-												"update": "true"
-											}
-										},
-										"true": {}
-									}
+							"ready": {
+								"on": {
+									"preload": "preload",
+									"TOUCH": [{
+										"target": "play",
+										"cond": "isTouching('CHURCH_FRONT.BUSHES')"
+									}]
+								}
+							},
+							"play": {
+								"parallel": true,
+								"viewType": "EWS",
+								"on": {
+									"pause": "pause"
 								},
-								"lines": {
-									"initial": "0",
-									"states": {
-										"0": {
-											"text": "Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church.",
-											"time": "5",
-											"on": {
-												"onDone": "1"
-											}
-										},
-										"1": {
-											"text": "He clears his throat and coughs.",
-											"time": 10,
-											"on": {
-												"onDone": "2"
-											}
-										},
-										"2": {
-											"text": "The man paces touch and forth until we touch his TREE and he picks touch and forth until we touch his TREE  the BUSHES.",
-											"time": 10,
-											"on": {
-												"onDone": "2"
+								"states": {
+									"isStarted": {
+										"initial": "false",
+										"states": {
+											"false": {
+												"on": {
+													"update": "true"
+												}
+											},
+											"true": {}
+										}
+									},
+									"lines": {
+										"initial": "0",
+										"states": {
+											"0": {
+												"text": "The bushes sway in a light breeze.",
+												"time": "5",
+												"on": {
+													"onDone": "0"
+												}
 											}
 										}
 									}
 								}
-							}
-						},
-						"pause": {
-							"on": {
-								"play": "play"
+							},
+							"pause": {
+								"on": {
+									"play": "play"
+								}
 							}
 						}
 					}
 				},
 				"TREE": {
-					"initial": "preload",
 					"states": {
-						"preload": {
-							"on": {
-								"load": "load"
-							}
-						},
-						"load": {
-							"initial": "loading",
-							"on": {
-								"update": [{
-									"target": "ready",
-									"cond": "#CHURCH_FRONT.TREE.load.loaded",
-									"in": "#CHURCH_FRONT.TREE.load.loaded"
-								}]
+						"action": {
+							"initial": "preload",
+							"preload": {
+								"on": {
+									"load": "load"
+								}
 							},
-							"states": {
-								"loading": {
-									"on": {
-										"onDone": "loaded"
-									}
+							"load": {
+								"initial": "loading",
+								"on": {
+									"update": [{
+										"target": "ready",
+										"cond": "#CHURCH_FRONT.TREE.load.loaded",
+										"in": "#CHURCH_FRONT.TREE.load.loaded"
+									}]
 								},
-								"loaded": {}
-							}
-						},
-						"ready": {
-							"on": {
-								"preload": "preload",
-								"TOUCH": [{
-									"target": "play",
-									"cond": "isTouching('CHURCH_FRONT.TREE')"
-								}]
-							}
-						},
-						"play": {
-							"parallel": true,
-							"on": {
-								"pause": "pause"
+								"states": {
+									"loading": {
+										"on": {
+											"onDone": "loaded"
+										}
+									},
+									"loaded": {}
+								}
 							},
-							"states": {
-								"isStarted": {
-									"initial": "false",
-									"states": {
-										"false": {
-											"on": {
-												"update": "true"
-											}
-										},
-										"true": {}
-									}
+							"ready": {
+								"on": {
+									"preload": "preload",
+									"TOUCH": [{
+										"target": "play",
+										"cond": "isTouching('CHURCH_FRONT.TREE')"
+									}]
+								}
+							},
+							"play": {
+								"parallel": true,
+								"on": {
+									"pause": "pause"
 								},
-								"lines": {
-									"initial": "0",
-									"states": {
-										"0": {
-											"text": "Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church.",
-											"time": "5",
-											"on": {
-												"onDone": "1"
-											}
-										},
-										"1": {
-											"text": "He clears his throat and coughs.",
-											"time": 10,
-											"on": {
-												"onDone": "2"
-											}
-										},
-										"2": {
-											"text": "The man paces touch and forth until we touch his TREE and he picks touch and forth until we touch his TREE  the BUSHES.",
-											"time": 10,
-											"on": {
-												"onDone": "2"
+								"states": {
+									"isStarted": {
+										"initial": "false",
+										"states": {
+											"false": {
+												"on": {
+													"update": "true"
+												}
+											},
+											"true": {}
+										}
+									},
+									"lines": {
+										"initial": "0",
+										"states": {
+											"0": {
+												"text": "Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church.",
+												"time": "5",
+												"on": {
+													"onDone": "1"
+												}
+											},
+											"1": {
+												"text": "He clears his throat and coughs.",
+												"time": 10,
+												"on": {
+													"onDone": "2"
+												}
+											},
+											"2": {
+												"text": "The man paces touch and forth until we touch his TREE and he picks touch and forth until we touch his TREE  the BUSHES.",
+												"time": 10,
+												"on": {
+													"onDone": "2"
+												}
 											}
 										}
 									}
 								}
-							}
-						},
-						"pause": {
-							"on": {
-								"play": "play"
+							},
+							"pause": {
+								"on": {
+									"play": "play"
+								}
 							}
 						}
 					}
