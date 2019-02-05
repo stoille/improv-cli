@@ -27,7 +27,7 @@ function parseLine(lineText) {
 
 //post-processing statements
 function ingestStmt(state, stmt) {
-	let s = Object.assign({}, state)
+	let s = stmt.rule === 'cond' ? makeState(state) : Object.assign({}, state)
 	let isArray = stmt.result.length
 	let obj = isArray ? stmt.result : Object.assign({}, stmt.result)
 
@@ -55,11 +55,11 @@ function ingestStmt(state, stmt) {
 			}
 			break
 		case 'action':
-			s.states.action.states.play.states.lines.states = obj.map((a, idx) => ({
+			s.states.action.states.play.states.lines.states = [...Object.values(s.states.action.states.play.states.lines.states), ...obj].map((a, idx, arr) => ({
 				text: a.text,
 				time: a.time,
 				on: {
-					onDone: (idx + 1).toString()
+					onDone: (idx === arr.length - 1 ? idx : idx + 1).toString()
 				}
 			})).reduce((al, a, idx) => {
 				al[idx] = a
@@ -67,23 +67,22 @@ function ingestStmt(state, stmt) {
 			}, {})
 			break
 		case 'transition':
-			s.states.action.states.load.on.update = [...s.states.action.states.load.on.update, {
-				target: 'ready',
-				cond: `loaded`,
-				in: `loaded`,
-			}]
-			s.states.action.states.play.states.viewTransition.viewTransitionType = obj.viewTransitionType
+			s.states.action.states.play.states.viewTransition.viewTransitionType = obj.transitionType
+			//TODO: handle adding prev.on.update = [target,cond]
 			break
 		case 'cond':
+			//s = makeState(state)
 			s.id = `${obj.reduce((s, c) => s ? `${s},${c.rhs.root}` : c.rhs.root, null)}`
+			/* TODO: for parent's action
 			s.states.action.states.load.on.update = [...s.states.action.states.load.on.update, {
 				target: 'ready',
 				cond: `#${s.id}.${s.id}.load.loaded`,
 				in: `#${s.id}.${s.id}.load.loaded`
 			}]
-			s.states.action.states.ready.on[obj.op] = [{
+			*/
+			s.states.action.states.ready.on.update = [{
 				target: 'play',
-				cond: getOp(obj.op)
+				cond: obj.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
 			}]
 			break
 	}
@@ -92,11 +91,8 @@ function ingestStmt(state, stmt) {
 
 function getOp(op, args) {
 	switch (op) {
-		case 'TOUCH':
-			return `isTouching('${args}')`
-			break
 		default:
-			return `${op}('${args}')`
+			return `${op}(${args})`
 			break
 	}
 }
@@ -244,7 +240,11 @@ function makeState(prevState) {
 					load: {
 						initial: "loading",
 						on: {
-							update: []
+							update: [{
+								target: "ready",
+								cond: "loaded",
+								in: "loaded"
+							}]
 						},
 						states: {
 							loading: {
