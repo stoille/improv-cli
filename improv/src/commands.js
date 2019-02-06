@@ -4,17 +4,12 @@ var fs = require('fs')
 const parseScript = (text, printToJSON) => {
   //console.log(text)
   let t = text.split('\n')
-  let states = parseLines(t)
+  let parsedScript = parseLines(t)
   if (printToJSON){
-    let state = {
-      "id": "root",
-      "initial": Object.keys(states)[0],
-      "states": states
-    }
-    return printScript(state)
+    return printScript(parsedScript)
   }
   //console.log(parsedScript)
-  return states
+  return parsedScript
 }
 module.exports.parseScript = parseScript
 

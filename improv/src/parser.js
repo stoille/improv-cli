@@ -101,60 +101,69 @@ const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
 const canSkipStmt = s => !s || typeof s === 'number'
 let lineCursor = 0
 
-function parseLines(lines, depth = 0, lastStmt, lastLine) {
-	let states = {}
-	let parent = makeState()
-
-	//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
-	//for each line
-	// advance lines until next unit at tab level
-	// make unit recursively
-	while (lineCursor < lines.length) {
-		let line = lines[lineCursor++]
-		let stmt = parseLine(line)
-
-		let tabDecreased = stmt && stmt.depth < depth
-		if (tabDecreased) {
-			break
-		}
-
-		if (isEmptyOrSpaces(line)) {
-			continue
-		}
-
-		try {
-			lintStmt(stmt, lastStmt, line, lastLine, lineCursor)
-		} catch (error) {
-			console.error(error)
-			continue
-		}
-
-		let newState = ingestStmt(parent, stmt)
-		if (newState.error) {
-			console.error(newState.error)
-			continue
-		}
-
-		if(lastStmt && lastStmt.rule === 'action' && (stmt.rule === 'transition' || stmt.rule === 'sceneHeading' || stmt.rule === 'shot')){
-			parent = makeState(newState)
-		} else if (stmt.rule === 'cond') {
-			let childStates = parseLines(lines, depth + 1, lastStmt, lastLine)
-			newState.states = { ...newState.states,
-				...childStates
-			}
-			parent.states[newState.id] = newState
-		} else if(newState.id){
-			states[newState.id] = newState
-		}
-		
-		if (stmt.rule !== 'comment') {
-			lastStmt = stmt
-			lastLine = line
-		}
+function parseLines(lines) {
+	let states = parseStates(lines)
+	return {
+		"id": "root",
+		"initial": Object.keys(states)[0],
+		"states": states
 	}
-	return states
 }
 module.exports.parseLines = parseLines
+
+function parseStates(lines, depth = 0, lastStmt, lastLine) {
+		let states = {}
+		let currState = makeState()
+
+		//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
+		//for each line
+		// advance lines until next unit at tab level
+		// make unit recursively
+		while (lineCursor < lines.length) {
+			let line = lines[lineCursor++]
+			let stmt = parseLine(line)
+
+			let tabDecreased = stmt && stmt.depth < depth
+			if (tabDecreased) {
+				break
+			}
+
+			if (isEmptyOrSpaces(line)) {
+				continue
+			}
+
+			try {
+				lintStmt(stmt, lastStmt, line, lastLine, lineCursor)
+			} catch (error) {
+				console.error(error)
+				continue
+			}
+
+			let newState = ingestStmt(currState, stmt)
+			if (newState.error) {
+				console.error(newState.error)
+				continue
+			}
+
+			if (lastStmt && lastStmt.rule === 'action' && (stmt.rule === 'transition' || stmt.rule === 'sceneHeading' || stmt.rule === 'shot')) {
+				currState = makeState(newState)
+			} else if (stmt.rule === 'cond') {
+				let childStates = parseStates(lines, depth + 1, lastStmt, lastLine)
+				newState.states = { ...newState.states,
+					...childStates
+				}
+				currState.states[newState.id] = newState
+			} else if (newState.id) {
+				states[newState.id] = newState
+			}
+
+			if (stmt.rule !== 'comment') {
+				lastStmt = stmt
+				lastLine = line
+			}
+		}
+		return states
+}
 
 function lintStmt(stmt, lastStmt, line, lastLine, lineCursor) {
 	if (!lastStmt) {
