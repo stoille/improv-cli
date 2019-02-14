@@ -1,6 +1,7 @@
 const nearley = require('nearley')
 const grammar = require('./grammar')
 
+let transitions = []
 function parseLine(lineText) {
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), {
 		keepHistory: false
@@ -26,36 +27,37 @@ function parseLine(lineText) {
 }
 
 //post-processing statements
-function ingestStmt(state, stmt) {
-	let s = stmt.rule === 'cond' ? makeState(state) : Object.assign({}, state)
-	let isArray = stmt.result.length
-	let obj = isArray ? stmt.result : Object.assign({}, stmt.result)
+//TODO: remove mutation of currState, lastState - nasty
+function ingestStmt(stmt, lastStmt, currState, lastState) {
+	let obj = stmt.result
+	let curr = Object.assign({}, currState)
+	let last = Object.assign({}, lastState)
 
 	//TODO: error checking
 	switch (stmt.rule) {
 		case 'comment':
-			if (!s.comments) {
-				s.comments = []
+			if (!curr.comments) {
+				curr.comments = []
 			}
-			s.comments += obj.comment
+			curr.comments += obj.comment
 			break
 		case 'sceneHeading':
-			s.sceneHeading = obj.sceneHeading
+			curr.sceneHeading = obj.sceneHeading
 			break
 		case 'shot':
-			s.id = obj.viewSource.root
-			s.states.action.states.load.update = [{
+			curr.id = obj.viewSource.root
+			curr.states.action.states.load.update = [{
 				target: 'ready',
-				cond: `#${s.id}.action.states.load.loaded`,
-				in: `#${s.id}.action.states.load.loaded`,
+				cond: `#${curr.id}.action.states.load.loaded`,
+				in: `#${curr.id}.action.states.load.loaded`,
 			}]
-			s.states.action.states.play.viewType = obj.viewType
-			if (obj.viewMovement){
-				s.states.action.states.play.states.viewMovement.viewMovementType = obj.viewMovement
+			curr.states.action.states.play.viewType = obj.viewType
+			if (obj.viewMovement) {
+				curr.states.action.states.play.states.viewMovement.viewMovementType = obj.viewMovement
 			}
 			break
 		case 'action':
-			s.states.action.states.play.states.lines.states = [...Object.values(s.states.action.states.play.states.lines.states), ...obj].map((a, idx, arr) => ({
+			curr.states.action.states.play.states.lines.states = [...Object.values(curr.states.action.states.play.states.lines.states), ...obj].map((a, idx, arr) => ({
 				text: a.text,
 				time: a.time,
 				on: {
@@ -66,27 +68,21 @@ function ingestStmt(state, stmt) {
 				return al
 			}, {})
 			break
-		case 'transition':
-			s.states.action.states.play.states.viewTransition.viewTransitionType = obj.transitionType
-			//TODO: handle adding prev.on.update = [target,cond]
+		case 'transition': //push transition onto a stack and, once the next state's id is known, apply its transition condition to the prev state
+			transitions.push(obj)
 			break
 		case 'cond':
-			//s = makeState(state)
-			s.id = `${obj.reduce((s, c) => s ? `${s},${c.rhs.root}` : c.rhs.root, null)}`
-			/* TODO: for parent's action
-			s.states.action.states.load.on.update = [...s.states.action.states.load.on.update, {
-				target: 'ready',
-				cond: `#${s.id}.${s.id}.load.loaded`,
-				in: `#${s.id}.${s.id}.load.loaded`
-			}]
-			*/
-			s.states.action.states.ready.on.update = [{
+			curr.states.action.states.ready.on.update = [{
 				target: 'play',
 				cond: obj.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
 			}]
 			break
 	}
-	return s
+	//always name current states after their play condition
+	if (lastStmt && lastStmt.rule === 'cond') {
+		curr.id = `${lastStmt.result.reduce((s, c) => s ? `${s},${c.rhs.root}` : c.rhs.root, null)}`
+	}
+	return {curr,last}
 }
 
 function getOp(op, args) {
@@ -97,72 +93,103 @@ function getOp(op, args) {
 	}
 }
 
-const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
-const canSkipStmt = s => !s || typeof s === 'number'
-let lineCursor = 0
+function applyTransition(obj, currState, lastState){
+	currState.states.action.states.play.states.viewTransition.viewTransitionType = obj.transitionType
+	lastState.on.update = [{
+		target: currState.id,
+		cond: obj.cond ? obj.cond.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:"))) : undefined
+	}]
+}
 
-function parseLines(lines) {
-	let states = parseStates(lines)
-	return {
-		"id": "root",
-		"initial": Object.keys(states)[0],
-		"states": states
-	}
+const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
+
+let lineCursor = 0,
+	lastStmt, lastLine, envs = []
+let lastState = {
+	id: "root",
+	on: {},
+	states: {}
 }
 module.exports.parseLines = parseLines
 
-function parseStates(lines, depth = 0, lastStmt, lastLine) {
-		let states = {}
-		let currState = makeState()
+function parseLines(lines) {
+	let currState = makeState(lastState)
+	//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
+	//for each line
+	// advance lines until next unit at tab level
+	// make unit recursively
+	while (lineCursor < lines.length) {
+		let line = lines[lineCursor]
+		lineCursor += 1
+		let currStmt = parseLine(line)
 
-		//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
-		//for each line
-		// advance lines until next unit at tab level
-		// make unit recursively
-		while (lineCursor < lines.length) {
-			let line = lines[lineCursor++]
-			let stmt = parseLine(line)
+		if (currStmt.rule === 'comment' ||
+			isEmptyOrSpaces(line)) {
+			continue
+		}
 
-			let tabDecreased = stmt && stmt.depth < depth
-			if (tabDecreased) {
-				break
+		let tabDecreased = currStmt && lastStmt && currStmt.depth < lastStmt.depth
+		if (tabDecreased) {
+			let env = envs.pop()
+			currState = env.currState
+			lastState = env.lastState
+			lastStmt = env.lastStmt
+			//break
+		}
+
+		try {
+			lintStmt(currStmt, lastStmt, line, lastLine, lineCursor)
+		} catch (error) {
+			console.error(error)
+			continue
+		}
+
+		let newState
+		let tabIncreased = currStmt && lastStmt && currStmt.depth > lastStmt.depth
+		if (tabIncreased && currStmt.rule === 'cond') {
+			envs.push({
+				currState,
+				lastState,
+				currStmt,
+				lastStmt
+			})
+			lastState = currState
+			lastLine = line
+			lastStmt = currStmt
+			newState = parseLines(lines)
+			currState.states[newState.id] = newState 
+			continue
+		}
+
+		try {
+			let {curr,last} = ingestStmt(currStmt, lastStmt, currState, lastState)
+			newState = curr
+			lastState = last
+		} catch (e) {
+			console.error(e)
+		}
+
+		if (newState.id && (newState.id !== currState.id)) {
+			if(currState.id){
+				lastState = currState
+			}
+			if (!lastState.states.hasOwnProperty(newState.id)) {
+				lastState.states[newState.id] = newState
 			}
 
-			if (isEmptyOrSpaces(line)) {
-				continue
-			}
+			currState = newState
 
-			try {
-				lintStmt(stmt, lastStmt, line, lastLine, lineCursor)
-			} catch (error) {
-				console.error(error)
-				continue
-			}
-
-			let newState = ingestStmt(currState, stmt)
-			if (newState.error) {
-				console.error(newState.error)
-				continue
-			}
-
-			if (lastStmt && lastStmt.rule === 'action' && (stmt.rule === 'transition' || stmt.rule === 'sceneHeading' || stmt.rule === 'shot')) {
-				currState = makeState(newState)
-			} else if (stmt.rule === 'cond') {
-				let childStates = parseStates(lines, depth + 1, lastStmt, lastLine)
-				newState.states = { ...newState.states,
-					...childStates
-				}
-				currState.states[newState.id] = newState
-			} else if (newState.id) {
-				states[newState.id] = newState
-			}
-
-			if (stmt.rule !== 'comment') {
-				lastStmt = stmt
-				lastLine = line
+			//if there are any positions, apply them now that the newstate id is known
+			if(transitions.length){
+				applyTransition(transitions.pop(), currState, lastState)
 			}
 		}
-		return states
+
+		lastLine = line
+		lastStmt = currStmt
+	}
+	
+	return currState
 }
 
 function lintStmt(stmt, lastStmt, line, lastLine, lineCursor) {
@@ -230,10 +257,10 @@ function lintStmt(stmt, lastStmt, line, lastLine, lineCursor) {
 	}
 }
 
-function makeState(prevState) {
+function makeState(currState, parallel = true) {
 	let state = ({
-		id: prevState ? prevState.id : undefined,
-		parallel: true,
+		id: undefined,
+		parallel: parallel,
 		on: {
 			update: []
 		},
@@ -272,7 +299,7 @@ function makeState(prevState) {
 					},
 					play: {
 						parallel: true,
-						viewType: prevState ? prevState.states.action.states.play.viewType : undefined,
+						viewType: currState && currState.states.action ? currState.states.action.states.play.viewType : undefined,
 						on: {
 							pause: "pause"
 						},
@@ -294,7 +321,7 @@ function makeState(prevState) {
 							},
 							viewMovement: {
 								initial: "play",
-								viewMovementType: prevState ?prevState.states.action.states.play.viewMovementType : undefined,
+								viewMovementType: currState && currState.states.action ? currState.states.action.states.play.viewMovementType : undefined,
 								states: {
 									play: {
 										on: {
@@ -310,7 +337,7 @@ function makeState(prevState) {
 							},
 							viewTransition: {
 								initial: "play",
-								viewTransitionType: prevState ? prevState.states.action.states.play.viewTransitionType : undefined,
+								viewTransitionType: currState && currState.states.action ? currState.states.action.states.play.viewTransitionType : undefined,
 								states: {
 									play: {
 										on: {
