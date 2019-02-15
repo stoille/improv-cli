@@ -27,9 +27,9 @@ function parseLine(lineText) {
 }
 
 //post-processing statements
-//TODO: remove mutation of currState, lastState - nasty
+//TODO: remove mutation of currState, lastState - could get nasty
 function ingestStmt(stmt, lastStmt, currState, lastState) {
-	let obj = stmt.result
+	let obj = JSON.parse(JSON.stringify(stmt.result))
 	let curr = Object.assign({}, currState)
 	let last = Object.assign({}, lastState)
 
@@ -45,6 +45,7 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 			curr.sceneHeading = obj.sceneHeading
 			break
 		case 'shot':
+			curr = makeState(curr)
 			curr.id = obj.viewSource.root
 			curr.states.action.states.load.update = [{
 				target: 'ready',
@@ -69,6 +70,7 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 			}, {})
 			break
 		case 'transition': //push transition onto a stack and, once the next state's id is known, apply its transition condition to the prev state
+			curr = makeState(curr)
 			transitions.push(obj)
 			break
 		case 'cond':
@@ -82,7 +84,15 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 	if (lastStmt && lastStmt.rule === 'cond') {
 		curr.id = `${lastStmt.result.reduce((s, c) => s ? `${s},${c.rhs.root}` : c.rhs.root, null)}`
 	}
+
+	//initialize last if needed
+	last.initial = getInitial(last, curr.id)
+
 	return {curr,last}
+}
+
+function getInitial(last, id){
+	return (!last.parallel && !last.initial) ? last.initial = id : last.initial
 }
 
 function getOp(op, args) {
@@ -156,9 +166,9 @@ function parseLines(lines) {
 			lastState = currState
 			lastLine = line
 			lastStmt = currStmt
-			newState = parseLines(lines)
-			currState.states[newState.id] = newState 
-			continue
+			return parseLines(lines)
+			//currState.states[newState.id] = newState 
+			//continue
 		}
 
 		try {
@@ -170,7 +180,7 @@ function parseLines(lines) {
 		}
 
 		if (newState.id && (newState.id !== currState.id)) {
-			if(currState.id){
+			if(lastStmt.rule !== 'transition' && currState.id){
 				lastState = currState
 			}
 			if (!lastState.states.hasOwnProperty(newState.id)) {
@@ -189,7 +199,7 @@ function parseLines(lines) {
 		lastStmt = currStmt
 	}
 	
-	return currState
+	return lastState
 }
 
 function lintStmt(stmt, lastStmt, line, lastLine, lineCursor) {
