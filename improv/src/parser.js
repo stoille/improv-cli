@@ -74,15 +74,20 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 			transitions.push(obj)
 			break
 		case 'cond':
-			curr.states.action.states.ready.on.update = [{
-				target: 'play',
-				cond: obj.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
-			}]
 			break
 	}
 	//always name current states after their play condition
 	if (lastStmt && lastStmt.rule === 'cond') {
 		curr.id = `${lastStmt.result.reduce((s, c) => s ? `${s},${c.rhs.root}` : c.rhs.root, null)}`
+		curr.states.action.states.ready.on.update = [{
+			target: 'play',
+			cond: lastStmt.result.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
+		}]
+		last.states.action.states.load.on.update = [{
+			target: 'ready',
+			cond: last.states.action.states.load.on.update[0] ? [...last.states.action.states.load.on.update[0].cond, 
+			`#${curr.id}.states.load.loaded`]: [`#${curr.id}.states.load.loaded`]
+		}]
 	}
 
 	//initialize last if needed
@@ -155,6 +160,14 @@ function parseLines(lines) {
 		}
 
 		let newState
+		try {
+			let {curr,last} = ingestStmt(currStmt, lastStmt, currState, lastState)
+			newState = curr
+			lastState = last
+		} catch (e) {
+			console.error(e)
+		}
+
 		let tabIncreased = currStmt && lastStmt && currStmt.depth > lastStmt.depth
 		if (tabIncreased && currStmt.rule === 'cond') {
 			envs.push({
@@ -167,32 +180,25 @@ function parseLines(lines) {
 			lastLine = line
 			lastStmt = currStmt
 			return parseLines(lines)
-			//currState.states[newState.id] = newState 
-			//continue
 		}
 
-		try {
-			let {curr,last} = ingestStmt(currStmt, lastStmt, currState, lastState)
-			newState = curr
-			lastState = last
-		} catch (e) {
-			console.error(e)
-		}
-
+		//if a new state is found
 		if (newState.id && (newState.id !== currState.id)) {
+			//TODO: figure this out since lastStmt may not always be a transition (e.g. transition->sceneHeading->shot)
 			if(lastStmt.rule !== 'transition' && currState.id){
 				lastState = currState
 			}
+			//populate the parent state with a child
 			if (!lastState.states.hasOwnProperty(newState.id)) {
 				lastState.states[newState.id] = newState
 			}
 
-			currState = newState
-
 			//if there are any positions, apply them now that the newstate id is known
-			if(transitions.length){
-				applyTransition(transitions.pop(), currState, lastState)
+			if (transitions.length) {
+				applyTransition(transitions.pop(), newState, currState)
 			}
+			
+			currState = newState
 		}
 
 		lastLine = line
@@ -304,14 +310,15 @@ function makeState(currState, parallel = true) {
 					ready: {
 						on: {
 							preload: "preload",
-							update: []
+							update: "play"
 						}
 					},
 					play: {
 						parallel: true,
 						viewType: currState && currState.states.action ? currState.states.action.states.play.viewType : undefined,
 						on: {
-							pause: "pause"
+							pause: "pause",
+							unload: "preload"
 						},
 						states: {
 							isStarted: {
