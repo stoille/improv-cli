@@ -2,6 +2,7 @@ const nearley = require('nearley')
 const grammar = require('./grammar')
 
 let transitions = []
+
 function parseLine(lineText) {
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), {
 		keepHistory: false
@@ -42,7 +43,8 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 			curr.comments += obj.comment
 			break
 		case 'sceneHeading':
-			curr.sceneHeading = obj.sceneHeading
+			curr = makeState(curr)
+			curr.states.action.states.play.scene = obj
 			break
 		case 'shot':
 			curr = makeState(curr)
@@ -52,9 +54,9 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 				cond: `#${curr.id}.action.states.load.loaded`,
 				in: `#${curr.id}.action.states.load.loaded`,
 			}]
-			curr.states.action.states.play.viewType = obj.viewType
+			curr.states.action.states.play.type = obj.viewType
 			if (obj.viewMovement) {
-				curr.states.action.states.play.states.viewMovement.viewMovementType = obj.viewMovement
+				curr.states.action.states.play.states.movement.type = obj.viewMovement
 			}
 			break
 		case 'action':
@@ -70,8 +72,10 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 			}, {})
 			break
 		case 'transition': //push transition onto a stack and, once the next state's id is known, apply its transition condition to the prev state
+			transitions.push({ ...obj,
+				from: curr
+			})
 			curr = makeState(curr)
-			transitions.push(obj)
 			break
 		case 'cond':
 			break
@@ -85,18 +89,22 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 		}]
 		last.states.action.states.load.on.update = [{
 			target: 'ready',
-			cond: last.states.action.states.load.on.update[0] ? [...last.states.action.states.load.on.update[0].cond, 
-			`#${curr.id}.states.load.loaded`]: [`#${curr.id}.states.load.loaded`]
+			cond: last.states.action.states.load.on.update[0] ? [...last.states.action.states.load.on.update[0].cond,
+				`#${curr.id}.states.load.loaded`
+			] : [`#${curr.id}.states.load.loaded`]
 		}]
 	}
 
 	//initialize last if needed
 	last.initial = getInitial(last, curr.id)
 
-	return {curr,last}
+	return {
+		curr,
+		last
+	}
 }
 
-function getInitial(last, id){
+function getInitial(last, id) {
 	return (!last.parallel && !last.initial) ? last.initial = id : last.initial
 }
 
@@ -108,11 +116,11 @@ function getOp(op, args) {
 	}
 }
 
-function applyTransition(obj, currState, lastState){
-	currState.states.action.states.play.states.viewTransition.viewTransitionType = obj.transitionType
-	lastState.on.update = [{
-		target: currState.id,
-		cond: obj.cond ? obj.cond.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:"))) : undefined
+function applyTransition(transition, to) {
+	to.states.action.states.play.states.transition.type = transition.transitionType
+	transition.from.on.update = [{
+		target: to.id,
+		cond: transition.cond ? transition.cond.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:"))) : undefined
 	}]
 }
 
@@ -161,7 +169,10 @@ function parseLines(lines) {
 
 		let newState
 		try {
-			let {curr,last} = ingestStmt(currStmt, lastStmt, currState, lastState)
+			let {
+				curr,
+				last
+			} = ingestStmt(currStmt, lastStmt, currState, lastState)
 			newState = curr
 			lastState = last
 		} catch (e) {
@@ -184,8 +195,7 @@ function parseLines(lines) {
 
 		//if a new state is found
 		if (newState.id && (newState.id !== currState.id)) {
-			//TODO: figure this out since lastStmt may not always be a transition (e.g. transition->sceneHeading->shot)
-			if(lastStmt.rule !== 'transition' && currState.id){
+			if (currState.id && lastState.id !== currState.id) {
 				lastState = currState
 			}
 			//populate the parent state with a child
@@ -195,16 +205,15 @@ function parseLines(lines) {
 
 			//if there are any positions, apply them now that the newstate id is known
 			if (transitions.length) {
-				applyTransition(transitions.pop(), newState, currState)
+				applyTransition(transitions.pop(), newState)
 			}
-			
-			currState = newState
 		}
 
+		currState = newState
 		lastLine = line
 		lastStmt = currStmt
 	}
-	
+
 	return lastState
 }
 
@@ -315,11 +324,12 @@ function makeState(currState, parallel = true) {
 					},
 					play: {
 						parallel: true,
-						viewType: currState && currState.states.action ? currState.states.action.states.play.viewType : undefined,
 						on: {
 							pause: "pause",
 							unload: "preload"
 						},
+						type: currState && currState.states.action ? currState.states.action.type : undefined,
+						scene: currState && currState.states.action ? currState.states.action.states.play.scene : undefined,
 						states: {
 							isStarted: {
 								initial: "false",
@@ -336,9 +346,9 @@ function makeState(currState, parallel = true) {
 								initial: "0",
 								states: {}
 							},
-							viewMovement: {
+							movement: {
 								initial: "play",
-								viewMovementType: currState && currState.states.action ? currState.states.action.states.play.viewMovementType : undefined,
+								type: currState && currState.states.action ? currState.states.action.states.play.states.movement.type : undefined,
 								states: {
 									play: {
 										on: {
@@ -352,9 +362,9 @@ function makeState(currState, parallel = true) {
 									}
 								}
 							},
-							viewTransition: {
+							transition: {
 								initial: "play",
-								viewTransitionType: currState && currState.states.action ? currState.states.action.states.play.viewTransitionType : undefined,
+								type: currState && currState.states.action ? currState.states.action.states.play.states.transition.type : undefined,
 								states: {
 									play: {
 										on: {
