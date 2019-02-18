@@ -48,11 +48,11 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 			break
 		case 'shot':
 			curr = makeState(curr)
-			curr.id = obj.viewSource.root
+			curr.id = `${obj.viewType}-${obj.viewSource.root}-${obj.viewMovement}`
 			curr.states.action.states.load.update = [{
 				target: 'ready',
-				cond: `#${curr.id}.action.states.load.loaded`,
-				in: `#${curr.id}.action.states.load.loaded`,
+				cond: `#${curr.id}.action.load.loaded`,
+				in: `#${curr.id}.action.load.loaded`,
 			}]
 			curr.states.action.states.play.type = obj.viewType
 			if (obj.viewMovement) {
@@ -64,10 +64,11 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 				text: a.text,
 				time: a.time,
 				on: {
-					onDone: (idx === arr.length - 1 ? idx : idx + 1).toString()
+					onDone: (idx === arr.length - 1 || idx === arr.length - 2 ? 'done' : idx + 1).toString()
 				}
-			})).reduce((al, a, idx) => {
-				al[idx] = a
+			})).reduce((al, a, idx, arr) => {
+				let i = idx < arr.length - 1 ? idx : 'done'
+				al[i] = a
 				return al
 			}, {})
 			break
@@ -82,7 +83,7 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 	}
 	//always name current states after their play condition
 	if (lastStmt && lastStmt.rule === 'cond') {
-		curr.id = `${lastStmt.result.reduce((s, c) => s ? `${s},${c.rhs.root}` : c.rhs.root, null)}`
+		curr.id = lastStmt.result.reduce((s, c) => s ? `${s},${c.op}-${c.rhs.root}` : `${c.op}-${c.rhs.root}`, null)
 		curr.states.action.states.ready.on.update = [{
 			target: 'play',
 			cond: lastStmt.result.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
@@ -90,8 +91,8 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 		last.states.action.states.load.on.update = [{
 			target: 'ready',
 			cond: last.states.action.states.load.on.update[0] ? [...last.states.action.states.load.on.update[0].cond,
-				`#${curr.id}.states.load.loaded`
-			] : [`#${curr.id}.states.load.loaded`]
+				`#${curr.id}.load.loaded`
+			] : [`#${curr.id}.load.loaded`]
 		}]
 	}
 
@@ -116,11 +117,27 @@ function getOp(op, args) {
 	}
 }
 
-function applyTransition(transition, to) {
-	to.states.action.states.play.states.transition.type = transition.transitionType
-	transition.from.on.update = [{
+function applyCut(from, to, transitionType = 'CUT') {
+	to.states.action.states.play.states.transition.type = transitionType
+
+	from.states.action.on.update = [{
 		target: to.id,
-		cond: transition.cond ? transition.cond.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:"))) : undefined
+		cond: 'play.lines.done'
+	}]
+	to.states.action.states.ready.on.update = [{
+		target: 'play',
+		cond: `#${from.id}.action.play.lines.done`
+	}]
+}
+
+function applyTransition(from, to, transitionType, cond) {
+	to.states.action.states.play.states.transition.type = transitionType
+	let condStateId = cond ? `${cond.reduce((s, c) => s ? `${s},${c.rhs.root}.action.play.isStarted` : `${c.rhs.root}.action.play.isStarted`,
+		null)
+	}` : undefined
+	from.on.update = [{
+		target: to.id,
+		cond: condStateId
 	}]
 }
 
@@ -205,7 +222,10 @@ function parseLines(lines) {
 
 			//if there are any positions, apply them now that the newstate id is known
 			if (transitions.length) {
-				applyTransition(transitions.pop(), newState)
+				let t = transitions.pop()
+				applyTransition(t.from, newState, t.transitionType, t.cond)
+			} else if (currState.id){
+				applyCut(currState, newState)
 			}
 		}
 
@@ -292,6 +312,7 @@ function makeState(currState, parallel = true) {
 		states: {
 			action: {
 				initial: "preload",
+				on: {},
 				states: {
 					preload: {
 						on: {
@@ -344,7 +365,9 @@ function makeState(currState, parallel = true) {
 							},
 							lines: {
 								initial: "0",
-								states: {}
+								states: {
+									done: {}
+								}
 							},
 							movement: {
 								initial: "play",
