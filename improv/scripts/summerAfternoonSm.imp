@@ -1,15 +1,23 @@
 FADE IN:
 #comments are ignored on newlines
 EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON 
-EWS - CHURCH FRONT - EASE IN - 5,15
+EWS - CHURCH FRONT - EASE IN - 15 - 5
 
 Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church. #actions always end with punctuation
 
 He clears his throat and coughs. - 10
 
 	#transitions execute in parallel as soon as their expression is true (i.e. a selector)
-	SELECT - BUSHES, SELECT - BUSHES
+	SELECT - BUSH_A - SELECT - BUSH_B -- FOO
 		The bushes sway in a light breeze.
+
+		Man: Hello?
+
+	SELECT - BUSH_A, BUSH_B
+	SELECT - BUSH_C -- LUL
+		The bushes sway in a heavy breeze.
+
+		Man: Hello, world?
 
 	SELECT - TREE
 		The trees sway in the light breeze.
@@ -18,7 +26,7 @@ He clears his throat and coughs. - 10
 
 The man paces back and forth until we touch his cap and he picks up the key. - 10 
 
-CUT: SELECT - BUSHES, SELECT - TREE 
+CUT: FOO, LUL
 EXT - OLD BAPTIST CHURCH, KENTUCKY - AFTERNOON
 MEDIUM - CHURCH - 00:02
 

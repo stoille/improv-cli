@@ -23,20 +23,25 @@ function generateTime(time){
 	}
 	return time
 }
+
+function flattenDeep(arr1) {
+   return arr1.reduce((acc, val) => Array.isArray(val) ? acc.concat(flattenDeep(val)) : acc.concat(val), []);
+}
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> TAB:? (comment|transition|sceneHeading|shot|action|dialogue|cond) comment:?{%
+unitLine -> TAB:? (comment|transition|sceneHeading|shot|action|dialogue|cond) (( _ "--" _ ) name):? comment:?{%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
-	([tab, d, comment]) => {
-		if(comment) { d.comment = comment }
+	([tab, d, marker, comment]) => {
+		if(comment) { d[0].comment = comment }
+		if(marker) {d[0].marker = marker[1]}
 		d[0].depth = tab ? tab.length : 0
 		return d[0]
 	}
 %}
 
-transition -> transitionType ":" _ cond:? {% ([transitionType, _, __, cond]) => { 
-	return rule('transition',{transitionType:transitionType[0], cond:cond ? cond.result : null}) } %}
+transition -> transitionType ":" (_ cond):? {% ([transitionType, _, conds]) => { 
+	return rule('transition',{transitionType:transitionType[0], cond:conds ? conds[1].result.conds : undefined}) } %}
 transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
 
 sceneHeading -> scenePlacement sceneName sceneTime {% 
@@ -50,36 +55,40 @@ sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"A
 
 SEP -> _ "-" _ {% id %}
 
-shot -> viewType viewSubject (_ "," _ viewSubject):? SEP:? viewMovement:? (timeSpan _ ("," _ timeSpan):?):? {%
-	([viewType, viewSource, viewTarget, _, viewMovement, transitionTime, shotTime]) => rule('shot', {viewType, viewSource, viewTarget:viewTarget ? viewTarget[3] : undefined, viewMovement, transitionTime: generateTime(transitionTime), time: generateTime(shotTime)})
+shot -> viewType SEP (viewSubject _ "," _):? viewSubject (SEP viewMovement):? ((SEP timeSpan):? SEP timeSpan):? {%
+	([viewType, _, viewSource, viewTarget, viewMovement, times]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, transitionTime: times && times[0]? generateTime(times[0][1]) : undefined, shotTime: times ? generateTime(times[2]) : undefined})
 %}
-viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS") SEP {% d => d[0].join('') %}
+viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
 viewSubject -> nameWS ("/" nameWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
 viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
 timeSpan -> num:? ":":? num _ {% d => { 
 	return ({ min: d[0], sec: d[2] }) } %}
-num -> [0-9] [0-9]:? {% d => parseInt((d[0] ? d[0] : 0) + (d[1] ? d[1] : 1)) %}
+num -> [0-9]:? [0-9] {% d => parseInt((d[0] ? d[0] : 0) * 10 + parseInt(d[1] ? d[1] : 0)) %}
 
 action -> sentence:+ {% ([body]) => rule('action', body) %}
 
 sentence -> nameWS [.?!\r\n]:+ SEP:? timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text:text, time:generateTime(timeSpan)}) %} 
 
 name -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %}
-nameWS -> [a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
+nameWS -> [0-9a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
 
 dialogue -> nameWS ":" sentence:+ {% ([speaker, _, text]) => { 
 	return rule('dialogue', {speaker: speaker, lines: text}) } %}
-
-cond -> (opName SEP):? nameWS ("/" nameWS):* SEP:? timeSpan:? (_ "," _ cond):* {% ([opName, root, path, ss, time, conds]) => {
-			path = path.map( p => p[1])
-			opName = opName ? opName[0] : opName
-			let c1 = {op: opName, time: generateTime(time), rhs: selector(root, path)}
-			let cn = conds ? [c1, ...conds.map(c => c[3].result[0])] : [c1]
+#TODO: more robust conditional expression syntax
+cond -> opName SEP nameWS ("/" nameWS):* (SEP cond):* {% ([op, _, root, path, conds]) => {
+			path = path ? path.map( p => p[1]) : undefined
+			let c1 = {op, rhs: selector(root, path)}
+			let cn = conds ? [c1, ...flattenDeep(conds.map(c => c[1].result))] : [c1]
 			return rule('cond', cn) 
 		}
-%}
+	%}
+	| (name _ "," _):* name {% ([vn, v1]) => {
+			let first = {op: 'MARKER', rhs: v1}
+			let conds = vn ? [first, ...vn.map(v => ({op: 'MARKER', rhs:v[0]}))] : [v1]
+			return rule('cond', conds) 
+		} %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}
