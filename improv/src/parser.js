@@ -29,13 +29,13 @@ function parseLine(lineText) {
 
 //post-processing statements
 //TODO: remove mutation of currState, lastState - could get nasty
-function ingestStmt(stmt, lastStmt, currState, lastState) {
-	let obj = JSON.parse(JSON.stringify(stmt.result))
+function ingestStmt(currStmt, lastStmt, currState, lastState) {
+	let obj = JSON.parse(JSON.stringify(currStmt.result))
 	let curr = Object.assign({}, currState)
 	let last = Object.assign({}, lastState)
 
 	//TODO: error checking
-	switch (stmt.rule) {
+	switch (currStmt.rule) {
 		case 'comment':
 			if (!curr.comments) {
 				curr.comments = []
@@ -48,7 +48,7 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 			break
 		case 'shot':
 			curr = makeState(curr)
-			curr.id = `${obj.viewType}-${obj.viewSource.root}-${obj.viewMovement}`
+			curr.id = `${obj.viewType}-${obj.viewTarget.root}`
 			curr.states.action.states.load.update = [{
 				target: 'ready',
 				cond: `#${curr.id}.action.load.loaded`,
@@ -84,16 +84,29 @@ function ingestStmt(stmt, lastStmt, currState, lastState) {
 	//always name current states after their play condition
 	if (lastStmt && lastStmt.rule === 'cond') {
 		curr.id = lastStmt.result.reduce((s, c) => s ? `${s},${c.op}-${c.rhs.root}` : `${c.op}-${c.rhs.root}`, null)
+		
+		if(currStmt.rule === 'cond'){
+			curr.id = `${curr.id}||${currStmt.result.reduce((s, c) => s ? `${s},${c.op}-${c.rhs.root}` : `${c.op}-${c.rhs.root}`, null)}`
+		}
+
 		curr.states.action.states.ready.on.update = [{
 			target: 'play',
 			cond: lastStmt.result.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
 		}]
+
 		last.states.action.states.load.on.update = [{
 			target: 'ready',
 			cond: last.states.action.states.load.on.update[0] ? [...last.states.action.states.load.on.update[0].cond,
 				`#${curr.id}.load.loaded`
 			] : [`#${curr.id}.load.loaded`]
 		}]
+
+		if (currStmt.rule === 'cond') {
+			curr.states.action.states.ready.on.update[0].cond = [
+				...curr.states.action.states.ready.on.update[0].cond,
+				...currStmt.result.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
+			]
+		}
 	}
 
 	//initialize last if needed
@@ -216,7 +229,7 @@ function parseLines(lines) {
 				lastState = currState
 			}
 			//populate the parent state with a child
-			if (!lastState.states.hasOwnProperty(newState.id)) {
+			if (currStmt.rule !== 'cond' && !lastState.states.hasOwnProperty(newState.id)) {
 				lastState.states[newState.id] = newState
 			}
 
@@ -224,14 +237,16 @@ function parseLines(lines) {
 			if (transitions.length) {
 				let t = transitions.pop()
 				applyTransition(t.from, newState, t.transitionType, t.cond)
-			} else if (currState.id){
+			} else if (currState.id) {
 				applyCut(currState, newState)
 			}
 		}
-
-		currState = newState
-		lastLine = line
+		//TODO: fix this terribly messy stuff
+		if (!lastStmt || (currStmt.rule !== 'cond' && lastStmt.rule !== 'cond')) {
+			currState = newState
+		}
 		lastStmt = currStmt
+		lastLine = line
 	}
 
 	return lastState
@@ -269,6 +284,7 @@ function lintStmt(stmt, lastStmt, line, lastLine, lineCursor) {
 				case 'action':
 				case 'transition':
 				case 'sceneHeading':
+				case 'cond':
 					break
 				default:
 					throw `Error: shot heading must follow an action, transition or sceneHeading${lines}`
