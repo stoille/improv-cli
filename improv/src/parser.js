@@ -27,137 +27,9 @@ function parseLine(lineText) {
 	return results
 }
 
-//post-processing statements
-//TODO: remove mutation of currState, lastState - could get nasty
-function ingestStmt(currStmt, lastStmt, currState, lastState) {
-	let obj = JSON.parse(JSON.stringify(currStmt.result))
-	let curr = Object.assign({}, currState)
-	let last = Object.assign({}, lastState)
-
-	//TODO: error checking
-	switch (currStmt.rule) {
-		case 'comment':
-			if (!curr.comments) {
-				curr.comments = []
-			}
-			curr.comments += obj.comment
-			break
-		case 'sceneHeading':
-			curr = makeState(curr)
-			curr.states.action.states.play.scene = obj
-			break
-		case 'shot':
-			curr = makeState(curr)
-			curr.id = `${obj.viewType}-${obj.viewTarget.root}`
-			curr.states.action.states.load.update = [{
-				target: 'ready',
-				cond: `#${curr.id}.action.load.loaded`,
-				in: `#${curr.id}.action.load.loaded`,
-			}]
-			curr.states.action.states.play.type = obj.viewType
-			if (obj.viewMovement) {
-				curr.states.action.states.play.states.movement.type = obj.viewMovement
-			}
-			break
-		case 'action':
-			curr.states.action.states.play.states.lines.states = [...Object.values(curr.states.action.states.play.states.lines.states), ...obj].map((a, idx, arr) => ({
-				text: a.text,
-				time: a.time,
-				on: {
-					onDone: (idx === arr.length - 1 || idx === arr.length - 2 ? 'done' : idx + 1).toString()
-				}
-			})).reduce((al, a, idx, arr) => {
-				let i = idx < arr.length - 1 ? idx : 'done'
-				al[i] = a
-				return al
-			}, {})
-			break
-		case 'transition': //push transition onto a stack and, once the next state's id is known, apply its transition condition to the prev state
-			transitions.push({ ...obj,
-				from: curr
-			})
-			curr = makeState(curr)
-			break
-		case 'cond':
-			break
-	}
-	//always name current states after their play condition
-	if (lastStmt && lastStmt.rule === 'cond') {
-		curr.id = lastStmt.result.reduce((s, c) => s ? `${s},${c.op}-${c.rhs.root}` : `${c.op}-${c.rhs.root}`, null)
-		
-		if(currStmt.rule === 'cond'){
-			curr.id = `${curr.id}||${currStmt.result.reduce((s, c) => s ? `${s},${c.op}-${c.rhs.root}` : `${c.op}-${c.rhs.root}`, null)}`
-		}
-
-		curr.states.action.states.ready.on.update = [{
-			target: 'play',
-			cond: lastStmt.result.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
-		}]
-
-		last.states.action.states.load.on.update = [{
-			target: 'ready',
-			cond: last.states.action.states.load.on.update[0] ? [...last.states.action.states.load.on.update[0].cond,
-				`#${curr.id}.load.loaded`
-			] : [`#${curr.id}.load.loaded`]
-		}]
-
-		if (currStmt.rule === 'cond') {
-			curr.states.action.states.ready.on.update[0].cond = [
-				...curr.states.action.states.ready.on.update[0].cond,
-				...currStmt.result.map(cond => getOp(cond.op, JSON.stringify(cond.rhs).replace(/\"([^(\")"]+)\":/g, "$1:")))
-			]
-		}
-	}
-
-	//initialize last if needed
-	last.initial = getInitial(last, curr.id)
-
-	return {
-		curr,
-		last
-	}
-}
-
-function getInitial(last, id) {
-	return (!last.parallel && !last.initial) ? last.initial = id : last.initial
-}
-
-function getOp(op, args) {
-	switch (op) {
-		default:
-			return `${op}(${args})`
-			break
-	}
-}
-
-function applyCut(from, to, transitionType = 'CUT') {
-	to.states.action.states.play.states.transition.type = transitionType
-
-	from.states.action.on.update = [{
-		target: to.id,
-		cond: 'play.lines.done'
-	}]
-	to.states.action.states.ready.on.update = [{
-		target: 'play',
-		cond: `#${from.id}.action.play.lines.done`
-	}]
-}
-
-function applyTransition(from, to, transitionType, cond) {
-	to.states.action.states.play.states.transition.type = transitionType
-	let condStateId = cond ? `${cond.reduce((s, c) => s ? `${s},${c.rhs.root}.action.play.isStarted` : `${c.rhs.root}.action.play.isStarted`,
-		null)
-	}` : undefined
-	from.on.update = [{
-		target: to.id,
-		cond: condStateId
-	}]
-}
-
 const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
 
-let lineCursor = 0,
-	lastStmt, lastLine, envs = []
+let lineCursor = 0, lastStmt, lastLine, envs = []
 let lastState = {
 	id: "root",
 	on: {},
@@ -174,7 +46,14 @@ function parseLines(lines) {
 	while (lineCursor < lines.length) {
 		let line = lines[lineCursor]
 		lineCursor += 1
-		let currStmt = parseLine(line)
+
+		let currStmt
+		try {
+			currStmt = parseLine(line)
+		} catch (error) {
+			console.error(error.message)
+			continue
+		}
 
 		if (currStmt.rule === 'comment' ||
 			isEmptyOrSpaces(line)) {
@@ -193,7 +72,7 @@ function parseLines(lines) {
 		try {
 			lintStmt(currStmt, lastStmt, line, lastLine, lineCursor)
 		} catch (error) {
-			console.error(error)
+			console.error(error.message)
 			continue
 		}
 
@@ -202,11 +81,11 @@ function parseLines(lines) {
 			let {
 				curr,
 				last
-			} = ingestStmt(currStmt, lastStmt, currState, lastState)
+			} = ingestStmt(currStmt, lastStmt, currState, lastState, line)
 			newState = curr
 			lastState = last
 		} catch (e) {
-			console.error(e)
+			console.error(e.message)
 		}
 
 		let tabIncreased = currStmt && lastStmt && currStmt.depth > lastStmt.depth
@@ -238,15 +117,13 @@ function parseLines(lines) {
 				let t = transitions.pop()
 				applyTransition(t.from, newState, t.transitionType, t.cond)
 			} else if (currState.id) {
-				applyCut(currState, newState)
+				applyTransition(currState, newState)
 			}
 		}
-		//TODO: fix this terribly messy stuff
-		if (!lastStmt || (currStmt.rule !== 'cond' && lastStmt.rule !== 'cond')) {
-			currState = newState
-		}
-		lastStmt = currStmt
+
+		currState = newState
 		lastLine = line
+		lastStmt = currStmt
 	}
 
 	return lastState
@@ -316,6 +193,123 @@ function lintStmt(stmt, lastStmt, line, lastLine, lineCursor) {
 			}
 			break
 	}
+}
+
+//post-processing statements
+//TODO: remove mutation of currState, lastState - could get nasty
+function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
+	let obj = JSON.parse(JSON.stringify(currStmt.result))
+	let curr = Object.assign({}, currState)
+	let last = Object.assign({}, lastState)
+
+	//TODO: error checking
+	switch (currStmt.rule) {
+		case 'comment':
+			if (!curr.comments) {
+				curr.comments = []
+			}
+			curr.comments += obj.comment
+			break
+		case 'sceneHeading':
+			curr = makeState(curr)
+			curr.states.action.states.play.scene = obj
+			break
+		case 'shot':
+			curr = makeState(curr)
+			curr.id = line.trim()
+			curr.states.action.states.load.update = [{
+				target: 'ready',
+				cond: `#${curr.id}.action.load.loaded`,
+				in: `#${curr.id}.action.load.loaded`,
+			}]
+			curr.states.action.states.play.type = obj.viewType
+			if (obj.viewMovement) {
+				curr.states.action.states.play.states.movement.type = obj.viewMovement
+			}
+			break
+		case 'action':
+			curr.states.action.marker = obj.marker
+			curr.states.action.states.play.states.lines.states = [...Object.values(curr.states.action.states.play.states.lines.states), ...obj.text].map((a, idx, arr) => ({
+				text: a.text,
+				time: a.time,
+				on: {
+					onDone: (idx === arr.length - 1 || idx === arr.length - 2 ? 'done' : idx + 1).toString()
+				}
+			})).reduce((al, a, idx, arr) => {
+				let i = idx < arr.length - 1 ? idx : 'done'
+				al[i] = a
+				return al
+			}, {})
+			break
+		case 'transition': //push transition onto a stack and, once the next state's id is known, apply its transition condition to the prev state
+			transitions.push({ ...obj,
+				from: curr
+			})
+			curr = makeState(curr)
+			break
+		case 'cond':
+			break
+	}
+
+	//always name current states after their play condition
+	if (lastStmt && lastStmt.rule === 'cond') {
+		curr.id = lastLine.trim()
+
+		curr.states.action.states.ready.on.update = [{
+			target: 'play',
+			cond: getConds(lastStmt.result)
+		}]
+
+		last.states.action.states.load.on.update = [{
+			target: 'ready',
+			cond: last.states.action.states.load.on.update[0] ? [...last.states.action.states.load.on.update[0].cond,
+				`#${curr.id}.load.loaded`
+			] : [`#${curr.id}.load.loaded`]
+		}]
+	}
+
+	//initialize last if needed
+	last.initial = getInitial(last, curr.id)
+
+	return {
+		curr,
+		last
+	}
+}
+
+function getConds(cond){
+	let getOp = (op, args) => `${op}(${args})`
+	
+	if(!cond){
+		return ''
+	} else if(cond.op === 'AND'){
+		return `${getConds(cond.lhs.result)} && ${getConds(cond.rhs.result)}`
+	} else if (cond.op === 'OR') {
+		return `${getConds(cond.lhs.result)} || ${getConds(cond.rhs.result)}`
+	} else {
+		let path = `${cond.rhs.root}/${cond.rhs.path.join('/')}`
+		return getOp(cond.op, path.replace(/\/$/, ""))
+	}
+}
+
+function getInitial(last, id) {
+	return (!last.parallel && !last.initial) ? last.initial = id : last.initial
+}
+
+function applyTransition(from, to, transitionType = 'CUT', cond) {
+	to.states.action.states.play.states.transition.type = transitionType
+
+	let condStateId = cond ? `${cond.reduce((s, c) => s ? `${s},${c.rhs.root}.action.play.isStarted` : `${c.rhs.root}.action.play.isStarted`,
+		null)
+	}` : undefined
+	from.on.update = [{
+		target: to.id,
+		cond: condStateId
+	}]
+	to.states.action.states.ready.on.update = [{
+		target: 'play',
+		cond: `#${from.id}.action.play.lines.done`
+	}]
 }
 
 function makeState(currState, parallel = true) {
