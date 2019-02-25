@@ -30,18 +30,17 @@ function flattenDeep(arr1) {
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> TAB:? (comment|transition|sceneHeading|shot|action|dialogue|cond) (( _ "--" _ ) name):? comment:?{%
+unitLine -> TAB:? (comment|transition|sceneHeading|shot|action|dialogue|cond) comment:?{%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
 	([tab, d, marker, comment]) => {
 		if(comment) { d[0].comment = comment }
-		if(marker) {d[0].marker = marker[1]}
 		d[0].depth = tab ? tab.length : 0
 		return d[0]
 	}
 %}
 
-transition -> transitionType ":" (_ cond):? {% ([transitionType, _, conds]) => { 
-	return rule('transition',{transitionType:transitionType[0], cond:conds ? conds[1].result.conds : undefined}) } %}
+transition -> transitionType (":" _) cond:? {% ([transitionType, _, cond]) => { 
+	return rule('transition',{transitionType:transitionType[0], cond:cond ? cond.result.cond : undefined}) } %}
 transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
 
 sceneHeading -> scenePlacement sceneName sceneTime {% 
@@ -66,29 +65,25 @@ timeSpan -> num:? ":":? num _ {% d => {
 	return ({ min: d[0], sec: d[2] }) } %}
 num -> [0-9]:? [0-9] {% d => parseInt((d[0] ? d[0] : 0) * 10 + parseInt(d[1] ? d[1] : 0)) %}
 
-action -> sentence:+ {% ([body]) => rule('action', body) %}
+action -> sentence:+ marker:? {% ([text, marker]) => rule('action', {text, marker}) %}
 
 sentence -> nameWS [.?!\r\n]:+ SEP:? timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text:text, time:generateTime(timeSpan)}) %} 
 
-name -> [a-zA-Z,'_]:+ {% d => d[0].join('')  %}
+name -> [a-zA-Z'_]:+ {% d => d[0].join('')  %}
+marker -> SEP name {% d => d[1]  %}
 nameWS -> [0-9a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
 
 dialogue -> nameWS ":" sentence:+ {% ([speaker, _, text]) => { 
 	return rule('dialogue', {speaker: speaker, lines: text}) } %}
 #TODO: more robust conditional expression syntax
-cond -> opName SEP nameWS ("/" nameWS):* (SEP cond):* {% ([op, _, root, path, conds]) => {
-			path = path ? path.map( p => p[1]) : undefined
-			let c1 = {op, rhs: selector(root, path)}
-			let cn = conds ? [c1, ...flattenDeep(conds.map(c => c[1].result))] : [c1]
-			return rule('cond', cn) 
-		}
-	%}
-	| (name _ "," _):* name {% ([vn, v1]) => {
-			let first = {op: 'MARKER', rhs: v1}
-			let conds = vn ? [first, ...vn.map(v => ({op: 'MARKER', rhs:v[0]}))] : [v1]
-			return rule('cond', conds) 
-		} %}
+cond -> cond (SEP ("AND" | "OR") SEP) cond {% ([lhs, op, rhs]) => { return rule('cond', {op:op[1][0],lhs,rhs}) } %}
+	| opName SEP nameWS ("/" nameWS):* {% ([op, _, root, path]) => { return rule('cond', {op, rhs: selector(root, path ? path.map( p => p[1] ) : undefined)})} %}
+	
+#	| (_ marker _ ):+ {% (vn) => {
+#			let cond = vn.map(v => ({op: 'MARKER', rhs:v[1]}))
+#			return rule('cond', cond) 
+#		} %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}

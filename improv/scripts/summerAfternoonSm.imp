@@ -8,14 +8,11 @@ Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace
 He clears his throat and coughs. - 10
 
 	#transitions execute in parallel as soon as their expression is true (i.e. a selector)
-	SELECT - BUSH_A - SELECT - BUSH_B -- FOO
-		The bushes sway in a light breeze.
+	SELECT - BUSH_A - AND - SELECT - BUSH_B 
+		The bushes sway in a light breeze. -FOO
 
-		Man: Hello?
-
-	SELECT - BUSH_A, BUSH_B
-	SELECT - BUSH_C -- LUL
-		The bushes sway in a heavy breeze.
+	SELECT - BUSH_A, BUSH_B - OR - SELECT - BUSH_C
+		The bushes sway in a heavy breeze. -LUL
 
 		Man: Hello, world?
 
@@ -26,7 +23,7 @@ He clears his throat and coughs. - 10
 
 The man paces back and forth until we touch his cap and he picks up the key. - 10 
 
-CUT: FOO, LUL
+CUT: FOO - LUL
 EXT - OLD BAPTIST CHURCH, KENTUCKY - AFTERNOON
 MEDIUM - CHURCH - 00:02
 
