@@ -62,11 +62,16 @@ function parseLines(lines) {
 
 		let tabDecreased = currStmt && lastStmt && currStmt.depth < lastStmt.depth
 		if (tabDecreased) {
+			let d = lastStmt.depth - 2
 			let env = envs.pop()
+			while (d > currStmt.depth){
+				env = envs.pop()
+				d -= 2
+			}
+			
 			currState = env.currState
 			lastState = env.lastState
 			lastStmt = env.lastStmt
-			//break
 		}
 
 		try {
@@ -116,8 +121,6 @@ function parseLines(lines) {
 			if (transitions.length) {
 				let t = transitions.pop()
 				applyTransition(t.from, newState, t.transitionType, t.cond)
-			} else if (currState.id) {
-				applyTransition(currState, newState)
 			}
 		}
 
@@ -226,6 +229,14 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 			if (obj.viewMovement) {
 				curr.states.action.states.play.states.movement.type = obj.viewMovement
 			}
+			
+			if (transitions.length) {
+				let t = transitions.pop()
+				applyTransition(t.from, curr, t.transitionType, t.cond, true)
+			} else {
+				applyTransition(currState, curr)
+			}
+			
 			break
 		case 'action':
 			curr.states.action.marker = obj.marker
@@ -296,12 +307,17 @@ function getInitial(last, id) {
 	return (!last.parallel && !last.initial) ? last.initial = id : last.initial
 }
 
-function applyTransition(from, to, transitionType = 'CUT', cond) {
+function applyTransition(from, to, transitionType, cond, override) {
+	if (!override && to.states.action.states.play.states.transition.type){
+		return
+	}
+	if (!transitionType){
+		transitionType = 'CUT'
+	}
+	
 	to.states.action.states.play.states.transition.type = transitionType
 
-	let condStateId = cond ? `${cond.reduce((s, c) => s ? `${s},${c.rhs.root}.action.play.isStarted` : `${c.rhs.root}.action.play.isStarted`,
-		null)
-	}` : undefined
+	let condStateId = cond ? `${cond.reduce((s, c) => s ? `${s},${c.rhs.root}.action.play.isStarted` : `${c.rhs.root}.action.play.isStarted`, null)}` : `#${from.id}.action.states.done`
 	from.on.update = [{
 		target: to.id,
 		cond: condStateId
