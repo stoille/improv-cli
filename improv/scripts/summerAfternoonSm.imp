@@ -10,6 +10,10 @@ He clears his throat and coughs. - 10
 	#transitions execute in parallel as soon as their expression is true (i.e. a selector)
 	SELECT - BUSH_A - AND - SELECT - BUSH_B 
 		The bushes sway in a light breeze. -FOO
+			FOO - LUL
+				Yessir.
+					WOW - WORKS
+						Nice!
 
 	SELECT - BUSH_A, BUSH_B - OR - SELECT - BUSH_C
 		The bushes sway in a heavy breeze. -LUL
