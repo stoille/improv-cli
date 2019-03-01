@@ -33,7 +33,8 @@ let lineCursor = 0, lastStmt, lastLine, envs = []
 let lastState = {
 	id: "root",
 	on: {},
-	states: {}
+	states: {},
+	isRoot: true
 }
 module.exports.parseLines = parseLines
 
@@ -109,12 +110,9 @@ function parseLines(lines) {
 
 		//if a new state is found
 		if (newState.id && (newState.id !== currState.id)) {
-			if (currState.id && lastState.id !== currState.id) {
-				lastState = currState
-			}
 			//populate the parent state with a child
-			if (currStmt.rule !== 'cond' && !lastState.states.hasOwnProperty(newState.id)) {
-				lastState.states[newState.id] = newState
+			if(!lastState.states.hasOwnProperty(newState.id)){
+					lastState.states[newState.id] = newState
 			}
 
 			//if there are any positions, apply them now that the newstate id is known
@@ -232,7 +230,7 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 			
 			if (transitions.length) {
 				let t = transitions.pop()
-				applyTransition(t.from, curr, t.transitionType, t.cond, true)
+				applyTransition(t.from, curr, t.transitionType, t.cond)
 			} else {
 				applyTransition(currState, curr)
 			}
@@ -280,7 +278,9 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 	}
 
 	//initialize last if needed
-	last.initial = getInitial(last, curr.id)
+	if(!last.initial && curr.id){
+		last.initial = getInitial(last, curr.id)
+	}
 
 	return {
 		curr,
@@ -307,10 +307,7 @@ function getInitial(last, id) {
 	return (!last.parallel && !last.initial) ? last.initial = id : last.initial
 }
 
-function applyTransition(from, to, transitionType, cond, override) {
-	if (!override && to.states.action.states.play.states.transition.type){
-		return
-	}
+function applyTransition(from, to, transitionType, cond) {
 	if (!transitionType){
 		transitionType = 'CUT'
 	}
