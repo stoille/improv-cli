@@ -30,7 +30,7 @@ function flattenDeep(arr1) {
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> TAB:? (comment|transition|sceneHeading|shot|action|dialogue|cond) comment:?{%
+unitLine -> TAB:? (comment|transition|sceneHeading|shot|action|dialogue|cond) _ comment:?{%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
 	([tab, d, marker, comment]) => {
 		if(comment) { d[0].comment = comment }
@@ -40,17 +40,16 @@ unitLine -> TAB:? (comment|transition|sceneHeading|shot|action|dialogue|cond) co
 %}
 
 transition -> transitionType (":" _) cond:? {% ([transitionType, _, cond]) => { 
-	return rule('transition',{transitionType:transitionType[0], cond:cond ? cond.result.cond : undefined}) } %}
+	return rule('transition',{transitionType:transitionType[0], cond:cond}) } %}
 transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
 
-sceneHeading -> scenePlacement sceneName sceneTime {% 
-	([scenePlacement, sceneName, sceneTime]) => {
+sceneHeading -> scenePlacement SEP sceneName SEP sceneTime {% 
+	([scenePlacement, _, sceneName, __, sceneTime]) => {
 		return rule('sceneHeading',{ scenePlacement, sceneName, sceneTime}) }
 %}
-scenePlacement -> scenePlacementName SEP {% d => d[0].join('') %}
-scenePlacementName -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") _ {% id %}
-sceneName -> .:+ SEP {% d => d[0].join('').trim() %}
-sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") _  {% d => d[0].join('') %}
+scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") {% d => d[0][0] %}
+sceneName -> varName (_ "," _) varName {% ([scene,_,location]) => ({scene,location}) %}
+sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
 
 SEP -> _ "-" _ {% id %}
 
@@ -69,16 +68,19 @@ action -> sentence:+ marker:? {% ([text, marker]) => rule('action', {text, marke
 
 sentence -> nameWS [.?!\r\n]:+ SEP:? timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text:text, time:generateTime(timeSpan)}) %} 
 
-name -> [a-zA-Z'_]:+ {% d => d[0].join('')  %}
-marker -> SEP name {% d => d[1]  %}
-nameWS -> [0-9a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
-opName -> [a-zA-Z_]:+ {% d => d[0].join('').trim()  %}
+marker -> SEP varName {% d => d[1]  %}
+nameWS -> [0-9a-zA-Z,'_ ]:+ {% d => d[0].join('')  %}
+opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 
 dialogue -> nameWS ":" sentence:+ {% ([speaker, _, text]) => { 
 	return rule('dialogue', {speaker: speaker, lines: text}) } %}
 #TODO: more robust conditional expression syntax
+varName-> [a-zA-Z'_ ]:+ {% d => d[0].join('')  %}
 cond -> cond (SEP ("AND" | "OR") SEP) cond {% ([lhs, op, rhs]) => { return rule('cond', {op:op[1][0],lhs,rhs}) } %}
-	| opName SEP nameWS ("/" nameWS):* {% ([op, _, root, path]) => { return rule('cond', {op, rhs: selector(root, path ? path.map( p => p[1] ) : undefined)})} %}
+	| opName SEP varName ("/" varName):* ((_ "," _) varName ("/" varName):*):* {% ([op, _, root, path, params]) => { 
+			let s1 = selector(root, path ? path.map(pp=>pp[2]) : undefined)
+			let sn = params ? params.map( p => selector(p[1],p[2] ? p[2].map(pp => pp[1]): undefined)) : undefined
+			return rule('cond', {op, rhs: [s1, ...sn]})} %}
 	
 #	| (_ marker _ ):+ {% (vn) => {
 #			let cond = vn.map(v => ({op: 'MARKER', rhs:v[1]}))

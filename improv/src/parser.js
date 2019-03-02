@@ -217,7 +217,7 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 			break
 		case 'shot':
 			curr = makeState(curr)
-			curr.id = line.trim()
+			curr.id = line//.trim()
 			curr.states.action.states.load.update = [{
 				target: 'ready',
 				cond: `#${curr.id}.action.load.loaded`,
@@ -230,7 +230,7 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 			
 			if (transitions.length) {
 				let t = transitions.pop()
-				applyTransition(t.from, curr, t.transitionType, t.cond)
+				applyTransition(t.from, curr, t.transitionType, t && t.cond ? t.cond.result : undefined)
 			} else {
 				applyTransition(currState, curr)
 			}
@@ -262,7 +262,7 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 
 	//always name current states after their play condition
 	if (lastStmt && lastStmt.rule === 'cond') {
-		curr.id = lastLine.trim()
+		curr.id = lastLine//.trim()
 
 		curr.states.action.states.ready.on.update = [{
 			target: 'play',
@@ -289,7 +289,7 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 }
 
 function getConds(cond){
-	let getOp = (op, args) => `${op}(${args})`
+	let getOp = (op, args) => `${op}(${args.replace(/\/$/, "")})`
 	
 	if(!cond){
 		return ''
@@ -298,8 +298,8 @@ function getConds(cond){
 	} else if (cond.op === 'OR') {
 		return `${getConds(cond.lhs.result)} || ${getConds(cond.rhs.result)}`
 	} else {
-		let path = `${cond.rhs.root}/${cond.rhs.path.join('/')}`
-		return getOp(cond.op, path.replace(/\/$/, ""))
+		let path = cond.rhs.map(c => `${c.root}/${c.path.join('/')}`).join(',')
+		return getOp(cond.op, path)
 	}
 }
 
@@ -314,7 +314,7 @@ function applyTransition(from, to, transitionType, cond) {
 	
 	to.states.action.states.play.states.transition.type = transitionType
 
-	let condStateId = cond ? `${cond.reduce((s, c) => s ? `${s},${c.rhs.root}.action.play.isStarted` : `${c.rhs.root}.action.play.isStarted`, null)}` : `#${from.id}.action.states.done`
+	let condStateId = cond ? getConds(cond) : `#${from.id}.action.states.done`
 	from.on.update = [{
 		target: to.id,
 		cond: condStateId
