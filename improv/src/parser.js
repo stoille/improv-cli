@@ -51,6 +51,7 @@ function parseLines(lines) {
 		let currStmt
 		try {
 			currStmt = parseLine(line)
+			line = line.trim()
 		} catch (error) {
 			console.error(error.message)
 			continue
@@ -271,7 +272,7 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 
 		last.states.action.states.load.on.update = [{
 			target: 'ready',
-			cond: last.states.action.states.load.on.update[0] ? [...last.states.action.states.load.on.update[0].cond,
+			cond: last.states.action.states.load.on.update[0] ? [last.states.action.states.load.on.update[0].cond,
 				`#${curr.id}.load.loaded`
 			] : [`#${curr.id}.load.loaded`]
 		}]
@@ -289,7 +290,7 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 }
 
 function getConds(cond){
-	let getOp = (op, args) => `${op}(${args.replace(/\/$/, "")})`
+	let getOp = (op, args) => `${op}(ctx.${args.replace(/\/$/, "")})`
 	
 	if(!cond){
 		return ''
