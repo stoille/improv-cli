@@ -1,0 +1,1682 @@
+{
+	"id": "root",
+	"on": {},
+	"states": {
+		"EWS - CHURCH FRONT - EASE IN - 15,5": {
+			"id": "EWS - CHURCH FRONT - EASE IN - 15,5",
+			"parallel": true,
+			"on": {
+				"update": [{
+					"target": "MEDIUM - CHURCH - 00:02",
+					"cond": "ctx.MARKER(ctx.LUL) && ctx.MARKER(ctx.FOO)"
+				}]
+			},
+			"states": {
+				"action": {
+					"initial": "preload",
+					"on": {},
+					"states": {
+						"preload": {
+							"on": {
+								"load": "load"
+							}
+						},
+						"load": {
+							"initial": "loading",
+							"on": {
+								"update": [{
+									"target": "ready",
+									"cond": ["l", "o", "a", "d", "e", "d", "SELECT - BUSH_A - AND - SELECT - BUSH_B", "SELECT - BUSH_A - OR - SELECT - BUSH_C", "SELECT - TREE"]
+								}]
+							},
+							"states": {
+								"loading": {
+									"on": {
+										"onDone": "loaded"
+									}
+								},
+								"loaded": {}
+							},
+							"update": [{
+								"target": "ready",
+								"cond": "#EWS - CHURCH FRONT - EASE IN - 15,5.action.load.loaded",
+								"in": "#EWS - CHURCH FRONT - EASE IN - 15,5.action.load.loaded"
+							}]
+						},
+						"ready": {
+							"on": {
+								"preload": "preload",
+								"update": [{
+									"target": "play",
+									"cond": "#undefined.action.play.lines.done"
+								}]
+							}
+						},
+						"play": {
+							"parallel": true,
+							"on": {
+								"pause": "pause",
+								"unload": "preload"
+							},
+							"type": "EWS",
+							"scene": {
+								"scenePlacement": "EXT",
+								"sceneName": {
+									"scene": "OLD BAPTIST CHURCH",
+									"location": "KENTUCKY"
+								},
+								"sceneTime": "NOON"
+							},
+							"states": {
+								"isStarted": {
+									"initial": "false",
+									"states": {
+										"false": {
+											"on": {
+												"update": "true"
+											}
+										},
+										"true": {}
+									}
+								},
+								"lines": {
+									"initial": "0",
+									"states": {
+										"0": {
+											"on": {
+												"onDone": "1"
+											}
+										},
+										"1": {
+											"text": "Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church",
+											"time": {
+												"min": 0,
+												"sec": 0
+											},
+											"on": {
+												"onDone": "2"
+											}
+										},
+										"2": {
+											"text": "He clears his throat and coughs",
+											"time": {
+												"min": 1,
+												"sec": 0
+											},
+											"on": {
+												"onDone": "done"
+											}
+										},
+										"done": {
+											"text": "The man paces back and forth until we touch his cap and he picks up the key",
+											"time": {
+												"min": null,
+												"sec": 10
+											},
+											"on": {
+												"onDone": "done"
+											}
+										}
+									}
+								},
+								"movement": {
+									"initial": "play",
+									"type": "EASE IN",
+									"states": {
+										"play": {
+											"on": {
+												"pause": "pause"
+											}
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								},
+								"transition": {
+									"initial": "play",
+									"type": "FADE IN",
+									"states": {
+										"play": {
+											"on": {
+												"pause": "pause"
+											}
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								}
+							}
+						},
+						"pause": {
+							"on": {
+								"play": "play"
+							}
+						}
+					},
+					"marker": null
+				},
+				"SELECT - BUSH_A - AND - SELECT - BUSH_B": {
+					"id": "SELECT - BUSH_A - AND - SELECT - BUSH_B",
+					"parallel": true,
+					"on": {
+						"update": []
+					},
+					"states": {
+						"action": {
+							"initial": "preload",
+							"on": {},
+							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"initial": "loading",
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": ["l", "o", "a", "d", "e", "d", "FOO - LUL", "BOOM - YES"]
+										}]
+									},
+									"states": {
+										"loading": {
+											"on": {
+												"onDone": "loaded"
+											}
+										},
+										"loaded": {}
+									}
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": [{
+											"target": "play",
+											"cond": "ctx.SELECT(ctx.BUSH_A) && ctx.SELECT(ctx.BUSH_B)"
+										}]
+									}
+								},
+								"play": {
+									"parallel": true,
+									"on": {
+										"pause": "pause",
+										"unload": "preload"
+									},
+									"scene": {
+										"scenePlacement": "EXT",
+										"sceneName": {
+											"scene": "OLD BAPTIST CHURCH",
+											"location": "KENTUCKY"
+										},
+										"sceneTime": "NOON"
+									},
+									"states": {
+										"isStarted": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": "true"
+													}
+												},
+												"true": {}
+											}
+										},
+										"lines": {
+											"initial": "0",
+											"states": {
+												"0": {
+													"on": {
+														"onDone": "done"
+													}
+												},
+												"done": {
+													"text": "The bushes sway in a light breeze",
+													"time": {
+														"min": 0,
+														"sec": 0
+													},
+													"on": {
+														"onDone": "done"
+													}
+												}
+											}
+										},
+										"movement": {
+											"initial": "play",
+											"type": "EASE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										},
+										"transition": {
+											"initial": "play",
+											"type": "FADE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										}
+									}
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							},
+							"marker": "FOO"
+						},
+						"FOO - LUL": {
+							"id": "FOO - LUL",
+							"parallel": true,
+							"on": {
+								"update": []
+							},
+							"states": {
+								"action": {
+									"initial": "preload",
+									"on": {},
+									"states": {
+										"preload": {
+											"on": {
+												"load": "load"
+											}
+										},
+										"load": {
+											"initial": "loading",
+											"on": {
+												"update": [{
+													"target": "ready",
+													"cond": ["l", "o", "a", "d", "e", "d", "WOW - WORKS"]
+												}]
+											},
+											"states": {
+												"loading": {
+													"on": {
+														"onDone": "loaded"
+													}
+												},
+												"loaded": {}
+											}
+										},
+										"ready": {
+											"on": {
+												"preload": "preload",
+												"update": [{
+													"target": "play",
+													"cond": "ctx.FOO(ctx.LUL)"
+												}]
+											}
+										},
+										"play": {
+											"parallel": true,
+											"on": {
+												"pause": "pause",
+												"unload": "preload"
+											},
+											"scene": {
+												"scenePlacement": "EXT",
+												"sceneName": {
+													"scene": "OLD BAPTIST CHURCH",
+													"location": "KENTUCKY"
+												},
+												"sceneTime": "NOON"
+											},
+											"states": {
+												"isStarted": {
+													"initial": "false",
+													"states": {
+														"false": {
+															"on": {
+																"update": "true"
+															}
+														},
+														"true": {}
+													}
+												},
+												"lines": {
+													"initial": "0",
+													"states": {
+														"0": {
+															"on": {
+																"onDone": "done"
+															}
+														},
+														"done": {
+															"text": "Yessir",
+															"time": {
+																"min": 0,
+																"sec": 0
+															},
+															"on": {
+																"onDone": "done"
+															}
+														}
+													}
+												},
+												"movement": {
+													"initial": "play",
+													"type": "EASE IN",
+													"states": {
+														"play": {
+															"on": {
+																"pause": "pause"
+															}
+														},
+														"pause": {
+															"on": {
+																"play": "play"
+															}
+														}
+													}
+												},
+												"transition": {
+													"initial": "play",
+													"type": "FADE IN",
+													"states": {
+														"play": {
+															"on": {
+																"pause": "pause"
+															}
+														},
+														"pause": {
+															"on": {
+																"play": "play"
+															}
+														}
+													}
+												}
+											}
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									},
+									"marker": null
+								},
+								"WOW - WORKS": {
+									"id": "WOW - WORKS",
+									"parallel": true,
+									"on": {
+										"update": []
+									},
+									"states": {
+										"action": {
+											"initial": "preload",
+											"on": {},
+											"states": {
+												"preload": {
+													"on": {
+														"load": "load"
+													}
+												},
+												"load": {
+													"initial": "loading",
+													"on": {
+														"update": [{
+															"target": "ready",
+															"cond": "loaded",
+															"in": "loaded"
+														}]
+													},
+													"states": {
+														"loading": {
+															"on": {
+																"onDone": "loaded"
+															}
+														},
+														"loaded": {}
+													}
+												},
+												"ready": {
+													"on": {
+														"preload": "preload",
+														"update": [{
+															"target": "play",
+															"cond": "ctx.WOW(ctx.WORKS)"
+														}]
+													}
+												},
+												"play": {
+													"parallel": true,
+													"on": {
+														"pause": "pause",
+														"unload": "preload"
+													},
+													"scene": {
+														"scenePlacement": "EXT",
+														"sceneName": {
+															"scene": "OLD BAPTIST CHURCH",
+															"location": "KENTUCKY"
+														},
+														"sceneTime": "NOON"
+													},
+													"states": {
+														"isStarted": {
+															"initial": "false",
+															"states": {
+																"false": {
+																	"on": {
+																		"update": "true"
+																	}
+																},
+																"true": {}
+															}
+														},
+														"lines": {
+															"initial": "0",
+															"states": {
+																"0": {
+																	"on": {
+																		"onDone": "done"
+																	}
+																},
+																"done": {
+																	"text": "Nice",
+																	"time": {
+																		"min": 0,
+																		"sec": 0
+																	},
+																	"on": {
+																		"onDone": "done"
+																	}
+																}
+															}
+														},
+														"movement": {
+															"initial": "play",
+															"type": "EASE IN",
+															"states": {
+																"play": {
+																	"on": {
+																		"pause": "pause"
+																	}
+																},
+																"pause": {
+																	"on": {
+																		"play": "play"
+																	}
+																}
+															}
+														},
+														"transition": {
+															"initial": "play",
+															"type": "FADE IN",
+															"states": {
+																"play": {
+																	"on": {
+																		"pause": "pause"
+																	}
+																},
+																"pause": {
+																	"on": {
+																		"play": "play"
+																	}
+																}
+															}
+														}
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											},
+											"marker": null
+										}
+									}
+								}
+							}
+						},
+						"BOOM - YES": {
+							"id": "BOOM - YES",
+							"parallel": true,
+							"on": {
+								"update": []
+							},
+							"states": {
+								"action": {
+									"initial": "preload",
+									"on": {},
+									"states": {
+										"preload": {
+											"on": {
+												"load": "load"
+											}
+										},
+										"load": {
+											"initial": "loading",
+											"on": {
+												"update": [{
+													"target": "ready",
+													"cond": "loaded",
+													"in": "loaded"
+												}]
+											},
+											"states": {
+												"loading": {
+													"on": {
+														"onDone": "loaded"
+													}
+												},
+												"loaded": {}
+											}
+										},
+										"ready": {
+											"on": {
+												"preload": "preload",
+												"update": [{
+													"target": "play",
+													"cond": "ctx.BOOM(ctx.YES)"
+												}]
+											}
+										},
+										"play": {
+											"parallel": true,
+											"on": {
+												"pause": "pause",
+												"unload": "preload"
+											},
+											"scene": {
+												"scenePlacement": "EXT",
+												"sceneName": {
+													"scene": "OLD BAPTIST CHURCH",
+													"location": "KENTUCKY"
+												},
+												"sceneTime": "NOON"
+											},
+											"states": {
+												"isStarted": {
+													"initial": "false",
+													"states": {
+														"false": {
+															"on": {
+																"update": "true"
+															}
+														},
+														"true": {}
+													}
+												},
+												"lines": {
+													"initial": "0",
+													"states": {
+														"0": {
+															"on": {
+																"onDone": "done"
+															}
+														},
+														"done": {
+															"text": "OK this works",
+															"time": {
+																"min": 0,
+																"sec": 0
+															},
+															"on": {
+																"onDone": "done"
+															}
+														}
+													}
+												},
+												"movement": {
+													"initial": "play",
+													"type": "EASE IN",
+													"states": {
+														"play": {
+															"on": {
+																"pause": "pause"
+															}
+														},
+														"pause": {
+															"on": {
+																"play": "play"
+															}
+														}
+													}
+												},
+												"transition": {
+													"initial": "play",
+													"type": "FADE IN",
+													"states": {
+														"play": {
+															"on": {
+																"pause": "pause"
+															}
+														},
+														"pause": {
+															"on": {
+																"play": "play"
+															}
+														}
+													}
+												}
+											}
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									},
+									"marker": null
+								}
+							}
+						}
+					}
+				},
+				"SELECT - BUSH_A - OR - SELECT - BUSH_C": {
+					"id": "SELECT - BUSH_A - OR - SELECT - BUSH_C",
+					"parallel": true,
+					"on": {
+						"update": []
+					},
+					"states": {
+						"action": {
+							"initial": "preload",
+							"on": {},
+							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"initial": "loading",
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": "loaded",
+											"in": "loaded"
+										}]
+									},
+									"states": {
+										"loading": {
+											"on": {
+												"onDone": "loaded"
+											}
+										},
+										"loaded": {}
+									}
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": [{
+											"target": "play",
+											"cond": "ctx.SELECT(ctx.BUSH_A) || ctx.SELECT(ctx.BUSH_C)"
+										}]
+									}
+								},
+								"play": {
+									"parallel": true,
+									"on": {
+										"pause": "pause",
+										"unload": "preload"
+									},
+									"scene": {
+										"scenePlacement": "EXT",
+										"sceneName": {
+											"scene": "OLD BAPTIST CHURCH",
+											"location": "KENTUCKY"
+										},
+										"sceneTime": "NOON"
+									},
+									"states": {
+										"isStarted": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": "true"
+													}
+												},
+												"true": {}
+											}
+										},
+										"lines": {
+											"initial": "0",
+											"states": {
+												"0": {
+													"on": {
+														"onDone": "done"
+													}
+												},
+												"done": {
+													"text": "The bushes sway in a heavy breeze",
+													"time": {
+														"min": 0,
+														"sec": 0
+													},
+													"on": {
+														"onDone": "done"
+													}
+												}
+											}
+										},
+										"movement": {
+											"initial": "play",
+											"type": "EASE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										},
+										"transition": {
+											"initial": "play",
+											"type": "FADE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										}
+									}
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							},
+							"marker": "LUL"
+						}
+					}
+				},
+				"SELECT - TREE": {
+					"id": "SELECT - TREE",
+					"parallel": true,
+					"on": {
+						"update": [{
+							"target": "CU - TREE ROOTS",
+							"cond": "#SELECT - TREE.action.states.done"
+						}]
+					},
+					"states": {
+						"action": {
+							"initial": "preload",
+							"on": {},
+							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"initial": "loading",
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": "loaded",
+											"in": "loaded"
+										}]
+									},
+									"states": {
+										"loading": {
+											"on": {
+												"onDone": "loaded"
+											}
+										},
+										"loaded": {}
+									}
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": [{
+											"target": "play",
+											"cond": "ctx.SELECT(ctx.TREE)"
+										}]
+									}
+								},
+								"play": {
+									"parallel": true,
+									"on": {
+										"pause": "pause",
+										"unload": "preload"
+									},
+									"scene": {
+										"scenePlacement": "EXT",
+										"sceneName": {
+											"scene": "OLD BAPTIST CHURCH",
+											"location": "KENTUCKY"
+										},
+										"sceneTime": "NOON"
+									},
+									"states": {
+										"isStarted": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": "true"
+													}
+												},
+												"true": {}
+											}
+										},
+										"lines": {
+											"initial": "0",
+											"states": {
+												"0": {
+													"on": {
+														"onDone": "done"
+													}
+												},
+												"done": {
+													"text": "The trees sway in the light breeze",
+													"time": {
+														"min": 0,
+														"sec": 0
+													},
+													"on": {
+														"onDone": "done"
+													}
+												}
+											}
+										},
+										"movement": {
+											"initial": "play",
+											"type": "EASE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										},
+										"transition": {
+											"initial": "play",
+											"type": "FADE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										}
+									}
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							},
+							"marker": null
+						}
+					}
+				},
+				"CU - TREE ROOTS": {
+					"id": "CU - TREE ROOTS",
+					"parallel": true,
+					"on": {
+						"update": [{
+							"target": "MED - TREE TRUNK",
+							"cond": "#CU - TREE ROOTS.action.states.done"
+						}]
+					},
+					"states": {
+						"action": {
+							"initial": "preload",
+							"on": {},
+							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"initial": "loading",
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": "loaded",
+											"in": "loaded"
+										}]
+									},
+									"states": {
+										"loading": {
+											"on": {
+												"onDone": "loaded"
+											}
+										},
+										"loaded": {}
+									},
+									"update": [{
+										"target": "ready",
+										"cond": "#CU - TREE ROOTS.action.load.loaded",
+										"in": "#CU - TREE ROOTS.action.load.loaded"
+									}]
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": [{
+											"target": "play",
+											"cond": "#SELECT - TREE.action.play.lines.done"
+										}]
+									}
+								},
+								"play": {
+									"parallel": true,
+									"on": {
+										"pause": "pause",
+										"unload": "preload"
+									},
+									"type": "CU",
+									"scene": {
+										"scenePlacement": "EXT",
+										"sceneName": {
+											"scene": "OLD BAPTIST CHURCH",
+											"location": "KENTUCKY"
+										},
+										"sceneTime": "NOON"
+									},
+									"states": {
+										"isStarted": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": "true"
+													}
+												},
+												"true": {}
+											}
+										},
+										"lines": {
+											"initial": "0",
+											"states": {
+												"0": {
+													"on": {
+														"onDone": "done"
+													}
+												},
+												"done": {
+													"text": "We see a closeup of the tree roots",
+													"time": {
+														"min": 0,
+														"sec": 0
+													},
+													"on": {
+														"onDone": "done"
+													}
+												}
+											}
+										},
+										"movement": {
+											"initial": "play",
+											"type": "EASE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										},
+										"transition": {
+											"initial": "play",
+											"type": "CUT",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										}
+									}
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							},
+							"marker": null
+						}
+					}
+				},
+				"MED - TREE TRUNK": {
+					"id": "MED - TREE TRUNK",
+					"parallel": true,
+					"on": {
+						"update": [{
+							"target": "LONG - TREE",
+							"cond": "#MED - TREE TRUNK.action.states.done"
+						}]
+					},
+					"states": {
+						"action": {
+							"initial": "preload",
+							"on": {},
+							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"initial": "loading",
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": "loaded",
+											"in": "loaded"
+										}]
+									},
+									"states": {
+										"loading": {
+											"on": {
+												"onDone": "loaded"
+											}
+										},
+										"loaded": {}
+									},
+									"update": [{
+										"target": "ready",
+										"cond": "#MED - TREE TRUNK.action.load.loaded",
+										"in": "#MED - TREE TRUNK.action.load.loaded"
+									}]
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": [{
+											"target": "play",
+											"cond": "#CU - TREE ROOTS.action.play.lines.done"
+										}]
+									}
+								},
+								"play": {
+									"parallel": true,
+									"on": {
+										"pause": "pause",
+										"unload": "preload"
+									},
+									"type": "MED",
+									"scene": {
+										"scenePlacement": "EXT",
+										"sceneName": {
+											"scene": "OLD BAPTIST CHURCH",
+											"location": "KENTUCKY"
+										},
+										"sceneTime": "NOON"
+									},
+									"states": {
+										"isStarted": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": "true"
+													}
+												},
+												"true": {}
+											}
+										},
+										"lines": {
+											"initial": "0",
+											"states": {
+												"0": {
+													"on": {
+														"onDone": "done"
+													}
+												},
+												"done": {
+													"text": "We see a tree trunk",
+													"time": {
+														"min": 0,
+														"sec": 0
+													},
+													"on": {
+														"onDone": "done"
+													}
+												}
+											}
+										},
+										"movement": {
+											"initial": "play",
+											"type": "EASE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										},
+										"transition": {
+											"initial": "play",
+											"type": "CUT",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										}
+									}
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							},
+							"marker": null
+						}
+					}
+				},
+				"LONG - TREE": {
+					"id": "LONG - TREE",
+					"parallel": true,
+					"on": {
+						"update": [{
+							"target": "CU - TREE FIELD",
+							"cond": "#LONG - TREE.action.states.done"
+						}]
+					},
+					"states": {
+						"action": {
+							"initial": "preload",
+							"on": {},
+							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"initial": "loading",
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": "loaded",
+											"in": "loaded"
+										}]
+									},
+									"states": {
+										"loading": {
+											"on": {
+												"onDone": "loaded"
+											}
+										},
+										"loaded": {}
+									},
+									"update": [{
+										"target": "ready",
+										"cond": "#LONG - TREE.action.load.loaded",
+										"in": "#LONG - TREE.action.load.loaded"
+									}]
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": [{
+											"target": "play",
+											"cond": "#MED - TREE TRUNK.action.play.lines.done"
+										}]
+									}
+								},
+								"play": {
+									"parallel": true,
+									"on": {
+										"pause": "pause",
+										"unload": "preload"
+									},
+									"type": "LONG",
+									"scene": {
+										"scenePlacement": "EXT",
+										"sceneName": {
+											"scene": "OLD BAPTIST CHURCH",
+											"location": "KENTUCKY"
+										},
+										"sceneTime": "NOON"
+									},
+									"states": {
+										"isStarted": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": "true"
+													}
+												},
+												"true": {}
+											}
+										},
+										"lines": {
+											"initial": "0",
+											"states": {
+												"0": {
+													"on": {
+														"onDone": "done"
+													}
+												},
+												"done": {
+													"text": "We see the tree",
+													"time": {
+														"min": 0,
+														"sec": 0
+													},
+													"on": {
+														"onDone": "done"
+													}
+												}
+											}
+										},
+										"movement": {
+											"initial": "play",
+											"type": "EASE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										},
+										"transition": {
+											"initial": "play",
+											"type": "CUT",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										}
+									}
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							},
+							"marker": null
+						}
+					}
+				},
+				"CU - TREE FIELD": {
+					"id": "CU - TREE FIELD",
+					"parallel": true,
+					"on": {
+						"update": []
+					},
+					"states": {
+						"action": {
+							"initial": "preload",
+							"on": {},
+							"states": {
+								"preload": {
+									"on": {
+										"load": "load"
+									}
+								},
+								"load": {
+									"initial": "loading",
+									"on": {
+										"update": [{
+											"target": "ready",
+											"cond": "loaded",
+											"in": "loaded"
+										}]
+									},
+									"states": {
+										"loading": {
+											"on": {
+												"onDone": "loaded"
+											}
+										},
+										"loaded": {}
+									},
+									"update": [{
+										"target": "ready",
+										"cond": "#CU - TREE FIELD.action.load.loaded",
+										"in": "#CU - TREE FIELD.action.load.loaded"
+									}]
+								},
+								"ready": {
+									"on": {
+										"preload": "preload",
+										"update": [{
+											"target": "play",
+											"cond": "#LONG - TREE.action.play.lines.done"
+										}]
+									}
+								},
+								"play": {
+									"parallel": true,
+									"on": {
+										"pause": "pause",
+										"unload": "preload"
+									},
+									"type": "CU",
+									"scene": {
+										"scenePlacement": "EXT",
+										"sceneName": {
+											"scene": "OLD BAPTIST CHURCH",
+											"location": "KENTUCKY"
+										},
+										"sceneTime": "NOON"
+									},
+									"states": {
+										"isStarted": {
+											"initial": "false",
+											"states": {
+												"false": {
+													"on": {
+														"update": "true"
+													}
+												},
+												"true": {}
+											}
+										},
+										"lines": {
+											"initial": "0",
+											"states": {
+												"0": {
+													"on": {
+														"onDone": "done"
+													}
+												},
+												"done": {
+													"text": "We see a forest of trees",
+													"time": {
+														"min": 0,
+														"sec": 0
+													},
+													"on": {
+														"onDone": "done"
+													}
+												}
+											}
+										},
+										"movement": {
+											"initial": "play",
+											"type": "EASE IN",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										},
+										"transition": {
+											"initial": "play",
+											"type": "CUT",
+											"states": {
+												"play": {
+													"on": {
+														"pause": "pause"
+													}
+												},
+												"pause": {
+													"on": {
+														"play": "play"
+													}
+												}
+											}
+										}
+									}
+								},
+								"pause": {
+									"on": {
+										"play": "play"
+									}
+								}
+							},
+							"marker": null
+						}
+					}
+				}
+			}
+		},
+		"MEDIUM - CHURCH - 00:02": {
+			"id": "MEDIUM - CHURCH - 00:02",
+			"parallel": true,
+			"on": {
+				"update": []
+			},
+			"states": {
+				"action": {
+					"initial": "preload",
+					"on": {},
+					"states": {
+						"preload": {
+							"on": {
+								"load": "load"
+							}
+						},
+						"load": {
+							"initial": "loading",
+							"on": {
+								"update": [{
+									"target": "ready",
+									"cond": "loaded",
+									"in": "loaded"
+								}]
+							},
+							"states": {
+								"loading": {
+									"on": {
+										"onDone": "loaded"
+									}
+								},
+								"loaded": {}
+							},
+							"update": [{
+								"target": "ready",
+								"cond": "#MEDIUM - CHURCH - 00:02.action.load.loaded",
+								"in": "#MEDIUM - CHURCH - 00:02.action.load.loaded"
+							}]
+						},
+						"ready": {
+							"on": {
+								"preload": "preload",
+								"update": [{
+									"target": "play",
+									"cond": "#EWS - CHURCH FRONT - EASE IN - 15,5.action.play.lines.done"
+								}]
+							}
+						},
+						"play": {
+							"parallel": true,
+							"on": {
+								"pause": "pause",
+								"unload": "preload"
+							},
+							"type": "MEDIUM",
+							"scene": {
+								"scenePlacement": "EXT",
+								"sceneName": {
+									"scene": "OLD BAPTIST CHURCH",
+									"location": "KENTUCKY"
+								},
+								"sceneTime": "AFTERNOON"
+							},
+							"states": {
+								"isStarted": {
+									"initial": "false",
+									"states": {
+										"false": {
+											"on": {
+												"update": "true"
+											}
+										},
+										"true": {}
+									}
+								},
+								"lines": {
+									"initial": "0",
+									"states": {
+										"0": {
+											"on": {
+												"onDone": "1"
+											}
+										},
+										"1": {
+											"text": "The man coughs violently",
+											"time": {
+												"min": 0,
+												"sec": 0
+											},
+											"on": {
+												"onDone": "done"
+											}
+										},
+										"done": {
+											"text": "He looks at the key in his hand",
+											"time": {
+												"min": 0,
+												"sec": 0
+											},
+											"on": {
+												"onDone": "done"
+											}
+										}
+									}
+								},
+								"movement": {
+									"initial": "play",
+									"type": "EASE IN",
+									"states": {
+										"play": {
+											"on": {
+												"pause": "pause"
+											}
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								},
+								"transition": {
+									"initial": "play",
+									"type": "CUT",
+									"states": {
+										"play": {
+											"on": {
+												"pause": "pause"
+											}
+										},
+										"pause": {
+											"on": {
+												"play": "play"
+											}
+										}
+									}
+								}
+							}
+						},
+						"pause": {
+							"on": {
+								"play": "play"
+							}
+						}
+					},
+					"marker": null
+				}
+			}
+		}
+	},
+	"isRoot": true,
+	"initial": "EWS - CHURCH FRONT - EASE IN - 15,5"
+}
