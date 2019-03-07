@@ -1,3 +1,4 @@
+const assign = require('xstate').actions.assign
 const nearley = require('nearley')
 const grammar = require('./grammar')
 
@@ -263,24 +264,26 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 
 	//always name current states after their play condition
 	if (lastStmt && lastStmt.rule === 'cond') {
-		curr.id = lastLine//.trim()
-
+		curr.id = lastLine
+		let conds = getConds(lastStmt.result)
 		curr.states.action.states.ready.on.update = [{
 			target: 'play',
-			cond: getConds(lastStmt.result)
+			cond: conds
 		}]
+
+		guards[lastLine] = parseConditions(conds)
 
 		last.states.action.states.load.on.update = [{
 			target: 'ready',
-			cond: last.states.action.states.load.on.update[0] ? [last.states.action.states.load.on.update[0].cond,
-				`#${curr.id}.load.loaded`
-			] : [`#${curr.id}.load.loaded`]
+			cond: [...last.states.action.states.load.on.update[0].cond,
+				lastLine]
 		}]
 	}
 
 	//initialize last if needed
 	if(!last.initial && curr.id){
-		last.initial = getInitial(last, curr.id)
+		let isRoot = !last.parallel && !last.initial
+		last.initial = isRoot ? curr.id : last.initial
 	}
 
 	return {
@@ -289,8 +292,28 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 	}
 }
 
+function parseConditions(cond) {
+	let s = `function (ctx,evt){return ${cond}}`
+	var funcReg = /function *\(([^()]*)\)[ \n\t]*{(.*)}/gmi;
+	var match = funcReg.exec(s.replace(/\n/g, ' '))
+
+	if (match) {
+		return new Function(match[1].split(','), match[2]).bind(this)
+	}
+
+	return null;
+}
+
+function SELECT(x) {
+	return true
+}
+
+function FOO(x) {
+	return 'FOO' + x
+}
+
 function getConds(cond){
-	let getOp = (op, args) => `${op}(ctx.${args.replace(/\/$/, "")})`
+	let getOp = (op, args) => `ctx.${op}(ctx.${args.replace(/\/$/, "")})`
 	
 	if(!cond){
 		return ''
@@ -302,10 +325,6 @@ function getConds(cond){
 		let path = cond.rhs.map(c => `${c.root}/${c.path.join('/')}`).join(',')
 		return getOp(cond.op, path)
 	}
-}
-
-function getInitial(last, id) {
-	return (!last.parallel && !last.initial) ? last.initial = id : last.initial
 }
 
 function applyTransition(from, to, transitionType, cond) {
@@ -327,9 +346,10 @@ function applyTransition(from, to, transitionType, cond) {
 }
 
 function makeState(currState, parallel = true) {
-	let state = ({
+	let state = {
 		id: undefined,
 		parallel: parallel,
+		initial: undefined,
 		on: {
 			update: []
 		},
@@ -435,6 +455,34 @@ function makeState(currState, parallel = true) {
 				}
 			}
 		}
-	})
+	}
 	return state
+}
+
+var actions = {
+	shot: assign({ 
+		cameraType: (ctx,evt) => evt.type,
+		target: (ctx, evt) => evt.target,
+		source: (ctx, evt) => evt.source,
+		shotTime: (ctx, evt) => evt.shotTime,
+		transitionType: (ctx, evt) => evt.transitionType,
+		transitionTime: (ctx, evt) => evt.transitionTime
+	})
+}
+module.exports.actions = actions
+
+var guards = {
+	//"SELECT - BUSH_A - AND - SELECT - BUSH_B": (ctx, evt) => 'select(ctx.BUSH_A) && select(ctx.BUSH_B)'.parseFunction()
+}
+module.exports.guards = guards
+
+var context = {
+	BUSH_A: true,
+	BUSH_B: false,
+	LUL: false,
+	SELECT: SELECT,
+	FOO: FOO,
+	WOW: FOO,
+	BOOM: FOO,
+	TREE: false,
 }
