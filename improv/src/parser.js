@@ -275,8 +275,8 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 
 		last.states.action.states.load.on.update = [{
 			target: 'ready',
-			cond: [...last.states.action.states.load.on.update[0].cond,
-				lastLine]
+			in: [...last.states.action.states.load.on.update[0].in,
+				`#${lastLine}.action.ready`]
 		}]
 	}
 
@@ -334,14 +334,16 @@ function applyTransition(from, to, transitionType, cond) {
 	
 	to.states.action.states.play.states.transition.type = transitionType
 
-	let condStateId = cond ? getConds(cond) : `#${from.id}.action.states.done`
+	let condStateId = cond ? getConds(cond) : undefined
 	from.on.update = [{
 		target: to.id,
-		cond: condStateId
+		cond: condStateId,
+		in: 'action.done'
 	}]
 	to.states.action.states.ready.on.update = [{
 		target: 'play',
-		cond: `#${from.id}.action.play.lines.done`
+		cond: condStateId,
+		in: `#${from.id}.action.done`,
 	}]
 }
 
@@ -368,7 +370,7 @@ function makeState(currState, parallel = true) {
 						on: {
 							update: [{
 								target: "ready",
-								cond: "loaded",
+								cond: undefined,
 								in: "loaded"
 							}]
 						},
@@ -390,8 +392,10 @@ function makeState(currState, parallel = true) {
 					play: {
 						parallel: true,
 						on: {
-							pause: "pause",
-							unload: "preload"
+							update: [{
+								target: "done",
+								in: "action.done"
+							}]
 						},
 						type: currState && currState.states.action ? currState.states.action.type : undefined,
 						scene: currState && currState.states.action ? currState.states.action.states.play.scene : undefined,
@@ -447,9 +451,9 @@ function makeState(currState, parallel = true) {
 							}
 						}
 					},
-					pause: {
+					done: {
 						on: {
-							play: "play"
+							update: "preload"
 						}
 					}
 				}
