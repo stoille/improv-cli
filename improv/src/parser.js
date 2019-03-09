@@ -362,7 +362,7 @@ function makeState(currState, parallel = true) {
 				states: {
 					preload: {
 						on: {
-							load: "load"
+							update: "load"
 						}
 					},
 					load: {
@@ -377,7 +377,10 @@ function makeState(currState, parallel = true) {
 						states: {
 							loading: {
 								on: {
-									onDone: "loaded"
+									update: [{
+										target: "loaded",
+										cond: undefined,
+									}]
 								}
 							},
 							loaded: {}
@@ -397,8 +400,10 @@ function makeState(currState, parallel = true) {
 								in: "action.done"
 							}]
 						},
-						type: currState && currState.states.action ? currState.states.action.type : undefined,
-						scene: currState && currState.states.action ? currState.states.action.states.play.scene : undefined,
+						meta: {
+							type: currState && currState.states.action ? currState.states.action.type : undefined,
+							scene: currState && currState.states.action ? currState.states.action.states.play.scene : undefined,
+						},
 						states: {
 							isStarted: {
 								initial: "false",
@@ -414,7 +419,7 @@ function makeState(currState, parallel = true) {
 							lines: {
 								initial: "0",
 								states: {
-									done: {}
+									done: { type: 'final' }
 								}
 							},
 							movement: {
@@ -454,7 +459,8 @@ function makeState(currState, parallel = true) {
 					done: {
 						on: {
 							update: "preload"
-						}
+						},
+						type: 'final'
 					}
 				}
 			}
