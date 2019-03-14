@@ -53,6 +53,7 @@
         "--inspect-brk=5858",
         "./src/commander.js",
         "parse",
+        "--print",
         "--json",
         "./scripts/summerAfternoonSm.imp"
         //"compileTest",
