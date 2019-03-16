@@ -185,11 +185,18 @@ function parseLines(lines) {
 		if (newState.id && (newState.id !== currState.id)) {
 			//populate the parent state with a child
 			if (!lastState.states.hasOwnProperty(newState.id)) {
-				if (lastState.states.play){
-					lastState.states.play.states[newState.id] = newState
-				} else {
+				if(lastState.states.play){
+					if (lastStmt.rule === 'cond' && lastStmt.result.isParallel) {
+						lastState.states.play.states.action.states[newState.id] = newState
+						lastState.on.update = []
+					} else {
+						lastState.states.play.states[newState.id] = newState
+					}
+				} else { //for root
 					lastState.states[newState.id] = newState
 				}
+				
+				//newState.parent = lastState
 			}
 
 			//if there are any positions, apply them now that the newstate id is known
@@ -295,10 +302,16 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 		case 'shot':
 			curr = makeState(curr)
 			curr.id = line //.trim()
-			curr.states.load.update = [{
+			/*
+			curr.states.load.on.update = [...curr.states.load.on.update,{
 				target: 'inTransition',
 				cond: `#${curr.id}.load.loaded`,
 				in: `#${curr.id}.load.loaded`,
+			}]
+			*/
+			curr.states.load.states.loading.on.update = [{
+				target: 'loaded',
+				cond: `ctx.buffer['${curr.id}'].load.done`
 			}]
 			curr.meta.shotType = obj.viewType
 			if (obj.viewMovement) {
@@ -345,19 +358,27 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 	if (lastStmt && lastStmt.rule === 'cond') {
 		curr.id = lastLine
 		let conds = getConds(lastStmt.result)
-		curr.states.inTransition.on.update = [{
-			target: 'play',
-			cond: conds
-		}]
+		if (lastStmt.result.isParallel) {
+			curr.states.load.on.update = [...curr.states.load.on.update, {
+				target: 'inTransition',
+				cond: conds
+			}]
+		} else {
+			last.states.play.states.action.on.update = [...last.states.play.states.action.on.update, {
+				target: curr.id,
+				cond: conds
+			}]
+		}
 
 		guards[lastLine] = parseConditions(conds)
-
+/*
 		last.states.load.on.update = [{
 			target: 'inTransition',
 			in: [...last.states.load.on.update[0].in,
 				`#${lastLine}.inTransition`
 			]
 		}]
+		*/
 	}
 
 	//initialize last if needed
@@ -437,7 +458,10 @@ function makeState(currState) {
 			movementType: currState && currState.meta ? currState.meta.movementType : undefined,
 		},
 		on: {
-			update: []
+			update: [{
+				target: 'action',
+				in: 'outTransition'
+			}]
 		},
 		states: {
 			preload: {
@@ -454,7 +478,6 @@ function makeState(currState) {
 				on: {
 					update: [{
 						target: "inTransition",
-						cond: 'ctx.buffer[ctx.curr.id]',
 						in: "loaded"
 					}]
 				},
@@ -463,7 +486,7 @@ function makeState(currState) {
 						on: {
 							update: [{
 								target: "loaded",
-								cond: "ctx.buffer.id.load.done",
+								cond: undefined,
 							}]
 						},
 						states: {}
@@ -479,7 +502,7 @@ function makeState(currState) {
 				on: {
 					update: [{
 						target: "play",
-						cond: "ctx.prev.outTransition.done"
+						cond: undefined
 					}]
 				},
 				meta: {
@@ -512,6 +535,9 @@ function makeState(currState) {
 					action:{
 						parallel: true,
 						meta: {},
+						on:{
+							update: []
+						},
 						states:{
 							lines: {
 								initial: "0",
