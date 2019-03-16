@@ -436,9 +436,12 @@ function applyTransition(from, to, transitionType, cond) {
 	from.states.outTransition.meta.type = transitionType
 
 	let condStateId = cond ? getConds(cond) : undefined
+	from.states.play.on.update = [{
+		target: 'outTransition',
+		cond: condStateId
+	}]
 	from.on.update = [{
 		target: to.id,
-		cond: condStateId,
 		in: 'outTransition'
 	}]
 	to.states.inTransition.on.update = [{
