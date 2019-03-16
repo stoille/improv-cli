@@ -185,24 +185,15 @@ function parseLines(lines) {
 		if (newState.id && (newState.id !== currState.id)) {
 			//populate the parent state with a child
 			if (!lastState.states.hasOwnProperty(newState.id)) {
-				if(lastState.states.play){
+				if (lastState.states.play) {
 					if (lastStmt.rule === 'cond' && lastStmt.result.isParallel) {
 						lastState.states.play.states.action.states[newState.id] = newState
-						lastState.on.update = []
 					} else {
 						lastState.states.play.states[newState.id] = newState
 					}
 				} else { //for root
 					lastState.states[newState.id] = newState
 				}
-				
-				//newState.parent = lastState
-			}
-
-			//if there are any positions, apply them now that the newstate id is known
-			if (transitions.length) {
-				let t = transitions.pop()
-				applyTransition(t.from, newState, t.transitionType, t.cond)
 			}
 		}
 
@@ -301,16 +292,9 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 			break
 		case 'shot':
 			curr = makeState(curr)
-			curr.id = line //.trim()
-			/*
-			curr.states.load.on.update = [...curr.states.load.on.update,{
+			curr.id = line 
+			curr.states.load.on.update = [{
 				target: 'inTransition',
-				cond: `#${curr.id}.load.loaded`,
-				in: `#${curr.id}.load.loaded`,
-			}]
-			*/
-			curr.states.load.states.loading.on.update = [{
-				target: 'loaded',
 				cond: `ctx.buffer['${curr.id}'].load.done`
 			}]
 			curr.meta.shotType = obj.viewType
@@ -320,28 +304,28 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 
 			if (transitions.length) {
 				let t = transitions.pop()
-				applyTransition(t.from, curr, t.transitionType, t && t.cond ? t.cond.result : undefined)
+				applyTransition(t.from, curr, obj.shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
 			} else {
-				applyTransition(currState, curr)
+				applyTransition(currState, curr, obj.shotTime, obj.transitionTime)
 			}
 
 			break
 		case 'action':
 			curr.states.play.states.action.meta.marker = obj.marker
-			curr.states.play.states.action.states.lines.states = [...Object.values(curr.states.play.states.action.states.lines.states), ...obj.text].map((a, idx, arr) => ({
-				meta: {
-					text: a.text,
-					time: a.time
-				},
-				on: {
-					onDone: (idx === arr.length - 1 || idx === arr.length - 2 ? 'outTransition' : idx + 1).toString()
-				},
-				states: {}
-			})).reduce((al, a, idx, arr) => {
-				let i = idx < arr.length - 1 ? idx : 'outTransition'
-				al[i] = a
-				return al
-			}, {})
+			curr.states.play.states.action.states.lines.initial = '0'
+			curr.states.play.states.action.states.lines.states = [...Object.values(curr.states.play.states.action.states.lines.states), ...obj.lines].map((a, idx, arr) => {
+				let s = {
+					meta: {
+						text: a.meta ? a.meta.text : a.text,
+						time: a.meta ? a.meta.time : a.time
+					},
+					after: {},
+					states: {}
+				}
+				s.after = {}
+				s.after[timeToMS(a.meta ? a.meta.time : a.time)] = ((idx + 1) % arr.length).toString()
+				return s
+			})
 			break
 		case 'transition': //push transition onto a stack and, once the next state's id is known, apply its transition condition to the prev state
 			transitions.push({
@@ -371,14 +355,14 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 		}
 
 		guards[lastLine] = parseConditions(conds)
-/*
-		last.states.load.on.update = [{
-			target: 'inTransition',
-			in: [...last.states.load.on.update[0].in,
-				`#${lastLine}.inTransition`
-			]
-		}]
-		*/
+		/*
+				last.states.load.on.update = [{
+					target: 'inTransition',
+					in: [...last.states.load.on.update[0].in,
+						`#${lastLine}.inTransition`
+					]
+				}]
+				*/
 	}
 
 	//initialize last if needed
@@ -427,7 +411,7 @@ function getConds(cond) {
 	}
 }
 
-function applyTransition(from, to, transitionType, cond) {
+function applyTransition(from, to, shotTime, transitionTime, transitionType, cond) {
 	if (!transitionType) {
 		transitionType = 'CUT'
 	}
@@ -440,15 +424,17 @@ function applyTransition(from, to, transitionType, cond) {
 		target: 'outTransition',
 		cond: condStateId
 	}]
+	from.after = {}
 	from.on.update = [{
 		target: to.id,
 		in: 'outTransition'
 	}]
-	to.states.inTransition.on.update = [{
-		target: 'play',
-		cond: condStateId,
-		in: `#${from.id}.outTransition`,
-	}]
+	to.states.inTransition.after = {}
+	to.states.inTransition.after[timeToMS(transitionTime)] = 'play'
+}
+
+function timeToMS(time){
+	return time ? ((time.min * 60) + time.sec) * 1000 : 0
 }
 
 function makeState(currState) {
@@ -477,54 +463,19 @@ function makeState(currState) {
 				states: {}
 			},
 			load: {
-				initial: "loading",
 				on: {
-					update: [{
-						target: "inTransition",
-						in: "loaded"
-					}]
+					update: []
 				},
-				states: {
-					loading: {
-						on: {
-							update: [{
-								target: "loaded",
-								cond: undefined,
-							}]
-						},
-						states: {}
-					},
-					loaded: {
-						states: {},
-						on: {}
-					}
-				}
+				states: {}
 			},
 			inTransition: {
-				initial: "play",
-				on: {
-					update: [{
-						target: "play",
-						cond: undefined
-					}]
+				after: {
+					0: 'play'
 				},
 				meta: {
 					type: currState && currState.states.inTransition ? currState.states.inTransition.meta.type : undefined
 				},
-				states: {
-					play: {
-						on: {
-							pause: "pause"
-						},
-						states: {}
-					},
-					pause: {
-						on: {
-							play: "play"
-						},
-						states: {}
-					}
-				}
+				states: {}
 			},
 			play: {
 				initial: 'action',
@@ -535,21 +486,17 @@ function makeState(currState) {
 					}]
 				},
 				states: {
-					action:{
+					action: {
 						parallel: true,
 						meta: {},
-						on:{
+						on: {
 							update: []
 						},
-						states:{
+						states: {
 							lines: {
-								initial: "0",
-								states: {
-									outTransition: {
-										type: 'final',
-										states: {},
-										on: {}
-									}
+								initial: undefined,
+								states:{
+
 								}
 							}
 						}
@@ -557,25 +504,11 @@ function makeState(currState) {
 				}
 			},
 			outTransition: {
-				initial: "play",
 				type: 'final',
 				meta: {
 					type: currState && currState.states.outTransition ? currState.states.outTransition.meta.type : undefined
 				},
-				states: {
-					play: {
-						on: {
-							pause: "pause"
-						},
-						states: {}
-					},
-					pause: {
-						on: {
-							play: "play"
-						},
-						states: {}
-					}
-				}
+				states: {}
 			}
 		}
 	}
@@ -589,7 +522,7 @@ var actions = {
 		source: (ctx, evt) => evt.source,
 		shotTime: (ctx, evt) => evt.shotTime,
 		transitionType: (ctx, evt) => evt.transitionType,
-		transitionTime: (ctx, evt) => evt.transitionTime
+		movementTime: (ctx, evt) => evt.movementTime
 	})
 }
 module.exports.actions = actions

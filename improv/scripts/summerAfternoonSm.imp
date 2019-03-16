@@ -1,7 +1,7 @@
-FADE IN:
+FADE IN: 5
 #comments are ignored on newlines
 EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON 
-EWS - CHURCH FRONT - EASE IN - 15,5
+EWS - CHURCH FRONT - EASE IN - 15:00
 
 Over the dense hiss and buzz of a humid summer afternoon, we see an old man pace along the porch of an old baptist church. #actions always end with punctuation
 
@@ -35,7 +35,7 @@ He clears his throat and coughs. - 10
 
 The man paces back and forth until we touch his cap and he picks up the key. - 10 
 
-CUT: MARKER - MARKER_TEST - AND - MARKER - FOO
+CUT: MARKER - MARKER_TEST - AND - MARKER - FOO - 0
 EXT - OLD BAPTIST CHURCH, KENTUCKY - AFTERNOON
 MEDIUM - CHURCH - 00:02
 
