@@ -76,11 +76,11 @@ dialogue -> nameWS ":" sentence:+ {% ([speaker, _, text]) => {
 	return rule('dialogue', {speaker: speaker, lines: text}) } %}
 #TODO: more robust conditional expression syntax
 varName-> [a-zA-Z'_ ]:+ {% d => d[0].join('').trim()  %}
-cond -> cond (SEP ("AND" | "OR") SEP) cond {% ([lhs, op, rhs]) => { return rule('cond', {op:op[1][0],lhs,rhs}) } %}
-	| opName SEP varName ("/" varName):* ((_ "," _) varName ("/" varName):*):* {% ([op, _, root, path, params]) => { 
+cond -> SEP:? cond (SEP ("AND" | "OR") SEP) cond {% ([isParallel, lhs, op, rhs]) => { return rule('cond', {op:op[1][0],isParallel: isParallel?true:false, lhs,rhs}) } %}
+	| SEP:? opName SEP varName ("/" varName):* ((_ "," _) varName ("/" varName):*):* {% ([isParallel, op, _, root, path, params]) => { 
 			let s1 = selector(root, path ? path.map(pp=>pp[2]) : undefined)
 			let sn = params ? params.map( p => selector(p[1],p[2] ? p[2].map(pp => pp[1]): undefined)) : undefined
-			return rule('cond', {op, rhs: [s1, ...sn]})} %}
+			return rule('cond', {op, isParallel: isParallel?true:false, rhs: [s1, ...sn]})} %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}
