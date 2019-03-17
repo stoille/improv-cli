@@ -312,19 +312,24 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 		case 'action':
 			curr.states.play.states.action.meta.marker = obj.marker
 			curr.states.play.states.action.states.lines.initial = '0'
-			curr.states.play.states.action.states.lines.states = [...Object.values(curr.states.play.states.action.states.lines.states), ...obj.lines].map((a, idx, arr) => {
+			let totalTime = 0
+			let states = [...Object.values(curr.states.play.states.action.states.lines.states), ...obj.lines].map((a, idx, arr) => {
 				let s = {
 					meta: {
 						text: a.meta ? a.meta.text : a.text,
 						time: a.meta ? a.meta.time : a.time
 					},
+					on: {},
 					after: {},
 					states: {}
 				}
+				let time = Math.max(1000, timeToMS(a.meta ? a.meta.time : a.time))
+				totalTime += time
 				s.after = {}
-				s.after[timeToMS(a.meta ? a.meta.time : a.time)] = ((idx + 1) % arr.length).toString()
+				s.after[time] = ((idx + 1) % arr.length).toString()
 				return s
 			})
+			curr.states.play.states.action.states.lines.states = states
 			break
 		case 'transition': //push transition onto a stack and, once the next state's id is known, apply its transition condition to the prev state
 			transitions.push({
