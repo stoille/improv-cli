@@ -330,6 +330,7 @@ function ingestStmt(currStmt, lastStmt, currState, lastState, line) {
 				return s
 			})
 			curr.states.play.states.action.states.lines.states = states
+			curr.states.play.states.action.after = {}
 			break
 		case 'transition': //push transition onto a stack and, once the next state's id is known, apply its transition condition to the prev state
 			transitions.push({
@@ -424,17 +425,22 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	from.after = {}
 	from.on.update = [{
 		target: to.id,
-		in: 'outTransition' //TODO: figure out why this isnt working
+		in: `#${from.states.outTransition.id}`
 	}]
 	to.states.inTransition.after = {}
 	to.states.inTransition.after[timeToMS(transitionTime)] = 'play'
 }
 
 function timeToMS(time){
-	return time ? ((time.min * 60) + time.sec) * 1000 : 0
+	const minToSec = min => 60 * min
+	const secToMS = sec => 1000 * sec
+	return time ? secToMS(minToSec(time.min) + time.sec) : 0
 }
 
+let outTransitionId = 0
+
 function makeState(currState) {
+	let outId = `outTransition${outTransitionId++}`
 	let state = {
 		id: undefined,
 		initial: 'preload',
@@ -446,7 +452,7 @@ function makeState(currState) {
 		on: {
 			update: [{
 				target: 'action',
-				in: 'outTransition'
+				in: `${outId}`
 			}]
 		},
 		states: {
@@ -481,7 +487,7 @@ function makeState(currState) {
 				initial: 'action',
 				on: {
 					update: [{
-						target: "outTransition",
+						target: 'outTransition',
 						cond: undefined
 					}]
 				},
@@ -508,11 +514,11 @@ function makeState(currState) {
 			},
 			outTransition: {
 				type: 'final',
+				id: outId,
 				meta: {
 					type: currState && currState.states.outTransition ? currState.states.outTransition.meta.type : undefined
 				},
 				on: {
-					update: 'preload'
 				}
 			}
 		}
