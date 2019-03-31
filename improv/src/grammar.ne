@@ -54,6 +54,7 @@ sceneName -> varName (_ "," _) varName {% ([scene,_,location]) => ({scene,locati
 sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
 
 SEP -> _ "-" _ {% id %}
+CONT -> _ "..." _ {% id %}
 
 shot -> viewType SEP (viewSubject _ "," _):? viewSubject (SEP viewMovement):? (SEP timeSpan):? {%
 	([viewType, _, viewSource, viewTarget, viewMovement, shotTime]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, shotTime: generateTime(shotTime ? shotTime[1] : undefined)})
@@ -66,7 +67,7 @@ timeSpan -> num:? ":":? num _ {% d => {
 	return ({ min: d[0], sec: d[2] }) } %}
 num -> [0-9]:? [0-9] {% d => parseInt((d[0] ? d[0] : 0) * 10 + parseInt(d[1] ? d[1] : 0)) %}
 
-action -> sentence:+ marker:? {% ([lines, marker]) => rule('action', {lines, marker}) %}
+action -> CONT:? sentence:+ CONT:? marker:? {% ([contFrom, lines, marker, contTo]) => rule('action', {lines, marker}) %}
 
 sentence -> nameWS [.?!\r\n]:+ SEP:? timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text, time:generateTime(timeSpan)}) %} 
 
