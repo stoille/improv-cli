@@ -137,7 +137,7 @@ function parseLines(lines,
 			line = line.trim()
 		} catch (error) {
 			console.error(error.message)
-			continue
+			process.exit(1)
 		}
 
 		if (currStmt.rule === 'comment' ||
@@ -149,7 +149,7 @@ function parseLines(lines,
 			lintStmt(currStmt, lastStmt, line, lastLine, lineCursor)
 		} catch (error) {
 			console.error(error)
-			continue
+			process.exit(1)
 		}
 
 		if (tabDecreased(currStmt, lastStmt)) {
