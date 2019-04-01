@@ -326,7 +326,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 			break
 		case 'shot':
 			curr = makeState(currState)
-			curr.id = line
+			curr.id = `${line} - ${uuidv4()}` // line
 			curr.meta.type = 'shot'
 			addChild(parent, curr)
 
@@ -368,7 +368,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 				}
 				let time = timeToMS(a.meta ? a.meta.time : a.time)
 				startTime += time
-				action.meta.playTimee = startTime
+				action.meta.playTime = startTime
 				s.after = {}
 				s.after[time] = startTime.toString()
 				return s
@@ -401,11 +401,11 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 			break
 		case 'cond':
 			curr = makeState()
-			curr.id = line
+			curr.id = `${line} - ${uuidv4()}` // line
 			let actn = currState.states.play.states[currState.meta.actionCount - 1]
 			addChild(actn, curr)
 
-			applyTransition(actn, curr, actn.meta.playTimee, 0, 'CUT', currStmt.result)
+			applyTransition(actn, curr, actn.meta.playTime, 0, 'CUT', currStmt.result)
 
 			parent = curr
 
@@ -524,7 +524,7 @@ function makeState(templateState) {
 			},
 			load: {
 				after: {
-					0: {
+					10000000000000: {
 						target: 'inTransition',
 						in: undefined
 					}
