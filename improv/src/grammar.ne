@@ -67,12 +67,12 @@ timeSpan -> num:? ":":? num _ {% d => {
 	return ({ min: d[0], sec: d[2] }) } %}
 num -> [0-9]:? [0-9] {% d => parseInt((d[0] ? d[0] : 0) * 10 + parseInt(d[1] ? d[1] : 0)) %}
 
-action -> CONT:? sentence:+ CONT:? marker:? {% ([contFrom, lines, marker, contTo]) => rule('action', {lines, marker}) %}
+action -> sentence:+ marker:? {% ([lines, marker]) => rule('action', {lines, marker}) %}
 
-sentence -> nameWS [.?!\r\n]:+ SEP:? timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text, time:generateTime(timeSpan)}) %} 
+sentence -> nameWS [.?!]:+ _ timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text, time:generateTime(timeSpan)}) %} 
 
 marker -> SEP varName {% d => d[1]  %}
-nameWS -> [0-9a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
+nameWS -> [a-zA-Z,'_ ]:+ {% d => d[0].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 
 dialogue -> nameWS ":" sentence:+ {% ([speaker, _, lines]) => { 

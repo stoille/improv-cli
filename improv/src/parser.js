@@ -354,7 +354,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 			action.meta.marker = obj.marker
 
 			//create states for each action line and name them after the total play time
-			let startTime = action.meta.playTim
+			let startTime = action.meta.playTime
 			let lineStates = [...Object.values(action.states.lines.states), ...obj.lines].map(a => {
 				let s = {
 					meta: {
@@ -368,7 +368,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 				}
 				let time = timeToMS(a.meta ? a.meta.time : a.time)
 				startTime += time
-				action.meta.playTime = startTime
+				action.meta.playTimee = startTime
 				s.after = {}
 				s.after[time] = startTime.toString()
 				return s
@@ -405,7 +405,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 			let actn = currState.states.play.states[currState.meta.actionCount - 1]
 			addChild(actn, curr)
 
-			applyTransition(actn, curr, actn.meta.playTime, 0, 'CUT', currStmt.result)
+			applyTransition(actn, curr, actn.meta.playTimee, 0, 'CUT', currStmt.result)
 
 			parent = curr
 
@@ -515,7 +515,7 @@ function makeState(templateState) {
 		states: {
 			preload: {
 				after: {
-					10000000000000: {
+					0: {
 						target: "load",
 						cond: undefined
 					}
@@ -566,7 +566,7 @@ function makeAction(id) {
 		id,
 		initial: 'lines',
 		meta: {
-			playTim: 0
+			playTime: 0
 		},
 		after: {
 
