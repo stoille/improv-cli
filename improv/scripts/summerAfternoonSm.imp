@@ -20,9 +20,12 @@ He clears his throat and coughs. 10
 		MED - TREE TRUNK - 10
 		We see a tree trunk.
 
+		CU - TREE ROOTS - 10
+		We see a closeup of the trees again.
+
 The man paces back and forth until we touch his cap and he picks up the key. 10 
 
-CUT: MARKER - MARKER_TEST - AND - MARKER - FOO - 0
+CUT: MARKER - MARKER_TEST - AND - MARKER - FOO - 3600
 EXT - OLD BAPTIST CHURCH, KENTUCKY - AFTERNOON
 MEDIUM - CHURCH - 00:02
 
