@@ -276,14 +276,14 @@ function lintStmt(currStmt, lastStmt, line, lastLine, lineCursor) {
 		throw `Error: indentation increase may only come before or after a condition${lines}`
 	}
 	if (tabDecreased(currStmt, lastStmt)) {
-		if(lastStmt.rule === 'action'){
+		if (lastStmt.rule === 'action') {
 			let depth = lastStmt.depth - currStmt.depth
 			let isOdd = n => n % 2
-			if(currStmt.rule === 'cond'){
-				if (!isOdd(depth)){
+			if (currStmt.rule === 'cond') {
+				if (!isOdd(depth)) {
 					throw `Error: indentation decreased and does not align with a parent action's conditions${lines}`
 				}
-			} else if(isOdd(depth)){
+			} else if (isOdd(depth)) {
 				throw `Error: indentation decreased and does not align with a parent unit's action${lines}`
 			}
 		} else {
@@ -410,7 +410,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 			parent = curr
 
 			let conds = getConds(currStmt.result)
-			guards[line] = parseConditions(conds)
+			guards[line] = conds
 			break
 	}
 
@@ -420,7 +420,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 	}
 }
 
-function applyTransition(from, to, shotTime, transitionTime, transitionType, cond) {
+function applyTransition(from, to, shotTime, transitionTime, transitionType, condition) {
 	if (!transitionType) {
 		transitionType = 'CUT'
 	}
@@ -432,12 +432,12 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 		from.states.outTransition.meta.type = transitionType
 	}
 
-	let condStateId = cond ? getConds(cond) : undefined
+	let cond = condition ? getConds(condition) : undefined
 	if (from.states.play) {
 		from.states.play.after[0] = undefined
 		from.states.play.after[timeToMS(shotTime)] = {
 			target: 'outTransition',
-			cond: condStateId
+			cond
 		}
 	}
 
@@ -445,7 +445,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	if (s.after) {
 		s.after[timeToMS(shotTime)] = {
 			target: to.meta.index ? to.meta.index : to.id,
-			cond: condStateId,
+			cond,
 			in: 'outTransition'
 		}
 	}
@@ -475,17 +475,18 @@ function FOO(x) {
 }
 
 function getConds(cond) {
-	let getOp = (op, args) => `ctx.${op}(ctx.${args.replace(/\/$/, "")})`
-
-	if (!cond) {
-		return ''
-	} else if (cond.op === 'AND') {
-		return `${getConds(cond.lhs.result)} && ${getConds(cond.rhs.result)}`
-	} else if (cond.op === 'OR') {
-		return `${getConds(cond.lhs.result)} || ${getConds(cond.rhs.result)}`
+	if (cond.lhs && cond.rhs) {
+		return {
+			type: cond.op,
+			lhs: getConds(cond.lhs.result),
+			rhs: getConds(cond.rhs.result)
+		}
 	} else {
-		let path = cond.rhs.map(c => `${c.root}/${c.path.join('/')}`).join(',')
-		return getOp(cond.op, path)
+		let path = cond.rhs.map(c => `${c.root}/${c.path.join('/')}`).join(',').replace(/\/$/, "")
+		return {
+			type: cond.op,
+			path
+		}
 	}
 }
 
