@@ -338,7 +338,9 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 
 			if (transitions.length) {
 				let t = transitions.pop()
-				applyTransition(t.from, curr, obj.shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
+				if(t.from.id){
+					applyTransition(t.from, curr, obj.shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
+				}
 			} else if (parent.id === currState.id) {
 				let currAction = parent.states.play.states[parent.meta.actionCount - 1]
 				applyTransition(currAction, curr, obj.shotTime, obj.transitionTime)
@@ -357,6 +359,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 			let startTime = action.meta.playTime
 			let lineStates = [...Object.values(action.states.lines.states), ...obj.lines].map(a => {
 				let s = {
+					id: uuidv4(),
 					meta: {
 						text: a.meta ? a.meta.text : a.text,
 						time: a.meta ? a.meta.time : a.time,
@@ -383,7 +386,7 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 				return ls
 			}, {})
 
-			action.id = undefined
+			//action.id = undefined
 			action.meta.index = curr.meta.actionCount
 			curr.states.play.states[curr.meta.actionCount] = action
 			curr.meta.actionCount += 1
@@ -433,17 +436,19 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	}
 
 	let cond = condition ? getConds(condition) : undefined
-	if (from.states.play) {
-		from.states.play.after[0] = undefined
-		from.states.play.after[timeToMS(shotTime)] = {
+	let playState = from.states.play
+	if (playState) {
+		playState.after[0] = undefined
+		playState.after[timeToMS(shotTime)] = {
 			target: 'outTransition',
 			cond
 		}
 	}
 
-	let s = from.states.lines && from.states[to.id] ? from.states.lines : from
-	if (s.after) {
-		s.after[timeToMS(shotTime)] = {
+	from = from.states.lines && from.states[to.id] ? from.states.lines : from
+	if (from.after) {
+	//	from.after = {}
+		from.after[timeToMS(shotTime)] = {
 			target: to.meta.index ? to.meta.index : to.id,
 			cond,
 			in: 'outTransition'
@@ -452,18 +457,14 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 
 	to.states.inTransition.after = {}
 	to.states.inTransition.after[timeToMS(transitionTime)] = 'play'
-}
 
-function parseConditions(cond) {
-	let s = `function (ctx,evt){return ${cond}}`
-	var funcReg = /function *\(([^()]*)\)[ \n\t]*{(.*)}/gmi;
-	var match = funcReg.exec(s.replace(/\n/g, ' '))
-
-	if (match) {
-		return new Function(match[1].split(','), match[2]).bind(this)
+	//loop back to start of transition
+	let target = from.meta.from ? from.meta.from : `#${from.id}`
+	to.after[timeToMS(shotTime)] = {
+		target
 	}
-
-	return null;
+	from.meta.from = undefined
+	to.meta.from = target
 }
 
 function SELECT(x) {
@@ -574,6 +575,7 @@ function makeAction(id) {
 		},
 		states: {
 			lines: {
+				id: `lines - ${uuidv4()}`,
 				after: {},
 				meta: {
 					type: 'lines'
