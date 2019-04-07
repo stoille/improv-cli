@@ -104,12 +104,12 @@ function isCyclic(obj) {
 	return detected;
 }
 
-function tabIncreased(currStmt, lastStmt) {
-	return currStmt && lastStmt && currStmt.depth > lastStmt.depth
+function tabIncreased(currStmt, prevStmt) {
+	return currStmt && prevStmt && currStmt.depth > prevStmt.depth
 }
 
-function tabDecreased(currStmt, lastStmt) {
-	return currStmt && lastStmt && currStmt.depth < lastStmt.depth
+function tabDecreased(currStmt, prevStmt) {
+	return currStmt && prevStmt && currStmt.depth < prevStmt.depth
 }
 module.exports.parseLines = parseLines
 
@@ -117,7 +117,7 @@ function parseLines(lines,
 	parentState,
 	currState = makeState(),
 	lineCursor = 0,
-	lastStmt = undefined,
+	prevStmt = undefined,
 	lastLine = undefined,
 	envs = [],
 	transitions = [],
@@ -146,14 +146,14 @@ function parseLines(lines,
 		}
 
 		try {
-			lintStmt(currStmt, lastStmt, line, lastLine, lineCursor)
+			lintStmt(currStmt, prevStmt, line, lastLine, lineCursor)
 		} catch (error) {
 			console.error(error)
 			process.exit(1)
 		}
 
-		if (tabDecreased(currStmt, lastStmt)) {
-			let d = lastStmt.depth - 2
+		if (tabDecreased(currStmt, prevStmt)) {
+			let d = prevStmt.depth - 2
 			let env = envs.pop()
 			while (d > currStmt.depth) {
 				env = envs.pop()
@@ -162,7 +162,7 @@ function parseLines(lines,
 
 			currState = env.currState
 			parentState = env.parentState
-			lastStmt = env.lastStmt
+			prevStmt = env.prevStmt
 			transitions = env.transitions
 			continuedActions = env.continuedActions
 		}
@@ -170,15 +170,15 @@ function parseLines(lines,
 		let {
 			curr,
 			parent
-		} = ingestStmt(currStmt, lastStmt, currState, parentState, line, transitions)
+		} = ingestStmt(currStmt, prevStmt, currState, parentState, line, transitions)
 
 
-		if (tabIncreased(currStmt, lastStmt) && currStmt.rule === 'cond') {
+		if (tabIncreased(currStmt, prevStmt) && currStmt.rule === 'cond') {
 			envs.push({
 				currState,
 				parentState,
 				currStmt,
-				lastStmt,
+				prevStmt,
 				transitions,
 				continuedActions
 			})
@@ -198,32 +198,43 @@ function parseLines(lines,
 			currState = curr
 		}
 		lastLine = line
-		lastStmt = currStmt
+		prevStmt = currStmt
 	}
 
 	return parentState
 }
 
-function lintStmt(currStmt, lastStmt, line, lastLine, lineCursor) {
-	if (!lastStmt) {
+function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
+	let lines = `\n${lineCursor-1}:${lastLine}\n>>${lineCursor}:${line}`
+
+	if (!prevStmt) {
+		if(currStmt.depth > 0){
+			throw `Error: first statement must be unindented${lines}`
+		}
 		return
 	}
-	let lines = `\n>>${lineCursor-1}:${lastLine}\n>>${lineCursor}:${line}`
+
 	switch (currStmt.rule) {
 		case 'transition':
-			switch (lastStmt.rule) {
+			switch (prevStmt.rule) {
 				case 'comment':
 				case 'action':
+					if (prevStmt.depth !== currStmt.depth) {
+						throw `Error: transitions must have the same depth as the action before them${lines}`
+					}
 					break
 				default:
 					throw `Error: transition must follow an action.${lines}`
 			}
 			break
 		case 'sceneHeading':
-			switch (lastStmt.rule) {
+			switch (prevStmt.rule) {
 				case 'comment':
 				case 'action':
 				case 'transition':
+					if (prevStmt.depth !== currStmt.depth) {
+						throw `Error: sceneHeading must have the same depth as the statement before it${lines}`
+					}
 					break
 				default:
 					throw `Error: sceneHeading must follow an action or a transition${lines}`
@@ -231,12 +242,17 @@ function lintStmt(currStmt, lastStmt, line, lastLine, lineCursor) {
 			}
 			break
 		case 'shot':
-			switch (lastStmt.rule) {
+			switch (prevStmt.rule) {
 				case 'comment':
 				case 'action':
 				case 'transition':
 				case 'sceneHeading':
+					break
 				case 'cond':
+					//TODO: explore eliminating condition statement depth rules
+					if (prevStmt.depth === currStmt.depth) {
+						throw `Error: shots that follow a condition must be indented${lines}`
+					}
 					break
 				default:
 					throw `Error: shot heading must follow an action, transition or sceneHeading${lines}`
@@ -247,11 +263,16 @@ function lintStmt(currStmt, lastStmt, line, lastLine, lineCursor) {
 			if (currStmt.result.fromCont && !continuedActions.find(a => a.contTo)) {
 				throw `Error: continued action must have a previous`
 			}
-			switch (lastStmt.rule) {
+			switch (prevStmt.rule) {
 				case 'comment':
 				case 'action':
 				case 'shot':
+					break
 				case 'cond':
+					//TODO: explore eliminating condition statement depth rules
+					if (prevStmt.depth === currStmt.depth) {
+						throw `Error: actions that follow a condition must be indented${lines}`
+					}
 					break
 				default:
 					throw `Error: action must follow a shot heading, or another action${lines}`
@@ -259,10 +280,16 @@ function lintStmt(currStmt, lastStmt, line, lastLine, lineCursor) {
 			}
 			break
 		case 'cond':
-			switch (lastStmt.rule) {
+			switch (prevStmt.rule) {
 				case 'comment':
+					break
 				case 'action':
 				case 'shot':
+					//TODO: explore eliminating rule that conditions be indented under actions
+					if (prevStmt.depth === currStmt.depth) {
+						throw `Error: conditions must always be indented under the action or shot that preceeds them${lines}`
+					}
+					break
 				case 'cond':
 					break
 				default:
@@ -272,22 +299,27 @@ function lintStmt(currStmt, lastStmt, line, lastLine, lineCursor) {
 			break
 	}
 
-	if (tabIncreased(currStmt, lastStmt) && currStmt.rule !== 'cond' && lastStmt.rule !== 'cond') {
-		throw `Error: indentation increase may only come before or after a condition${lines}`
+	if (tabIncreased(currStmt, prevStmt)){ 
+		if(currStmt.depth - prevStmt.depth > 1){
+			throw `Error: statement depth greater than parent${lines}`
+		}
+		if(currStmt.rule !== 'cond' && prevStmt.rule !== 'cond') {
+			throw `Error: statement depth increase may only come before or after a condition${lines}`
+		}
 	}
-	if (tabDecreased(currStmt, lastStmt)) {
-		if (lastStmt.rule === 'action') {
-			let depth = lastStmt.depth - currStmt.depth
+	if (tabDecreased(currStmt, prevStmt)) {
+		if (prevStmt.rule === 'action') {
+			let depth = prevStmt.depth - currStmt.depth
 			let isOdd = n => n % 2
 			if (currStmt.rule === 'cond') {
 				if (!isOdd(depth)) {
-					throw `Error: indentation decreased and does not align with a parent action's conditions${lines}`
+					throw `Error: statement depth decreased and does not align with a parent action's conditions${lines}`
 				}
 			} else if (isOdd(depth)) {
-				throw `Error: indentation decreased and does not align with a parent unit's action${lines}`
+				throw `Error: statement depth decreased and does not align with a parent unit's action${lines}`
 			}
 		} else {
-			throw `Error: indentation decreased but previous statement was not an action${lines}`
+			throw `Error: statement depth decreased but previous statement was not an action${lines}`
 		}
 	}
 }
@@ -307,7 +339,7 @@ function addChild(parent, child) {
 
 //post-processing statements
 //TODO: remove mutation of currState, parentState - could get nasty
-function ingestStmt(currStmt, lastStmt, currState, parentState, line, transitions) {
+function ingestStmt(currStmt, prevStmt, currState, parentState, line, transitions) {
 	let obj = JSON.parse(JSON.stringify(currStmt.result))
 	let curr = Object.assign({}, currState)
 	let parent = Object.assign({}, parentState)
@@ -405,10 +437,13 @@ function ingestStmt(currStmt, lastStmt, currState, parentState, line, transition
 		case 'cond':
 			curr = makeState()
 			curr.id = `${line} - ${uuidv4()}` // line
-			let actn = currState.states.play.states[currState.meta.actionCount - 1]
-			addChild(actn, curr)
+			let prev = currState.states.play.states[currState.meta.actionCount - 1]
+			if(!prev){
+				prev = currState
+			}
+			addChild(prev, curr)
 
-			applyTransition(actn, curr, actn.meta.playTime, 0, 'CUT', currStmt.result)
+			applyTransition(prev, curr, prev.meta.playTime, 0, 'CUT', currStmt.result)
 
 			parent = curr
 
