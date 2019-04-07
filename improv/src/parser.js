@@ -408,10 +408,9 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 				s.after[time] = startTime.toString()
 				return s
 			})
-			//continued actions pick up where they left off by linking the last action line to the next
-			//link the last lineState back to the action
+			//don't loop back last line on self
 			let lastLineState = lineStates[lineStates.length - 1]
-			lastLineState.after[timeToMS(lastLineState.meta.time)] = lastLineState.meta.startTime.toString()
+			lastLineState.after = {}
 			//reduce into an object keyed off total time
 			action.states.lines.states = lineStates.reduce((ls, s) => {
 				ls[s.meta.startTime] = s
@@ -561,7 +560,7 @@ function makeState(templateState) {
 			},
 			load: {
 				after: {
-					10000000000000: {
+					0: {
 						target: 'inTransition',
 						in: undefined
 					}
