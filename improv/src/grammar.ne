@@ -45,12 +45,11 @@ transition -> transitionType (":" _) cond:? (SEP:? timeSpan):? {% ([transitionTy
 	return rule('transition',{transitionType:transitionType[0],transitionTime: generateTime(transitionTime ? transitionTime[1] : undefined), cond:cond}) } %}
 transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
 
-sceneHeading -> scenePlacement SEP sceneName SEP sceneTime {% 
-	([scenePlacement, _, sceneName, __, sceneTime]) => {
-		return rule('sceneHeading',{ scenePlacement, sceneName, sceneTime}) }
+sceneHeading -> scenePlacement SEP (varName (_ "," _)):? varName SEP sceneTime {% 
+	([scenePlacement, _, scene, location, __, sceneTime]) => {
+		return rule('sceneHeading',{ scenePlacement, scene: scene ? scene[0] : undefined, location, sceneTime}) }
 %}
 scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") {% d => d[0][0] %}
-sceneName -> varName (_ "," _) varName {% ([scene,_,location]) => ({scene,location}) %}
 sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
 
 SEP -> _ "-" _ {% id %}
