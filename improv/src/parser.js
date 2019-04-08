@@ -29,16 +29,14 @@ function parseLine(lineText) {
 
 const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
 
-let reel = {
-	id: "reel",
+//TODO: make stream creation stateless
+let stream = {
+	id: "stream",
 	parallel: true,
 	states: {
-		buffer: {
+		loaders: {
 			parallel: true,
-			states: {
-				loading: {},
-				unloading: {}
-			}
+			states: {}
 		},
 		units: {
 			isRoot: true,
@@ -48,20 +46,42 @@ let reel = {
 	}
 }
 
-module.exports.impToXML = impToXML
-
-function impToXML(script) {
-	let parsedScript = parseLines(script, reel.states.units)
-	isCyclic(parsedScript)
-	return JSON.stringify(parseLines(script))
+function makeLoadState(id) {
+	return {
+		id: `load - ${id}`,
+		initial: 'preload',
+		states: {
+			preload: {
+				on: {
+					load: 'load'
+				}
+			},
+			load: {
+				on: {
+					ready: 'ready'
+				}
+			},
+			ready: {
+				on: {
+					unload: 'unload'
+				}
+			},
+			unload: {
+				on: {
+					onDone: 'preload'
+				}
+			}
+		}
+	}
 }
 
 module.exports.impToJSON = impToJSON
 
 function impToJSON(script) {
-	let parsedScript = parseLines(script, reel.states.units)
-	isCyclic(parsedScript)
-	return JSON.stringify(parsedScript)
+	let rootUnit = parseLines(script, stream.states.units)
+	isCyclic(rootUnit)
+	stream.states.units = rootUnit
+	return JSON.stringify(stream)
 }
 
 function isCyclic(obj) {
@@ -208,7 +228,7 @@ function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
 	let lines = `\n${lineCursor-1}:${lastLine}\n>>${lineCursor}:${line}`
 
 	if (!prevStmt) {
-		if(currStmt.depth > 0){
+		if (currStmt.depth > 0) {
 			throw `Error: first statement must be unindented${lines}`
 		}
 		return
@@ -304,11 +324,11 @@ function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
 			break
 	}
 
-	if (tabIncreased(currStmt, prevStmt)){ 
-		if(currStmt.depth - prevStmt.depth > 1){
+	if (tabIncreased(currStmt, prevStmt)) {
+		if (currStmt.depth - prevStmt.depth > 1) {
 			throw `Error: statement depth greater than parent${lines}`
 		}
-		if(currStmt.rule !== 'cond' && prevStmt.rule !== 'cond') {
+		if (currStmt.rule !== 'cond' && prevStmt.rule !== 'cond') {
 			throw `Error: statement depth increase may only come before or after a condition${lines}`
 		}
 	}
@@ -367,6 +387,8 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			curr.meta.type = 'shot'
 			addChild(parent, curr)
 
+			makeLoader(curr)
+
 			curr.meta.shotType = obj.viewType
 			if (obj.viewMovement) {
 				curr.meta.movementType = obj.viewMovement
@@ -375,14 +397,14 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 
 			if (transitions.length) {
 				let t = transitions.pop()
-				if(t.from.id){
+				if (t.from.id) {
 					applyTransition(t.from, curr, obj.shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
 				}
 			} else if (currStmt.rule === 'action' && parent.id === currState.id) {
 				let currAction = parent.states.play.states[parent.meta.actionCount - 1]
 				applyTransition(currAction, curr, obj.shotTime, obj.transitionTime)
 			} else {
-				applyTransition(currState, curr, obj.shotTime, obj.transitionTime)
+				//	applyTransition(parent, curr, obj.shotTime, obj.transitionTime)
 			}
 
 			break
@@ -441,8 +463,11 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 		case 'cond':
 			curr = makeState()
 			curr.id = `${line} - ${uuidv4()}` // line
+
+			makeLoader(curr)
+
 			let prev = currState.states.play.states[currState.meta.actionCount - 1]
-			if(!prev){
+			if (!prev) {
 				prev = currState
 			}
 			addChild(prev, curr)
@@ -459,6 +484,24 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 	return {
 		curr,
 		parent
+	}
+}
+
+function makeLoader(curr) {
+	let loader = makeLoadState(curr.id)
+	stream.states.loaders.states[loader.id] = loader
+	curr.states.load.after = {
+		0: { //upon immediate entry
+			target: 'inTransition',
+			in: `#stream.loaders.${loader.id}.ready`
+		}
+	}
+	//update every 16ms
+	//TODO: update conditions to use same approach
+	const DEFAULT_TICK = 16
+	curr.states.load.after[DEFAULT_TICK] = {
+		//internal: true,
+		target: 'load'
 	}
 }
 
@@ -486,7 +529,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 
 	from = from.states.lines && from.states[to.id] ? from.states.lines : from
 	if (from.after) {
-	//	from.after = {}
+		//	from.after = {}
 		from.after[timeToMS(shotTime)] = {
 			target: to.meta.index ? to.meta.index : to.id,
 			cond,
@@ -565,10 +608,10 @@ function makeState(templateState) {
 			},
 			load: {
 				after: {
-					0: {
-						target: 'inTransition',
-						in: undefined
-					}
+					//0: {
+					//	target: 'inTransition',
+					//	in: undefined
+					//}
 				},
 				states: {}
 			},
