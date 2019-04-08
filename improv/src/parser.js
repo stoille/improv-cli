@@ -16,7 +16,7 @@ function parseLine(lineText) {
 		let result = parser.results[idx]
 		results[result.rule] = result
 	}
-	if (results.activeObjects) return results.activeObjects
+
 	if (results.sceneHeading) return results.sceneHeading
 	if (results.shot) return results.shot
 	if (results.action) return results.action
@@ -236,6 +236,11 @@ function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
 						throw `Error: sceneHeading must have the same depth as the statement before it${lines}`
 					}
 					break
+				case 'cond':
+					if (prevStmt.depth === currStmt.depth) {
+						throw `Error: sceneHeadings that follow a condition must be indented${lines}`
+					}
+					break
 				default:
 					throw `Error: sceneHeading must follow an action or a transition${lines}`
 					break;
@@ -373,7 +378,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 				if(t.from.id){
 					applyTransition(t.from, curr, obj.shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
 				}
-			} else if (parent.id === currState.id) {
+			} else if (currStmt.rule === 'action' && parent.id === currState.id) {
 				let currAction = parent.states.play.states[parent.meta.actionCount - 1]
 				applyTransition(currAction, curr, obj.shotTime, obj.transitionTime)
 			} else {
