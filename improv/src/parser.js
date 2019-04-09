@@ -487,6 +487,15 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 	}
 }
 
+//update every 16ms
+const DEFAULT_UPDATE_TICK = 16
+function addUpdateLoop(state, target){
+	state.after[DEFAULT_UPDATE_TICK] = {
+		//internal: true,
+		target
+	}
+}
+
 function makeLoader(curr) {
 	let loader = makeLoadState(curr.id)
 	stream.states.loaders.states[loader.id] = loader
@@ -496,13 +505,7 @@ function makeLoader(curr) {
 			in: `#stream.loaders.${loader.id}.ready`
 		}
 	}
-	//update every 16ms
-	//TODO: update conditions to use same approach
-	const DEFAULT_TICK = 16
-	curr.states.load.after[DEFAULT_TICK] = {
-		//internal: true,
-		target: 'load'
-	}
+	addUpdateLoop(curr.states.load, 'load')
 }
 
 function applyTransition(from, to, shotTime, transitionTime, transitionType, condition) {
@@ -525,6 +528,9 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 			target: 'outTransition',
 			cond
 		}
+		if(cond){
+			addUpdateLoop(playState, playState.id)
+		}
 	}
 
 	from = from.states.lines && from.states[to.id] ? from.states.lines : from
@@ -534,6 +540,9 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 			target: to.meta.index ? to.meta.index : to.id,
 			cond,
 			in: 'outTransition'
+		}
+		if (cond) {
+			addUpdateLoop(from)
 		}
 	}
 
