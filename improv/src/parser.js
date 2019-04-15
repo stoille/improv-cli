@@ -49,9 +49,9 @@ let stream = {
 function makeLoadState(id) {
 	return {
 		id: `load - ${id}`,
-		initial: 'preload',
+		initial: 'free',
 		states: {
-			preload: {
+			free: {
 				on: {
 					load: 'load'
 				}
@@ -68,7 +68,7 @@ function makeLoadState(id) {
 			},
 			unload: {
 				on: {
-					onDone: 'preload'
+					onDone: 'free'
 				}
 			}
 		}
@@ -354,8 +354,8 @@ function addChild(parent, child) {
 		parent.states[child.id] = child
 	} else if (parent.meta.type === 'action') {
 		parent.states[child.id] = child
-	} else if (parent.states.play) {
-		parent.states.play.states[child.id] = child
+	} else if (parent.states.interactive) {
+		parent.states.interactive.states[child.id] = child
 	}
 	if (child.id && !parent.parallel && !parent.initial) {
 		parent.initial = child.id
@@ -379,7 +379,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			break
 		case 'sceneHeading':
 			curr = makeState()
-			curr.meta.scene = obj
+			curr.states.setView.meta.scene = obj
 			break
 		case 'shot':
 			curr = makeState(currState)
@@ -389,11 +389,11 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 
 			makeLoader(curr)
 
-			curr.meta.shotType = obj.viewType
+			curr.states.setView.meta.shotType = obj.viewType
 			if (obj.viewMovement) {
-				curr.meta.movementType = obj.viewMovement
+				curr.states.setView.meta.movementType = obj.viewMovement
 			}
-			curr.meta.shotTime = obj.shotTime
+			curr.states.setView.meta.shotTime = obj.shotTime
 
 			if (transitions.length) {
 				let t = transitions.pop()
@@ -401,7 +401,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 					applyTransition(t.from, curr, obj.shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
 				}
 			} else if (currStmt.rule === 'action' && parent.id === currState.id) {
-				let currAction = parent.states.play.states[parent.meta.actionCount - 1]
+				let currAction = parent.states.interactive.states[parent.meta.actionCount - 1]
 				applyTransition(currAction, curr, obj.shotTime, obj.transitionTime)
 			} else {
 				//	applyTransition(parent, curr, obj.shotTime, obj.transitionTime)
@@ -414,8 +414,8 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			action.meta.type = 'action'
 			action.meta.marker = obj.marker
 
-			//create states for each action line and name them after the total play time
-			let startTime = action.meta.playTime
+			//create states for each action line and name them after the total interactive time
+			let startTime = action.meta.interactiveTime
 			let lineStates = [...Object.values(action.states.lines.states), ...obj.lines].map(a => {
 				let s = {
 					id: uuidv4(),
@@ -430,7 +430,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 				}
 				let time = timeToMS(a.meta ? a.meta.time : a.time)
 				startTime += time
-				action.meta.playTime = startTime
+				action.meta.interactiveTime = startTime
 				s.after = {}
 				s.after[time] = startTime.toString()
 				return s
@@ -446,7 +446,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 
 			//action.id = undefined
 			action.meta.index = curr.meta.actionCount
-			curr.states.play.states[curr.meta.actionCount] = action
+			curr.states.interactive.states[curr.meta.actionCount] = action
 			curr.meta.actionCount += 1
 
 			//push continued actions
@@ -466,13 +466,13 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 
 			makeLoader(curr)
 
-			let prev = currState.states.play.states[currState.meta.actionCount - 1]
+			let prev = currState.states.interactive.states[currState.meta.actionCount - 1]
 			if (!prev) {
 				prev = currState
 			}
 			addChild(prev, curr)
 
-			applyTransition(prev, curr, prev.meta.playTime, 0, 'CUT', currStmt.result)
+			applyTransition(prev, curr, prev.meta.interactiveTime, 0, 'CUT', currStmt.result)
 
 			parent = curr
 
@@ -499,13 +499,13 @@ function addUpdateLoop(state, target){
 function makeLoader(curr) {
 	let loader = makeLoadState(curr.id)
 	stream.states.loaders.states[loader.id] = loader
-	curr.states.load.after = {
+	curr.states.loadNear.after = {
 		0: { //upon immediate entry
-			target: 'inTransition',
+			target: 'setView',
 			in: `#stream.loaders.${loader.id}.ready`
 		}
 	}
-	addUpdateLoop(curr.states.load, 'load')
+	addUpdateLoop(curr.states.loadNear, 'loadNear')
 }
 
 function applyTransition(from, to, shotTime, transitionTime, transitionType, condition) {
@@ -514,22 +514,22 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	}
 
 	//TODO: refactor to parallel load state
-	//from.states.load.on.update.push({target: 'play', cond:`'${to.id}'].load.done`})
+	//from.states.loadNear.on.update.push({target: 'interactive', cond:`'${to.id}'].loadNear.done`})
 	to.states.inTransition.meta.type = transitionType
 	if (from.states.outTransition) {
 		from.states.outTransition.meta.type = transitionType
 	}
 
 	let cond = condition ? getConds(condition) : undefined
-	let playState = from.states.play
-	if (playState) {
-		playState.after[0] = undefined
-		playState.after[timeToMS(shotTime)] = {
+	let interactiveState = from.states.interactive
+	if (interactiveState) {
+		interactiveState.after[0] = undefined
+		interactiveState.after[timeToMS(shotTime)] = {
 			target: 'outTransition',
 			cond
 		}
 		if(cond){
-			addUpdateLoop(playState, playState.id)
+			addUpdateLoop(interactiveState, interactiveState.id)
 		}
 	}
 
@@ -547,7 +547,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	}
 
 	to.states.inTransition.after = {}
-	to.states.inTransition.after[timeToMS(transitionTime)] = 'play'
+	to.states.inTransition.after[timeToMS(transitionTime)] = 'interactive'
 
 	//loop back to start of transition
 	let target = from.meta.from ? from.meta.from : `#${from.id}`
@@ -597,7 +597,7 @@ function makeState(templateState) {
 	}
 	let state = {
 		id: undefined, //`state_${uuidv4()}`, //TODO: use uuid
-		initial: 'preload',
+		initial: 'unloadFar',
 		meta: {
 			scene: templateState && templateState.meta ? templateState.meta.scene : undefined,
 			shotType: templateState && templateState.meta ? templateState.meta.shotType : undefined,
@@ -606,16 +606,16 @@ function makeState(templateState) {
 		},
 		after: {},
 		states: {
-			preload: {
+			unloadFar: {
 				after: {
 					0: {
-						target: "load",
+						target: "loadNear",
 						cond: undefined
 					}
 				},
 				states: {}
 			},
-			load: {
+			loadNear: {
 				after: {
 					//0: {
 					//	target: 'inTransition',
@@ -624,16 +624,22 @@ function makeState(templateState) {
 				},
 				states: {}
 			},
+			setView: {
+				meta: {},
+				after: {
+					0: 'inTransition'
+				}
+			},
 			inTransition: {
 				after: {
-					0: 'play'
+					0: 'interactive'
 				},
 				meta: {
 					type: templateState && templateState.states.inTransition ? templateState.states.inTransition.meta.type : undefined
 				},
 				states: {}
 			},
-			play: {
+			interactive: {
 				parallel: true,
 				after: {
 					0: 'outTransition',
@@ -659,7 +665,7 @@ function makeAction(id) {
 		id,
 		initial: 'lines',
 		meta: {
-			playTime: 0
+			interactiveTime: 0
 		},
 		after: {
 
