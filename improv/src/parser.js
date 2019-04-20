@@ -1,4 +1,5 @@
-const assign = require('xstate').actions.assign
+const assign = require('xstate').assign
+const log = require('xstate').actions.log
 const nearley = require('nearley')
 const grammar = require('./grammar')
 const uuidv4 = require('uuid/v4')
@@ -47,32 +48,32 @@ let stream = {
 }
 
 function makeLoadState(id) {
-	return {
-		id: `load - ${id}`,
-		initial: 'free',
+	let loaderId = `LOAD - ${id}`
+	let state = {
+		id: loaderId,
+		initial: 'unloaded',
 		states: {
-			free: {
-				on: {
-					load: 'load'
+			'unloaded': {
+				after: {
+					1000: {
+						target: 'loaded',
+						cond: 'isLoaded'
+					},
+					[DEFAULT_UPDATE_TICK]: 'unloaded'
+				},
+			},
+			'loaded': {
+				after: {
+					1000: {
+						target: 'unloaded',
+						cond: 'isUnloaded'
+					},
+					[DEFAULT_UPDATE_TICK]: 'loaded'
 				}
 			},
-			load: {
-				on: {
-					ready: 'ready'
-				}
-			},
-			ready: {
-				on: {
-					unload: 'unload'
-				}
-			},
-			unload: {
-				on: {
-					onDone: 'free'
-				}
-			}
 		}
 	}
+	return state
 }
 
 module.exports.impToJSON = impToJSON
@@ -487,9 +488,10 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 	}
 }
 
-//update every 16ms
-const DEFAULT_UPDATE_TICK = 16
-function addUpdateLoop(state, target){
+//update every DEFAULT_UPDATE_TICK in ms
+const DEFAULT_UPDATE_TICK = 10000
+
+function addUpdateLoop(state, target) {
 	state.after[DEFAULT_UPDATE_TICK] = {
 		//internal: true,
 		target
@@ -497,12 +499,51 @@ function addUpdateLoop(state, target){
 }
 
 function makeLoader(curr) {
+	curr.states.unloadFar.onEntry = ['log','incRec']
+	/* assign({
+		refs: context => Object.keys(context.refs).reduce((refs, id) =>
+			({
+				...refs,
+				[id]: id != curr.id && id in context.refs ? context.refs[id] - 1 : 0
+			}), {})
+	}) */
+
+	curr.states.loadNear.onEntry = ['log','decRec'] /* assign({
+		refs: context => ({
+			...context.refs,
+			[curr.id]: curr.id in context.refs ? context.refs[curr.id] + 1 : 1
+		})
+	}) 
+	
+	actions: {
+		incRec: assign({
+			refs: (context, event) => Object.keys(context.refs).reduce((refs, id) => {
+				let actionId = event.type.substr(0, event.type.lastIndexOf('.'))
+				return ({
+					...refs,
+					[id]: id != actionId && id in context.refs ? context.refs[id] - 1 : 0
+				})
+			}, {})
+		}),
+		decRec: assign({
+			refs: (context, event, action) => {
+				let actionId = event.type.substr(0, event.type.lastIndexOf('.'))
+				return ({
+					...context.refs,
+					[actionId]: actionId in context.refs ? context.refs[actionId] + 1 : 1
+				})
+			}
+		}),
+		log: (context, event) => console.log(`${JSON.stringify(event)}: context: ${JSON.stringify(context)}`)
+	},
+	*/
+
 	let loader = makeLoadState(curr.id)
 	stream.states.loaders.states[loader.id] = loader
 	curr.states.loadNear.after = {
 		0: { //upon immediate entry
 			target: 'setView',
-			in: `#stream.loaders.${loader.id}.ready`
+			in: `#stream.loaders.${loader.id}.loaded`
 		}
 	}
 	addUpdateLoop(curr.states.loadNear, 'loadNear')
@@ -513,7 +554,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 		transitionType = 'CUT'
 	}
 
-	//TODO: refactor to parallel load state
+	//TODO: refactor to parallel loaded state
 	//from.states.loadNear.on.update.push({target: 'interactive', cond:`'${to.id}'].loadNear.done`})
 	to.states.inTransition.meta.type = transitionType
 	if (from.states.outTransition) {
@@ -528,7 +569,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 			target: 'outTransition',
 			cond
 		}
-		if(cond){
+		if (cond) {
 			addUpdateLoop(interactiveState, interactiveState.id)
 		}
 	}
@@ -613,6 +654,7 @@ function makeState(templateState) {
 						cond: undefined
 					}
 				},
+				onEntry: {},
 				states: {}
 			},
 			loadNear: {
@@ -622,6 +664,7 @@ function makeState(templateState) {
 					//	in: undefined
 					//}
 				},
+				onEntry: {},
 				states: {}
 			},
 			setView: {
@@ -718,3 +761,83 @@ var context = {
 	BOOM: FOO,
 	TREE: false,
 }
+
+const machineOptions = `{
+	actions: {
+		incRec: assign({
+			refs: (context, event) => Object.keys(context.refs).reduce((refs, id) => {
+				let searchTerm = 'units.'
+				let actionId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
+				actionId = \`LOAD - $\{actionId.substring(0,actionId.indexOf('.'))\}\`
+				return ({
+					...refs,
+					[id]: id != actionId && id in context.refs ? context.refs[id] - 1 : 0
+				})
+			}, {})
+		}),
+		decRec: assign({
+			refs: (context, event, action) => {
+				let searchTerm = 'units.'
+				let actionId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
+				actionId = \`LOAD - $\{actionId.substring(0,actionId.indexOf('.'))\}\`
+				return ({
+					...context.refs,
+					[actionId]: actionId in context.refs ? context.refs[actionId] + 1 : 1
+				})
+			}
+		}),
+		log: (context, event) => console.log(\`$\{JSON.stringify(event)\}: context: $\{JSON.stringify(context)\}\`)
+	},
+	guards: {
+		isLoaded: (context, event) => {
+			let searchTerm = 'loaders.'
+			let loaderId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
+			loaderId = \`$\{loaderId.substring(0,loaderId.indexOf('.'))\}\`
+			console.log(\`isLoaded \nevent.type = $\{event.type\}\nloader ID = $\{loaderId\}\`)
+			return loaderId in context.refs && context.refs[loaderId] > 1
+		},
+		isUnloaded: (context, event) => {
+			let searchTerm = 'loaders.'
+			let loaderId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
+			loaderId = \`$\{loaderId.substring(0,loaderId.indexOf('.'))\}\`
+			console.log(\`isUnloaded loader ID = $\{loaderId\}\`)
+			return loaderId in context.refs && context.refs[loaderId] === 0
+		},
+		"ctx.buffer['EWS - CHURCH FRONT - EASE IN - 15:00'].load.done": (ctx, evt) => true,
+		"ctx.buffer['MEDIUM - CHURCH - 00:02'].load.done": (ctx) => true,
+		"ctx.buffer['SELECT - BUSH_A - AND - SELECT - BUSH_B'].load.done": (ctx) => true,
+		"ctx.SELECT(ctx.BUSH_A) && ctx.SELECT(ctx.BUSH_B)": (ctx) => false,
+		"ctx.MARKER(ctx.MARKER_TEST) && ctx.MARKER(ctx.FOO)": (ctx) => true,
+		"ctx.SELECT(ctx.BUSH_A) && ctx.SELECT(ctx.BUSH_B)": (ctx) => false,
+		"ctx.SELECT(ctx.BUSH_A) || ctx.SELECT(ctx.BUSH_C)": (ctx) => false,
+		"ctx.SELECT(ctx.TREE)": (ctx) => false,
+		"ctx.FLICK(ctx.Stick)": (ctx) => false,
+		"ctx.FLICK(ctx.Rock)": (ctx) => false,
+		"ctx.SELECT(ctx.TREES_A)": (ctx) => false,
+		AND: (ctx, evt, {
+			cond
+		}) => false,
+		OR: (ctx, evt, {
+			cond
+		}) => false,
+		SELECT: (ctx, evt, {
+			cond
+		}) => false,
+		MARKER: (ctx, evt, {
+			cond
+		}) => false,
+		FLICK: (ctx, evt, {
+			cond
+		}) => false,
+	}
+}`
+
+const machineContext = `{
+	refs: {}
+}`
+
+module.exports.generateMachine = generateMachine
+function generateMachine(jsonDefinition){
+	return `Machine(${jsonDefinition},${machineOptions},${machineContext})`
+}
+
