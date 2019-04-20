@@ -1,4 +1,4 @@
-const { impToJSON, impToXML } = require("./parser")
+const { generateMachine, impToJSON, impToXML } = require("./parser")
 var fs = require('fs')
 
 const parseScript = (text, toJSON, toXML, isPrint) => {
@@ -6,7 +6,7 @@ const parseScript = (text, toJSON, toXML, isPrint) => {
   let t = text.split('\n')
   let parsedScript = toJSON ? impToJSON(t) : toXML ? impToXML(t) : t
   if (isPrint){
-    return printScript(parsedScript)
+    return generateMachine(printScript(parsedScript))
   }
   //console.log(parsedScript)
   return parsedScript
