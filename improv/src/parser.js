@@ -51,24 +51,24 @@ function makeLoadState(id) {
 	let loaderId = `LOAD - ${id}`
 	let state = {
 		id: loaderId,
-		initial: 'unloaded',
+		initial: 'shouldUnload',
 		states: {
-			'unloaded': {
+			'shouldUnload': {
 				after: {
 					1000: {
-						target: 'loaded',
+						target: 'shouldLoad',
 						cond: 'isLoaded'
 					},
-					[DEFAULT_UPDATE_TICK]: 'unloaded'
+					[DEFAULT_UPDATE_TICK]: 'shouldUnload'
 				},
 			},
-			'loaded': {
+			'shouldLoad': {
 				after: {
 					1000: {
-						target: 'unloaded',
-						cond: 'isUnloaded'
+						target: 'shouldUnload',
+						cond: 'isShouldUnload'
 					},
-					[DEFAULT_UPDATE_TICK]: 'loaded'
+					[DEFAULT_UPDATE_TICK]: 'shouldLoad'
 				}
 			},
 		}
@@ -76,13 +76,13 @@ function makeLoadState(id) {
 	return state
 }
 
-module.exports.impToJSON = impToJSON
+module.exports.impToStream = impToStream
 
-function impToJSON(script) {
+function impToStream(script) {
 	let rootUnit = parseLines(script, stream.states.units)
 	isCyclic(rootUnit)
 	stream.states.units = rootUnit
-	return JSON.stringify(stream)
+	return stream
 }
 
 function isCyclic(obj) {
@@ -526,7 +526,7 @@ function makeLoader(curr) {
 			}, {})
 		}),
 		decRec: assign({
-			refs: (context, event, action) => {
+			refs: (context, event) => {
 				let actionId = event.type.substr(0, event.type.lastIndexOf('.'))
 				return ({
 					...context.refs,
@@ -543,7 +543,7 @@ function makeLoader(curr) {
 	curr.states.loadNear.after = {
 		0: { //upon immediate entry
 			target: 'setView',
-			in: `#stream.loaders.${loader.id}.loaded`
+			in: `#stream.loaders.${loader.id}.shouldLoad`
 		}
 	}
 	addUpdateLoop(curr.states.loadNear, 'loadNear')
@@ -554,7 +554,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 		transitionType = 'CUT'
 	}
 
-	//TODO: refactor to parallel loaded state
+	//TODO: refactor to parallel shouldLoad state
 	//from.states.loadNear.on.update.push({target: 'interactive', cond:`'${to.id}'].loadNear.done`})
 	to.states.inTransition.meta.type = transitionType
 	if (from.states.outTransition) {
@@ -776,7 +776,7 @@ const machineOptions = `{
 			}, {})
 		}),
 		decRec: assign({
-			refs: (context, event, action) => {
+			refs: (context, event) => {
 				let searchTerm = 'units.'
 				let actionId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
 				actionId = \`LOAD - $\{actionId.substring(0,actionId.indexOf('.'))\}\`
@@ -796,39 +796,18 @@ const machineOptions = `{
 			console.log(\`isLoaded \nevent.type = $\{event.type\}\nloader ID = $\{loaderId\}\`)
 			return loaderId in context.refs && context.refs[loaderId] > 1
 		},
-		isUnloaded: (context, event) => {
+		isShouldUnload: (context, event) => {
 			let searchTerm = 'loaders.'
 			let loaderId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
 			loaderId = \`$\{loaderId.substring(0,loaderId.indexOf('.'))\}\`
-			console.log(\`isUnloaded loader ID = $\{loaderId\}\`)
+			console.log(\`isShouldUnload loader ID = $\{loaderId\}\`)
 			return loaderId in context.refs && context.refs[loaderId] === 0
 		},
-		"ctx.buffer['EWS - CHURCH FRONT - EASE IN - 15:00'].load.done": (ctx, evt) => true,
-		"ctx.buffer['MEDIUM - CHURCH - 00:02'].load.done": (ctx) => true,
-		"ctx.buffer['SELECT - BUSH_A - AND - SELECT - BUSH_B'].load.done": (ctx) => true,
-		"ctx.SELECT(ctx.BUSH_A) && ctx.SELECT(ctx.BUSH_B)": (ctx) => false,
-		"ctx.MARKER(ctx.MARKER_TEST) && ctx.MARKER(ctx.FOO)": (ctx) => true,
-		"ctx.SELECT(ctx.BUSH_A) && ctx.SELECT(ctx.BUSH_B)": (ctx) => false,
-		"ctx.SELECT(ctx.BUSH_A) || ctx.SELECT(ctx.BUSH_C)": (ctx) => false,
-		"ctx.SELECT(ctx.TREE)": (ctx) => false,
-		"ctx.FLICK(ctx.Stick)": (ctx) => false,
-		"ctx.FLICK(ctx.Rock)": (ctx) => false,
-		"ctx.SELECT(ctx.TREES_A)": (ctx) => false,
-		AND: (ctx, evt, {
-			cond
-		}) => false,
-		OR: (ctx, evt, {
-			cond
-		}) => false,
-		SELECT: (ctx, evt, {
-			cond
-		}) => false,
-		MARKER: (ctx, evt, {
-			cond
-		}) => false,
-		FLICK: (ctx, evt, {
-			cond
-		}) => false,
+		AND: (ctx, evt, {lhs,rhs}) => lhs() && rhs(),
+		OR: (ctx, evt, {lhs,rhs}) => false,
+		SELECT: (ctx, evt, {rhs}) => false,
+		MARKER: (ctx, evt) => false,
+		FLICK: (ctx, evt) => false,
 	}
 }`
 
@@ -838,6 +817,11 @@ const machineContext = `{
 
 module.exports.generateMachine = generateMachine
 function generateMachine(jsonDefinition){
+	return Machine(jsonDefinitio,machineOptions,machineContext)
+}
+
+module.exports.printMachine = printMachine
+function printMachine(jsonDefinition) {
 	return `Machine(${jsonDefinition},${machineOptions},${machineContext})`
 }
 
