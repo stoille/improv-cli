@@ -1,5 +1,5 @@
+const Machine = require('xstate').Machine
 const assign = require('xstate').assign
-const log = require('xstate').actions.log
 const nearley = require('nearley')
 const grammar = require('./grammar')
 const uuidv4 = require('uuid/v4')
@@ -28,7 +28,7 @@ function parseLine(lineText) {
 	return results
 }
 
-const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
+const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *t*$/) !== null
 
 //TODO: make stream creation stateless
 let stream = {
@@ -226,7 +226,7 @@ function parseLines(lines,
 }
 
 function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
-	let lines = `\n${lineCursor-1}:${lastLine}\n>>${lineCursor}:${line}`
+	let lines = `n${lineCursor-1}:${lastLine}n>>${lineCursor}:${line}`
 
 	if (!prevStmt) {
 		if (currStmt.depth > 0) {
@@ -499,44 +499,8 @@ function addUpdateLoop(state, target) {
 }
 
 function makeLoader(curr) {
-	curr.states.unloadFar.onEntry = ['log','incRec']
-	/* assign({
-		refs: context => Object.keys(context.refs).reduce((refs, id) =>
-			({
-				...refs,
-				[id]: id != curr.id && id in context.refs ? context.refs[id] - 1 : 0
-			}), {})
-	}) */
-
-	curr.states.loadNear.onEntry = ['log','decRec'] /* assign({
-		refs: context => ({
-			...context.refs,
-			[curr.id]: curr.id in context.refs ? context.refs[curr.id] + 1 : 1
-		})
-	}) 
-	
-	actions: {
-		incRec: assign({
-			refs: (context, event) => Object.keys(context.refs).reduce((refs, id) => {
-				let actionId = event.type.substr(0, event.type.lastIndexOf('.'))
-				return ({
-					...refs,
-					[id]: id != actionId && id in context.refs ? context.refs[id] - 1 : 0
-				})
-			}, {})
-		}),
-		decRec: assign({
-			refs: (context, event) => {
-				let actionId = event.type.substr(0, event.type.lastIndexOf('.'))
-				return ({
-					...context.refs,
-					[actionId]: actionId in context.refs ? context.refs[actionId] + 1 : 1
-				})
-			}
-		}),
-		log: (context, event) => console.log(`${JSON.stringify(event)}: context: ${JSON.stringify(context)}`)
-	},
-	*/
+	curr.states.unloadFar.onEntry = ['log', 'incRec']
+	curr.states.loadNear.onEntry = ['log', 'decRec']
 
 	let loader = makeLoadState(curr.id)
 	stream.states.loaders.states[loader.id] = loader
@@ -597,14 +561,6 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	}
 	from.meta.from = undefined
 	to.meta.from = target
-}
-
-function SELECT(x) {
-	return true
-}
-
-function FOO(x) {
-	return 'FOO' + x
 }
 
 function getConds(cond) {
@@ -734,94 +690,42 @@ function makeAction(id) {
 	}
 }
 
-var actions = {
-	shot: assign({
-		cameraType: (ctx, evt) => evt.type,
-		target: (ctx, evt) => evt.target,
-		source: (ctx, evt) => evt.source,
-		shotTime: (ctx, evt) => evt.shotTime,
-		transitionType: (ctx, evt) => evt.transitionType,
-		movementTime: (ctx, evt) => evt.movementTime
-	})
-}
-module.exports.actions = actions
-
-var guards = {
-	//"SELECT - BUSH_A - AND - SELECT - BUSH_B": (ctx, evt) => 'select(ctx.BUSH_A) && select(ctx.BUSH_B)'.parseFunction()
-}
-module.exports.guards = guards
-
-var context = {
-	BUSH_A: true,
-	BUSH_B: false,
-	LUL: false,
-	SELECT: SELECT,
-	FOO: FOO,
-	WOW: FOO,
-	BOOM: FOO,
-	TREE: false,
-}
+const actions = require('./actions')
+const guards = require('./guards')
 
 const machineOptions = `{
 	actions: {
-		incRec: assign({
-			refs: (context, event) => Object.keys(context.refs).reduce((refs, id) => {
-				let searchTerm = 'units.'
-				let actionId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
-				actionId = \`LOAD - $\{actionId.substring(0,actionId.indexOf('.'))\}\`
-				return ({
-					...refs,
-					[id]: id != actionId && id in context.refs ? context.refs[id] - 1 : 0
-				})
-			}, {})
-		}),
-		decRec: assign({
-			refs: (context, event) => {
-				let searchTerm = 'units.'
-				let actionId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
-				actionId = \`LOAD - $\{actionId.substring(0,actionId.indexOf('.'))\}\`
-				return ({
-					...context.refs,
-					[actionId]: actionId in context.refs ? context.refs[actionId] + 1 : 1
-				})
-			}
-		}),
-		log: (context, event) => console.log(\`$\{JSON.stringify(event)\}: context: $\{JSON.stringify(context)\}\`)
+		log,
+		${Object.keys(actions).reduce((fns, f) => {
+			if(f === 'log') {return fns}
+			else {return `${fns ? fns + ',' : fns}
+			 ${f}: assign({refs: ${f}})`}
+			},'')},
 	},
 	guards: {
-		isLoaded: (context, event) => {
-			let searchTerm = 'loaders.'
-			let loaderId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
-			loaderId = \`$\{loaderId.substring(0,loaderId.indexOf('.'))\}\`
-			console.log(\`isLoaded \nevent.type = $\{event.type\}\nloader ID = $\{loaderId\}\`)
-			return loaderId in context.refs && context.refs[loaderId] > 1
-		},
-		isShouldUnload: (context, event) => {
-			let searchTerm = 'loaders.'
-			let loaderId = event.type.substring(event.type.indexOf(searchTerm) + searchTerm.length)
-			loaderId = \`$\{loaderId.substring(0,loaderId.indexOf('.'))\}\`
-			console.log(\`isShouldUnload loader ID = $\{loaderId\}\`)
-			return loaderId in context.refs && context.refs[loaderId] === 0
-		},
-		AND: (ctx, evt, {lhs,rhs}) => lhs() && rhs(),
-		OR: (ctx, evt, {lhs,rhs}) => false,
-		SELECT: (ctx, evt, {rhs}) => false,
-		MARKER: (ctx, evt) => false,
-		FLICK: (ctx, evt) => false,
+		${Object.keys(guards).reduce((fns, f) => 
+			`${fns ? fns + ',' : fns}
+			${f}`
+			,'')}
 	}
 }`
 
-const machineContext = `{
+const machineContext = {
 	refs: {}
-}`
+}
 
 module.exports.generateMachine = generateMachine
-function generateMachine(jsonDefinition){
-	return Machine(jsonDefinitio,machineOptions,machineContext)
+
+function generateMachine(jsonDefinition) {
+	return Machine(jsonDefinition, machineOptions, machineContext)
 }
 
 module.exports.printMachine = printMachine
+
 function printMachine(jsonDefinition) {
-	return `Machine(${jsonDefinition},${machineOptions},${machineContext})`
+	return `Machine(${jsonDefinition},${machineOptions},${JSON.stringify(machineContext)})\n\n${printExports(actions)}\n\n${printExports(guards)}`
 }
 
+function printExports(funcs) {
+	return `var funcs = {}\n${Object.keys(funcs).reduce((fns, f, idx, exports) => `${fns}\n\n${funcs[f].toString()}\nfuncs[${f}] = ${f}`, '')}`
+}
