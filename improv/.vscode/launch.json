@@ -52,9 +52,8 @@
       "runtimeArgs": [
         "--inspect-brk=5858",
         "./src/commander.js",
-        "parse",
-        "--print",
-        "--json",
+        "parse",,
+        "--js",
         "./scripts/summerAfternoonSm.imp"
         //"compileTest",
       ],

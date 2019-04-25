@@ -13,11 +13,11 @@
     "lowdb": "^1.0.0",
     "nearley": "^2.13.0",
     "stampit": "^4.1.2",
-    "xstate": "^4.2.3"
+    "xstate": "^4.3.3"
   },
   "scripts": {
     "generate-grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.js",
-    "compileTest": "node ./src/commander.js parse --json ./scripts/summerAfternoonSm.imp",
+    "compileTest": "node ./src/commander.js parse --print --json ./scripts/summerAfternoonSm.imp",
     "test": "cd test; tap ./driverTest.js"
   },
   "devDependencies": {
