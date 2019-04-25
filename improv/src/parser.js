@@ -476,9 +476,6 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			applyTransition(prev, curr, prev.meta.interactiveTime, 0, 'CUT', currStmt.result)
 
 			parent = curr
-
-			let conds = getConds(currStmt.result)
-			guards[line] = conds
 			break
 	}
 
@@ -723,9 +720,14 @@ function generateMachine(jsonDefinition) {
 module.exports.printMachine = printMachine
 
 function printMachine(jsonDefinition) {
-	return `Machine(${jsonDefinition},${machineOptions},${JSON.stringify(machineContext)})\n\n${printExports(actions)}\n\n${printExports(guards)}`
+	return `Machine(${jsonDefinition},\n
+		${machineOptions},\n
+		${JSON.stringify(machineContext)})\n
+		var funcs = {}\n
+	${printExports(actions)}\n
+	${printExports(guards)}`
 }
 
 function printExports(funcs) {
-	return `var funcs = {}\n${Object.keys(funcs).reduce((fns, f, idx, exports) => `${fns}\n\n${funcs[f].toString()}\nfuncs[${f}] = ${f}`, '')}`
+	return `${Object.keys(funcs).reduce((fns, f, idx, exports) => `${fns}\n\n${funcs[f].toString()}\nfuncs[${f}] = ${f}`, '')}`
 }
