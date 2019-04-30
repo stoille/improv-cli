@@ -33,19 +33,26 @@ function OR(ctx, evt, {
 	return (lhs && funcs[lhs.type](lhs)) || (rhs && funcs[rhs.type](rhs))
 }
 
+module.exports.TRUE = TRUE
+function TRUE(ctx, evt, {
+	lhs,
+	rhs
+}) {
+	return rhs && (rhs.type && funcs[rhs.type](rhs) || rhs.marker in ctx)
+}
+
+module.exports.FALSE = FALSE
+function FALSE(ctx, evt, {
+	lhs,
+	rhs
+}) {
+	return rhs && (rhs.type && !funcs[rhs.type](rhs) || !(rhs.marker in ctx))
+}
+
 module.exports.SELECT = SELECT
 function SELECT(ctx, evt, {
 	rhs
 }) {
-	return false
-}
-
-module.exports.MARKER = MARKER
-function MARKER(ctx, evt) {
-	return false
-}
-
-module.exports.FLICK = FLICK
-function FLICK(ctx, evt) {
+	//TODO: detect if an object is selected this frame
 	return false
 }
