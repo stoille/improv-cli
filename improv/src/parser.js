@@ -22,7 +22,6 @@ function parseLine(lineText) {
 	if (results.shot) return results.shot
 	if (results.action) return results.action
 	if (results.transition) return results.transition
-	if (results.dialogue) return results.dialogue
 	if (results.cond) return results.cond
 	if (results.comment) return results.comment
 	return results
@@ -166,13 +165,6 @@ function parseLines(lines,
 			continue
 		}
 
-		try {
-			lintStmt(currStmt, prevStmt, line, lastLine, lineCursor)
-		} catch (error) {
-			console.error(error)
-			process.exit(1)
-		}
-
 		if (tabDecreased(currStmt, prevStmt)) {
 			let d = prevStmt.depth - 2
 			let env = envs.pop()
@@ -186,6 +178,13 @@ function parseLines(lines,
 			prevStmt = env.prevStmt
 			transitions = env.transitions
 			continuedActions = env.continuedActions
+		}
+
+		try {
+			lintStmt(currStmt, prevStmt, line, lastLine, lineCursor)
+		} catch (error) {
+			console.error(error)
+			process.exit(1)
 		}
 
 		let {
@@ -226,7 +225,7 @@ function parseLines(lines,
 }
 
 function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
-	let lines = `n${lineCursor-1}:${lastLine}n>>${lineCursor}:${line}`
+	let lines = `\n${lineCursor-1}:${lastLine}\n>>${lineCursor}:${line}`
 
 	if (!prevStmt) {
 		if (currStmt.depth > 0) {
@@ -421,6 +420,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 				let s = {
 					id: uuidv4(),
 					meta: {
+						speaker: a.meta ? a.meta.speaker : a.speaker,
 						text: a.meta ? a.meta.text : a.text,
 						time: a.meta ? a.meta.time : a.time,
 						startTime,
@@ -568,10 +568,10 @@ function getConds(cond) {
 			rhs: getConds(cond.rhs.result)
 		}
 	} else {
-		let path = cond.rhs.map(c => `${c.root}/${c.path.join('/')}`).join(',').replace(/\/$/, "")
 		return {
 			type: cond.op,
-			path
+			root: cond.root,
+			path: cond.path
 		}
 	}
 }
@@ -690,13 +690,24 @@ function makeAction(id) {
 const actions = require('./actions')
 const guards = require('./guards')
 
-const machineOptions = `{
+function printMachineOptions(actions, guards) {
+	return `{
 	actions: {
 		log,
 		${Object.keys(actions).reduce((fns, f) => {
 			if(f === 'log') {return fns}
-			else {return `${fns ? fns + ',' : fns}
-			 ${f}: assign({refs: ${f}})`}
+			else {return `
+	$ {
+		fns ? fns + ',' : fns
+	}
+	$ {
+		f
+	}: assign({
+		refs: $ {
+			f
+		}
+	})
+	`}
 			},'')},
 	},
 	guards: {
@@ -706,6 +717,22 @@ const machineOptions = `{
 			,'')}
 	}
 }`
+}
+
+function machineOptions(actions, guards) {
+	return ({
+		actions: Object.keys(actions).reduce((fns, f) => ({
+			...fns,
+			[f]: assign({
+				refs: actions[f]
+			})
+		}), {}),
+		guards: Object.keys(guards).reduce((fns, f) => ({
+			...fns,
+			[f]: guards[f]
+		}), {})
+	})
+}
 
 const machineContext = {
 	refs: {}
@@ -714,14 +741,14 @@ const machineContext = {
 module.exports.generateMachine = generateMachine
 
 function generateMachine(jsonDefinition) {
-	return Machine(jsonDefinition, machineOptions, machineContext)
+	return Machine(jsonDefinition, printMachineOptions(actions, guards), machineContext)
 }
 
 module.exports.printMachine = printMachine
 
 function printMachine(jsonDefinition) {
 	return `Machine(${jsonDefinition},\n
-		${machineOptions},\n
+		${printMachineOptions},\n
 		${JSON.stringify(machineContext)})\n
 		var funcs = {}\n
 	${printExports(actions)}\n
