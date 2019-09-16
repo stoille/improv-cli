@@ -1,25 +1,25 @@
-const { generateMachine, printMachine, impToStream } = require("./parser")
+const { jsonToXStateMachine, impToStream } = require("./parser")
 var fs = require('fs')
 
-const parseScript = (text, toJSON, toJS) => {
+const parseScript = (text, ops) => {
   let t = text.split('\n')
   let stream = impToStream(t)
-  if(toJSON){
+  if(ops.json){
     return JSON.stringify(stream)
-  } else if(toJS){
-    return printMachine(JSON.stringify(stream))
-  }
-  return generateMachine(stream)
+  } else if(ops.js){
+    return jsonToXStateMachine(JSON.stringify(stream))
+  } 
+  return null
 }
 module.exports.parseScript = parseScript
 
-const readScriptFileAndParse = (scriptPath, toJSON, toJS, isPrint) => new Promise((resolve, reject) =>
+const readScriptFileAndParse = (scriptPath, ops) => new Promise((resolve, reject) =>
   fs.readFile(scriptPath, "utf8", (err, text) => {
     if(err){
       console.error('readScriptFileAndParse:'+err)
       reject(err)
     }
-    let ps = parseScript(text, toJSON, toJS, isPrint)
+    let ps = parseScript(text, ops)
     resolve(ps)
   }))
 module.exports.readScriptFileAndParse = readScriptFileAndParse
