@@ -3,16 +3,22 @@ const program = require('commander')
 const { readScriptFileAndParse } = require('./commands')
 
 program
-  .version('0.2.0')
+  .version('0.3.0')
   .description('improv compiler')
   .command('parse <scriptPath>')
   .description('parses an improv (.imp) script file')
-  .option('-j, --json', 'print to JSON')
-  .option('-js, --js', 'print to JS')
+  .option('-j, --json', 'export to JSON')
+  .option('-js, --js', 'export to JS')
+  .option('-u, --unity', 'export to Unity')    
   .action((scriptPath, cmd) => {
-    readScriptFileAndParse(scriptPath, cmd.json, cmd.js)
+    readScriptFileAndParse(scriptPath, {json: cmd.json, js: cmd.js, unity: cmd.unity} )
     .then(parsedScript => {
-      console.log(parsedScript)
+      if(!parsedScript){
+        console.error("Parse command requires output fomat to be defined. For help run: commander parse --help")
+        //console.log(program.helpInformation())
+      } else {
+        console.log(parsedScript)
+      }
       process.exit(0)
     })
   })

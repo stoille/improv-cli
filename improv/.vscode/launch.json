@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": 
+      "type": "node",
       "request": "launch",
       "name": "generate nearly grammar",
       "console": "integratedTerminal",
@@ -52,7 +52,7 @@
       "runtimeArgs": [
         "--inspect-brk=5858",
         "./src/commander.js",
-        "parse",,
+        "parse",
         "--js",
         "./scripts/summerAfternoonSm.imp"
         //"compileTest",

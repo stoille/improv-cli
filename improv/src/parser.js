@@ -32,10 +32,10 @@ const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *t*$/) !== null
 //TODO: make stream creation stateless
 let stream = {
 	id: "stream",
-	parallel: true,
+	type: 'parallel',
 	states: {
 		loaders: {
-			parallel: true,
+			type: 'parallel',
 			states: {}
 		},
 		units: {
@@ -54,20 +54,20 @@ function makeLoadState(id) {
 		states: {
 			'shouldUnload': {
 				after: {
-					1000: {
+					[DEFAULT_UPDATE_TICK]: ['shouldUnload',
+					{
 						target: 'shouldLoad',
 						cond: 'isLoaded'
-					},
-					[DEFAULT_UPDATE_TICK]: 'shouldUnload'
+					}]
 				},
 			},
 			'shouldLoad': {
 				after: {
-					1000: {
+					[DEFAULT_UPDATE_TICK]: ['shouldLoad',
+					{
 						target: 'shouldUnload',
 						cond: 'isShouldUnload'
-					},
-					[DEFAULT_UPDATE_TICK]: 'shouldLoad'
+					}]
 				}
 			},
 		}
@@ -91,7 +91,7 @@ function isCyclic(obj) {
 	var detected = false;
 
 	function detect(obj, key) {
-		if (obj && typeof obj != 'object') {
+		if (obj && typeof obj !== 'object') {
 			return;
 		}
 
@@ -486,7 +486,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 }
 
 //update every DEFAULT_UPDATE_TICK in ms
-const DEFAULT_UPDATE_TICK = 10000
+const DEFAULT_UPDATE_TICK = 16
 
 function addUpdateLoop(state, target) {
 	state.after[DEFAULT_UPDATE_TICK] = {
@@ -636,7 +636,7 @@ function makeState(templateState) {
 				states: {}
 			},
 			interactive: {
-				parallel: true,
+				type: 'parallel',
 				after: {
 					0: 'outTransition',
 					cond: undefined
@@ -744,15 +744,19 @@ function generateMachine(jsonDefinition) {
 	return Machine(jsonDefinition, printMachineOptions(actions, guards), machineContext)
 }
 
-module.exports.printMachine = printMachine
+module.exports.jsonToXStateMachine = jsonToXStateMachine
 
-function printMachine(jsonDefinition) {
-	return `Machine(${jsonDefinition},\n
+function jsonToXStateMachine(jsonDefinition) {
+	return `
+	import { Machine } from 'xstate'
+
+	export const gameMachine = Machine(${jsonDefinition},\n
 		${printMachineOptions},\n
 		${JSON.stringify(machineContext)})\n
 		var funcs = {}\n
 	${printExports(actions)}\n
-	${printExports(guards)}`
+	${printExports(guards)}
+	`
 }
 
 function printExports(funcs) {
