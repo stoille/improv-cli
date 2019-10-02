@@ -68,10 +68,11 @@ num -> [0-9]:? [0-9] {% d => parseInt((d[0] ? d[0] : 0) * 10 + parseInt(d[1] ? d
 
 action -> (wordWS ":"):? sentence:+ marker:? {% ([speaker, lines, marker]) => rule('action', {speaker, lines, marker}) %}
 
-sentence -> wordWS [.?!]:+ _ timeSpan:? {% ([text, punctuation, _, timeSpan]) => ({text, time:generateTime(timeSpan)}) %} 
+sentence -> (wordWS ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), time:generateTime(timeSpan)}) %} 
 
 marker -> SEP varName {% d => d[1]  %}
-wordWS -> [a-zA-Z,'\]\[\(\)_ ]:+ {% d => d[0].join('').trim()  %}
+word -> [a-zA-Z,']:+ {% d => d[0].join('').trim()  %}
+wordWS -> [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 
 #TODO: more robust conditional expression syntax
