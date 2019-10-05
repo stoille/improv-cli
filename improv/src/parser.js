@@ -389,6 +389,8 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 
 			makeLoader(curr)
 
+			curr.states.setView.meta.viewSource = obj.viewSource ? obj.viewSource : obj.viewTarget
+			curr.states.setView.meta.viewTarget = obj.viewTarget
 			curr.states.setView.meta.shotType = obj.viewType
 			if (obj.viewMovement) {
 				curr.states.setView.meta.movementType = obj.viewMovement
@@ -537,8 +539,11 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 
 	from = from.states.lines && from.states[to.id] ? from.states.lines : from
 	if (from.after) {
-		//	from.after = {}
-		from.after[timeToMS(shotTime)] = {
+		let t = timeToMS(shotTime)
+		//HACK: workaround nearly.js only supporting one slot per after time
+		while(from.after[t]) t += 1
+
+		from.after[t] = {
 			target: to.meta.index ? to.meta.index : to.id,
 			cond,
 			in: 'outTransition'
@@ -570,8 +575,8 @@ function getConds(cond) {
 	} else {
 		return {
 			type: cond.op,
-			root: cond.root,
-			path: cond.path
+			root: cond.rhs.root,
+			path: cond.rhs.path
 		}
 	}
 }
@@ -592,10 +597,7 @@ function makeState(templateState) {
 	let state = {
 		id: undefined, //`state_${uuidv4()}`, //TODO: use uuid
 		initial: 'unloadFar',
-		meta: {
-			scene: templateState && templateState.meta ? templateState.meta.scene : undefined,
-			shotType: templateState && templateState.meta ? templateState.meta.shotType : undefined,
-			movementType: templateState && templateState.meta ? templateState.meta.movementType : undefined,
+		meta: {			
 			actionCount: 0
 		},
 		after: {},
@@ -621,7 +623,11 @@ function makeState(templateState) {
 				states: {}
 			},
 			setView: {
-				meta: {},
+				meta: {
+					scene: templateState && templateState.states.setView.meta.scene ? templateState.states.setView.meta.scene : undefined,
+					shotType: templateState && templateState.states.setView.meta.shotType ? templateState.states.setView.meta.shotType : undefined,
+					movementType: templateState && templateState.states.setView.meta.movementType ? templateState.states.setView.meta.movementType : undefined,
+				},
 				after: {
 					0: 'inTransition'
 				}
