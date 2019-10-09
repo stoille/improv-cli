@@ -362,6 +362,8 @@ function addChild(parent, child) {
 	}
 }
 
+var lastScene = {}
+
 //post-processing statements
 //TODO: remove mutation of currState, parentState - could get nasty
 function ingestStmt(currStmt, prevStmt, currState, parentState, line, transitions) {
@@ -379,12 +381,12 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			break
 		case 'sceneHeading':
 			curr = makeState()
-			curr.states.setView.meta.scene = obj
+			lastScene = obj			
 			break
 		case 'shot':
 			curr = makeState(currState)
 			curr.id = `${line} - ${uuidv4()}` // line
-			curr.meta.type = 'shot'
+			curr.meta.type = currStmt.rule
 			addChild(parent, curr)
 
 			makeLoader(curr)
@@ -413,7 +415,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 		case 'action':
 			let isContinuedAction = obj.fromCont
 			let action = isContinuedAction ? continuedActions.pop() : makeAction(`action_${uuidv4()}`)
-			action.meta.type = 'action'
+			action.meta.type = currStmt.rule
 			action.meta.marker = obj.marker
 
 			//create states for each action line and name them after the total interactive time
@@ -465,6 +467,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			break
 		case 'cond':
 			curr = makeState()
+			curr.meta.type = currStmt.rule
 			curr.id = `${line} - ${uuidv4()}` // line
 
 			makeLoader(curr)
@@ -480,6 +483,9 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			parent = curr
 			break
 	}
+
+	//TODO: decide if having a single active scene at a time is a reasonable long term assumption
+	curr.states.setView.meta.scene = lastScene
 
 	return {
 		curr,
