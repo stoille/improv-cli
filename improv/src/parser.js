@@ -55,19 +55,19 @@ function makeLoadState(id) {
 			'shouldUnload': {
 				after: {
 					[DEFAULT_UPDATE_TICK]: ['shouldUnload',
-					{
-						target: 'shouldLoad',
-						cond: 'isLoaded'
-					}]
+						{
+							target: 'shouldLoad',
+							cond: 'isLoaded'
+						}]
 				},
 			},
 			'shouldLoad': {
 				after: {
 					[DEFAULT_UPDATE_TICK]: ['shouldLoad',
-					{
-						target: 'shouldUnload',
-						cond: 'isShouldUnload'
-					}]
+						{
+							target: 'shouldUnload',
+							cond: 'isShouldUnload'
+						}]
 				}
 			},
 		}
@@ -214,9 +214,8 @@ function parseLines(lines,
 		}
 		parentState = parent
 
-		if (currState.id !== curr.id) {
-			currState = curr
-		}
+		currState = curr
+
 		lastLine = line
 		prevStmt = currStmt
 	}
@@ -225,7 +224,7 @@ function parseLines(lines,
 }
 
 function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
-	let lines = `\n${lineCursor-1}:${lastLine}\n>>${lineCursor}:${line}`
+	let lines = `\n${lineCursor - 1}:${lastLine}\n>>${lineCursor}:${line}`
 
 	if (!prevStmt) {
 		if (currStmt.depth > 0) {
@@ -362,8 +361,6 @@ function addChild(parent, child) {
 	}
 }
 
-var lastScene = {}
-
 //post-processing statements
 //TODO: remove mutation of currState, parentState - could get nasty
 function ingestStmt(currStmt, prevStmt, currState, parentState, line, transitions) {
@@ -381,7 +378,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			break
 		case 'sceneHeading':
 			curr = makeState()
-			lastScene = obj			
+			curr.states.setView.meta.scene = obj
 			break
 		case 'shot':
 			curr = makeState(currState)
@@ -470,7 +467,13 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			curr.meta.type = currStmt.rule
 			curr.id = `${line} - ${uuidv4()}` // line
 
-			makeLoader(curr)
+			//TODO: cleanup this assignment into something more generalizable
+			//copy over scene info to new state
+			curr.states.setView.scene = currState && currState.states.setView.meta.scene ? currState.states.setView.meta.scene : undefined,
+				curr.states.setView.shotType = currState && currState.states.setView.meta.shotType ? currState.states.setView.meta.shotType : undefined,
+				curr.states.setView.movementType = currState && currState.states.setView.meta.movementType ? currState.states.setView.meta.movementType : undefined,
+
+				makeLoader(curr)
 
 			let prev = currState.states.interactive.states[currState.meta.actionCount - 1]
 			if (!prev) {
@@ -483,9 +486,6 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			parent = curr
 			break
 	}
-
-	//TODO: decide if having a single active scene at a time is a reasonable long term assumption
-	curr.states.setView.meta.scene = lastScene
 
 	return {
 		curr,
@@ -547,7 +547,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	if (from.after) {
 		let t = timeToMS(shotTime)
 		//HACK: workaround nearly.js only supporting one slot per after time
-		while(from.after[t]) t += 1
+		while (from.after[t]) t += 1
 
 		from.after[t] = {
 			target: to.meta.index ? to.meta.index : to.id,
@@ -603,7 +603,7 @@ function makeState(templateState) {
 	let state = {
 		id: undefined, //`state_${uuidv4()}`, //TODO: use uuid
 		initial: 'unloadFar',
-		meta: {			
+		meta: {
 			actionCount: 0
 		},
 		after: {},
@@ -707,8 +707,9 @@ function printMachineOptions(actions, guards) {
 	actions: {
 		log,
 		${Object.keys(actions).reduce((fns, f) => {
-			if(f === 'log') {return fns}
-			else {return `
+		if (f === 'log') { return fns }
+		else {
+			return `
 	$ {
 		fns ? fns + ',' : fns
 	}
@@ -720,13 +721,13 @@ function printMachineOptions(actions, guards) {
 		}
 	})
 	`}
-			},'')},
+	}, '')},
 	},
 	guards: {
-		${Object.keys(guards).reduce((fns, f) => 
-			`${fns ? fns + ',' : fns}
+		${Object.keys(guards).reduce((fns, f) =>
+		`${fns ? fns + ',' : fns}
 			${f}`
-			,'')}
+		, '')}
 	}
 }`
 }
