@@ -5,15 +5,15 @@
   "license": "BSD0",
   "dependencies": {
     "blue-tape": "^1.0.0",
-    "commander": "^2.15.1",
+    "commander": "^2.20.3",
     "flatted": "^0.2.3",
     "glob": "^7.1.2",
     "inquirer": "^5.1.0",
-    "json-beautify": "^1.0.1",
+    "json-beautify": "^1.1.1",
     "lowdb": "^1.0.0",
-    "nearley": "^2.13.0",
-    "stampit": "^4.1.2",
-    "xstate": "^4.3.3"
+    "nearley": "^2.19.0",
+    "stampit": "^4.3.0",
+    "xstate": "^4.6.7"
   },
   "scripts": {
     "generate-grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.js",
