@@ -62,9 +62,9 @@ viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT
 viewSubject -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
 viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
-timeSpan -> num:? ":":? num _ {% d => { 
-	return ({ min: d[0], sec: d[2] }) } %}
-num -> [0-9]:? [0-9] {% d => parseInt((d[0] ? d[0] : 0) * 10 + parseInt(d[1] ? d[1] : 0)) %}
+timeSpan -> (num ":"):? num _ {% ([min, sec]) => { 
+	return ({ min: min ? min[0] : 0, sec }) } %}
+num -> [0-9]:+ {% d => parseInt(d[0].join('')) %}
 
 action -> (wordWS ":"):? sentence:+ marker:? {% ([speaker, lines, marker]) => rule('action', {speaker, lines, marker}) %}
 
