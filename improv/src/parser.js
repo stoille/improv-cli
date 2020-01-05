@@ -400,13 +400,13 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 				let t = transitions.pop()
 				if (t.from.id) {
 					applyTransition(t.from, curr, obj.shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
+				} else {
+					curr.states.inTransition.meta.type = t.transitionType
 				}
 			} else if (currStmt.rule === 'action' && parent.id === currState.id) {
 				let currAction = parent.states.interactive.states[parent.meta.actionCount - 1]
 				applyTransition(currAction, curr, obj.shotTime, obj.transitionTime)
-			} else {
-				//	applyTransition(parent, curr, obj.shotTime, obj.transitionTime)
-			}
+			} 
 
 			break
 		case 'action':
