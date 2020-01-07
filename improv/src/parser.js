@@ -3,6 +3,8 @@ const assign = require('xstate').assign
 const nearley = require('nearley')
 const grammar = require('./grammar')
 const uuidv4 = require('uuid/v4')
+const util = require('util')
+const fs = require('fs')
 
 function parseLine(lineText) {
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), {
@@ -24,6 +26,7 @@ function parseLine(lineText) {
 	if (results.transition) return results.transition
 	if (results.cond) return results.cond
 	if (results.comment) return results.comment
+	if (results.loadScript) return results.loadScript
 	return results
 }
 
@@ -77,8 +80,8 @@ function makeLoadState(id) {
 
 module.exports.impToStream = impToStream
 
-function impToStream(script) {
-	let rootUnit = parseLines(script, stream.states.units)
+async function impToStream(filePath, script, readScriptFileAndParse) {
+	let rootUnit = await parseLines(filePath, readScriptFileAndParse, script, stream.states.units)
 	isCyclic(rootUnit)
 	stream.states.units = rootUnit
 	return stream
@@ -133,7 +136,8 @@ function tabDecreased(currStmt, prevStmt) {
 }
 module.exports.parseLines = parseLines
 
-function parseLines(lines,
+async function parseLines(filePath,readScriptFileAndParse,
+	lines,
 	parentState,
 	currState = makeState(),
 	lineCursor = 0,
@@ -163,6 +167,13 @@ function parseLines(lines,
 		if (currStmt.rule === 'comment' ||
 			isEmptyOrSpaces(line)) {
 			continue
+		} else if(currStmt.rule === 'loadScript'){
+			let parsedScript = await readScriptFileAndParse(`${currStmt.result.path}.imp`, {json: true})
+			const writeFile = util.promisify(fs.writeFile)
+			await writeFile(`${currStmt.result.path}.json`, parsedScript)
+			let prevLoadScripts = currState.meta.loadScripts ? currState.meta.loadScripts : []
+			currState.meta.loadScripts = [...prevLoadScripts, `${currStmt.result.path}`]
+			continue
 		}
 
 		if (tabDecreased(currStmt, prevStmt)) {
@@ -181,7 +192,7 @@ function parseLines(lines,
 		}
 
 		try {
-			lintStmt(currStmt, prevStmt, line, lastLine, lineCursor)
+			lintStmt(filePath, currStmt, prevStmt, line, lastLine, lineCursor)
 		} catch (error) {
 			console.error(error)
 			process.exit(1)
@@ -202,7 +213,8 @@ function parseLines(lines,
 				transitions,
 				continuedActions
 			})
-			return parseLines(lines,
+			return parseLines(filePath, readScriptFileAndParse,
+				lines,
 				parent,
 				curr,
 				lineCursor,
@@ -223,12 +235,12 @@ function parseLines(lines,
 	return parentState
 }
 
-function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
+function lintStmt(filePath, currStmt, prevStmt, line, lastLine, lineCursor) {
 	let lines = `\n${lineCursor - 1}:${lastLine}\n>>${lineCursor}:${line}`
 
 	if (!prevStmt) {
 		if (currStmt.depth > 0) {
-			throw `Error: first statement must be unindented${lines}`
+			throw `[${filePath}] Error: first statement must be unindented${lines}`
 		}
 		return
 	}
@@ -237,37 +249,40 @@ function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
 		case 'transition':
 			switch (prevStmt.rule) {
 				case 'comment':
+				case 'loadScript':
 				case 'action':
 					if (prevStmt.depth !== currStmt.depth) {
-						throw `Error: transitions must have the same depth as the action before them${lines}`
+						throw `[${filePath}] Error: transitions must have the same depth as the action before them${lines}`
 					}
 					break
 				default:
-					throw `Error: transition must follow an action.${lines}`
+					throw `[${filePath}] Error: transition must follow an action.${lines}`
 			}
 			break
 		case 'sceneHeading':
 			switch (prevStmt.rule) {
 				case 'comment':
+				case 'loadScript':
 				case 'action':
 				case 'transition':
 					if (prevStmt.depth !== currStmt.depth) {
-						throw `Error: sceneHeading must have the same depth as the statement before it${lines}`
+						throw `[${filePath}] Error: sceneHeading must have the same depth as the statement before it${lines}`
 					}
 					break
 				case 'cond':
 					if (prevStmt.depth === currStmt.depth) {
-						throw `Error: sceneHeadings that follow a condition must be indented${lines}`
+						throw `[${filePath}] Error: sceneHeadings that follow a condition must be indented${lines}`
 					}
 					break
 				default:
-					throw `Error: sceneHeading must follow an action or a transition${lines}`
+					throw `[${filePath}] Error: sceneHeading must follow an action or a transition${lines}`
 					break;
 			}
 			break
 		case 'shot':
 			switch (prevStmt.rule) {
 				case 'comment':
+				case 'loadScript':
 				case 'action':
 				case 'transition':
 				case 'sceneHeading':
@@ -275,49 +290,51 @@ function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
 				case 'cond':
 					//TODO: explore eliminating condition statement depth rules
 					if (prevStmt.depth === currStmt.depth) {
-						throw `Error: shots that follow a condition must be indented${lines}`
+						throw `[${filePath}] Error: shots that follow a condition must be indented${lines}`
 					}
 					break
 				default:
-					throw `Error: shot heading must follow an action, transition or sceneHeading${lines}`
+					throw `[${filePath}] Error: shot heading must follow an action, transition or sceneHeading${lines}`
 					break;
 			}
 			break
 		case 'action':
 			if (currStmt.result.fromCont && !continuedActions.find(a => a.contTo)) {
-				throw `Error: continued action must have a previous`
+				throw `[${filePath}] Error: continued action must have a previous`
 			}
 			switch (prevStmt.rule) {
 				case 'comment':
+				case 'loadScript':
 				case 'action':
 				case 'shot':
 					break
 				case 'cond':
 					//TODO: explore eliminating condition statement depth rules
 					if (prevStmt.depth === currStmt.depth) {
-						throw `Error: actions that follow a condition must be indented${lines}`
+						throw `[${filePath}] Error: actions that follow a condition must be indented${lines}`
 					}
 					break
 				default:
-					throw `Error: action must follow a shot heading, or another action${lines}`
+					throw `[${filePath}] Error: action must follow a shot heading, or another action${lines}`
 					break;
 			}
 			break
 		case 'cond':
 			switch (prevStmt.rule) {
 				case 'comment':
+				case 'loadScript':
 					break
 				case 'action':
 				case 'shot':
 					//TODO: explore eliminating rule that conditions be indented under actions
 					if (prevStmt.depth === currStmt.depth) {
-						throw `Error: conditions must always be indented under the action or shot that preceeds them${lines}`
+						throw `[${filePath}] Error: conditions must always be indented under the action or shot that preceeds them${lines}`
 					}
 					break
 				case 'cond':
 					break
 				default:
-					throw `Error: conditions must follow an action, shot heading, or a previous condition${lines}`
+					throw `[${filePath}] Error: conditions must follow an action, shot heading, or a previous condition${lines}`
 					break;
 			}
 			break
@@ -325,10 +342,10 @@ function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
 
 	if (tabIncreased(currStmt, prevStmt)) {
 		if (currStmt.depth - prevStmt.depth > 1) {
-			throw `Error: statement depth greater than parent${lines}`
+			throw `[${filePath}] Error: statement depth greater than parent${lines}`
 		}
 		if (currStmt.rule !== 'cond' && prevStmt.rule !== 'cond') {
-			throw `Error: statement depth increase may only come before or after a condition${lines}`
+			throw `[${filePath}] Error: statement depth increase may only come before or after a condition${lines}`
 		}
 	}
 	if (tabDecreased(currStmt, prevStmt)) {
@@ -337,13 +354,13 @@ function lintStmt(currStmt, prevStmt, line, lastLine, lineCursor) {
 			let isOdd = n => n % 2
 			if (currStmt.rule === 'cond') {
 				if (!isOdd(depth)) {
-					throw `Error: statement depth decreased and does not align with a parent action's conditions${lines}`
+					throw `[${filePath}] Error: statement depth decreased and does not align with a parent action's conditions${lines}`
 				}
 			} else if (isOdd(depth)) {
-				throw `Error: statement depth decreased and does not align with a parent unit's action${lines}`
+				throw `[${filePath}] Error: statement depth decreased and does not align with a parent unit's action${lines}`
 			}
 		} else {
-			throw `Error: statement depth decreased but previous statement was not an action${lines}`
+			throw `[${filePath}] Error: statement depth decreased but previous statement was not an action${lines}`
 		}
 	}
 }
@@ -371,6 +388,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 	//TODO: error checking
 	switch (currStmt.rule) {
 		case 'comment':
+		case 'loadScript':
 			if (!curr.comments) {
 				curr.comments = []
 			}
@@ -406,7 +424,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			} else if (currStmt.rule === 'action' && parent.id === currState.id) {
 				let currAction = parent.states.interactive.states[parent.meta.actionCount - 1]
 				applyTransition(currAction, curr, obj.shotTime, obj.transitionTime)
-			} 
+			}
 
 			break
 		case 'action':

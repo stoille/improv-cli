@@ -1,25 +1,22 @@
 const { jsonToXStateMachine, impToStream } = require("./parser")
-var fs = require('fs')
+const util = require('util')
+const fs = require('fs')
 
-const parseScript = (text, ops) => {
+async function parseScript(filePath, text, ops) {
   let t = text.split('\n')
-  let stream = impToStream(t)
-  if(ops.json){
+  let stream = await impToStream(filePath, t, readScriptFileAndParse)
+  if (ops.json) {
     return JSON.stringify(stream)
-  } else if(ops.js){
+  } else if (ops.js) {
     return jsonToXStateMachine(JSON.stringify(stream))
-  } 
+  }
   return null
 }
 module.exports.parseScript = parseScript
 
-const readScriptFileAndParse = (scriptPath, ops) => new Promise((resolve, reject) =>
-  fs.readFile(scriptPath, "utf8", (err, text) => {
-    if(err){
-      console.error('readScriptFileAndParse:'+err)
-      reject(err)
-    }
-    let ps = parseScript(text, ops)
-    resolve(ps)
-  }))
+async function readScriptFileAndParse(scriptPath, ops) {
+  const readFile = util.promisify(fs.readFile)
+  let rawText = await readFile(scriptPath, 'utf8')
+  return parseScript(scriptPath, rawText, ops)
+}
 module.exports.readScriptFileAndParse = readScriptFileAndParse

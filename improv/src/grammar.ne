@@ -32,7 +32,7 @@ function flattenDeep(arr1) {
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> _ TAB _ (comment|transition|sceneHeading|shot|action|cond) _ comment:?{%
+unitLine -> _ TAB _ (comment|loadScript|transition|sceneHeading|shot|action|cond) _ comment:?{%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
 	([_,tab, __, d, ___, comment]) => {
 		if(comment) { d[0].comment = comment }
@@ -40,6 +40,8 @@ unitLine -> _ TAB _ (comment|transition|sceneHeading|shot|action|cond) _ comment
 		return d[0]
 	}
 %}
+
+loadScript -> "% " .:+ {% ([_, filePath]) => rule('loadScript', {path:filePath.join('')}) %}
 
 transition -> transitionType (":" _) cond:? (SEP:? timeSpan):? {% ([transitionType, _, cond, transitionTime]) => { 
 	return rule('transition',{transitionType:transitionType[0],transitionTime: generateTime(transitionTime ? transitionTime[1] : undefined), cond:cond}) } %}
@@ -55,11 +57,11 @@ sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"A
 SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
 
-shot -> viewType SEP (viewSubject _ "," _):? viewSubject (SEP viewMovement):? (SEP timeSpan):? {%
+shot -> viewType SEP (path _ "," _):? path (SEP viewMovement):? (SEP timeSpan):? {%
 	([viewType, _, viewSource, viewTarget, viewMovement, shotTime]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, shotTime: generateTime(shotTime ? shotTime[1] : undefined)})
 %}
 viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
-viewSubject -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
+path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
 viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
 timeSpan -> (num ":"):? num _ {% ([min, sec]) => { 
@@ -78,8 +80,8 @@ opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 #TODO: more robust conditional expression syntax
 varName-> [a-zA-Z'_ ]:+ {% d => d[0].join('').trim()  %}
 cond -> cond (SEP ("AND" | "OR") SEP) cond {% ([lhs, op, rhs]) => { return rule('cond', {op:op[1][0], lhs,rhs}) } %}
-	| opName SEP viewSubject {% ([op, _, viewSubject]) => 
-			rule('cond', {op, rhs: viewSubject}) %}
+	| opName SEP path {% ([op, _, path]) => 
+			rule('cond', {op, rhs: path}) %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}
