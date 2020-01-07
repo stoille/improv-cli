@@ -1,19 +1,22 @@
 FADE IN: 5
 #comments are ignored on newlines
 EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON 
-EWS - CHURCH FRONT - EASE IN - 15:00
+EWS - CHURCH FRONT, CHURCH DOOR - EASE IN - 00:15
 
-Over the dense hiss and buzz of a humid summer afternoon. We see an old man pace along the porch of an old baptist church. 2 Actions always end with punctuation. 3 And comments never show. 4 The last line is a loop line. -Woof
+Over the dense hiss and buzz of a humid summer afternoon. We, the audience, see an old man pace along the porch of an old baptist church. ok. 2 Actions always end with punctuation. 3 And comments never show. 4 The last line is a loop line.
 	
-A set of trees sway in the breeze. 10
+A set of trees sway in the breeze. 
 	SELECT - CLOUDS
-		INT - CLOUD SCAPE - DUSK 
-		WS - CLOUDS - 5:00
-		We see hazy clouds.
-			SELECT - CLOUD_A
-				A cloud moves through the sky.
+		% ./scripts/clouds
+	SELECT - TREES_B
+		B. -FOO_KEY_B
+			SELECT - TREES_BB
+				BB.
+					SELECT - TREES_BBB
+						BBB.
+						BBBB.
 	SELECT - TREES_C
-		C.
+		C. -FOO_KEY_C
 			SELECT - TREES_D
 				D.
 
@@ -24,8 +27,43 @@ He clears his throat and coughs. 10
 
 The man paces back and forth until we touch his cap and he picks up the key. 10 
 
-CUT: TRUE - MARKER_TEST - AND - TRUE - FOO - 3600
+FADE IN: TRUE - FOO_KEY_C - AND - TRUE - FOO_KEY_B
+#comments are ignored on newlines
+EXT - OLD BAPTIST CHURCH, KENTUCKY - NOON 
+CU - CHURCH FRONT, CHURCH DOOR - EASE IN - 00:15
+
+Over the dense hiss and buzz of a humid summer afternoon. We, the audience, see an old man pace along the porch of an old baptist church. ok. 2 Actions always end with punctuation. 3 And comments never show. 4 The last line is a loop line.
+	
+A set of trees sway in the breeze. 
+	SELECT - CLOUDS
+		INT - CLOUD SCAPE - DUSK 
+		EWS - CLOUDS - 00:20
+		We see hazy clouds.
+			SELECT - CLOUD_A
+				A cloud moves through the sky.
+	SELECT - TREES_B
+		B.
+			SELECT - TREES_BB
+				BB.
+					SELECT - TREES_BBB
+						BBB.
+						BBBB.
+	SELECT - TREES_C
+		C. -FOO_KEY_CC
+			SELECT - TREES_D
+				D.
+
+He clears his throat and coughs. 10
+
+	SELECT - TREE
+		The trees sway in the light breeze.
+
+The man paces back and forth until we touch his cap and he picks up the key. 10 
+
+CUT: TRUE - FOO_KEY_CC
 EXT - OLD BAPTIST CHURCH, KENTUCKY - AFTERNOON
 MEDIUM - CHURCH - 00:02
 
-The man coughs violently. He looks at the key in his hand.
+The man coughs violently. He looks at the key in his hand. 
+
+A software developer stumbles upon the discovery of a new programming language that changes the course of life for him and his family.
