@@ -68,11 +68,12 @@ timeSpan -> (num ":"):? num _ {% ([min, sec]) => {
 	return ({ min: min ? min[0] : 0, sec }) } %}
 num -> [0-9]:+ {% d => parseInt(d[0].join('')) %}
 
-action -> (wordWS ":"):? sentence:+ marker:? {% ([speaker, lines, marker]) => rule('action', {speaker, lines, marker}) %}
+action -> (wordWS ":"):? sentence:+ marker:? unmarker:? {% ([speaker, lines, marker, unmarker]) => rule('action', {speaker, lines, marker, unmarker}) %}
 
 sentence -> (wordWS ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), time:generateTime(timeSpan)}) %} 
 
 marker -> SEP varName {% d => d[1]  %}
+unmarker -> SEP SEP varName {% d => d[2]  %}
 word -> [a-zA-Z,']:+ {% d => d[0].join('').trim()  %}
 wordWS -> [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}

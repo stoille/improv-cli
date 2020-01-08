@@ -432,6 +432,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			let action = isContinuedAction ? continuedActions.pop() : makeAction(`action_${uuidv4()}`)
 			action.meta.type = currStmt.rule
 			action.meta.marker = obj.marker
+			action.meta.unmarker = obj.unmarker
 
 			//create states for each action line and name them after the total interactive time
 			let startTime = action.meta.interactiveTime

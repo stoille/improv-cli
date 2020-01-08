@@ -1,0 +1,50 @@
+INT - DINING AREA, HOUSE - MORNING 
+WS - PATIO DOOR, FRONT DOOR - EASE IN - 00:15
+
+Elliot stands in front of the hallway leading outside in the center of the dining. We see a table, front door, bar leading into a kitchen, couch.
+
+	SELECT - BAR
+		WS - BAR, TV CORNER - 00:05
+		We see a Weng child watching TV. His mother is on her cell phone.
+			SELECT - BAR
+				CU - BAR
+				We see a bar. TODO...
+			SELECT - TV
+				LONG - TV - 00:05
+				A child sits in front of the TV bouncing in his blue chair watching how it's made. He had a mess of educational toys around him.
+				MCU - ELLIOT - 00:02
+				Elliot laughs at the TV and turns to the mother.
+				MCU - MOM - 00:05
+				The mom taps away at her phone with airpods on. 
+					SELECT - PHONE
+						CU - PHONE - 00:02
+						We see her watching flash mob videos. -flash mob
+					SELECT - MOM FACE 
+						CU - MOM HAIR - 00:02
+						We see her little whisps of hair curling out.
+						CU - MOM LIPS - 00:02
+						We see her little lips.
+						ECU - MOM EYES - 00:02
+						We see her sweet little eyes blink.
+						ECU - ELLIOT EYES - 00:02
+						Wer eyes blink and look around at mom.
+							TRUE - flash mob
+								MCU - MOM - 00:05
+								Mom looks up and smirks before returning to her phone. -Mom love
+								MCU - ELLIOT FRONT - 00:02
+								Elliot smirks back.
+	SELECT - LEFT HALLWAY
+		LONG - KID'S ROOM, BATHROOM
+		We see the hallway leading into the bathroom.
+			SELECT - GUEST ROOM
+				WS - GUEST ROOM
+				We see the guest room.
+
+	SELECT - DOOR
+		We walk out of the house. -walk out
+		
+CUT: TRUE - WALK OUT
+
+EXT - HOUSE, FLORIDA - MORNING 
+EWS - STREET, HOUSE FRONT - 00:15
+Elliot closes the door behind him and walks towards the sidewalk. --walk out
