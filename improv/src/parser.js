@@ -136,7 +136,7 @@ function tabDecreased(currStmt, prevStmt) {
 }
 module.exports.parseLines = parseLines
 
-async function parseLines(filePath,readScriptFileAndParse,
+async function parseLines(filePath, readScriptFileAndParse,
 	lines,
 	parentState,
 	currState = makeState(),
@@ -167,12 +167,23 @@ async function parseLines(filePath,readScriptFileAndParse,
 		if (currStmt.rule === 'comment' ||
 			isEmptyOrSpaces(line)) {
 			continue
-		} else if(currStmt.rule === 'loadScript'){
-			let parsedScript = await readScriptFileAndParse(`${currStmt.result.path}.imp`, {json: true})
+		} else if (currStmt.rule === 'loadScript') {
+			let path = filePath.slice(0, filePath.lastIndexOf('/'))
+			path = path.slice(0, path.lastIndexOf('/'))
+			path = `${path}${currStmt.result.path}${currStmt.result.path.slice(currStmt.result.path.lastIndexOf('/'))}`
+			let parsedScript = await readScriptFileAndParse(`${path}.imp`, { json: true })
 			const writeFile = util.promisify(fs.writeFile)
-			await writeFile(`${currStmt.result.path}.json`, parsedScript)
-			let prevLoadScripts = currState.meta.loadScripts ? currState.meta.loadScripts : []
-			currState.meta.loadScripts = [...prevLoadScripts, `${currStmt.result.path}`]
+			await writeFile(`${path}.json`, parsedScript)
+			let scriptPath = `${path}.json`
+			let loadState = {
+				id: `LOAD - ${scriptPath} - ${uuidv4()}`,
+				initial: 'loading',
+				meta: { type: 'loadScript', path: scriptPath },
+				states: {
+					loading: {}
+				}
+			}
+			parentState.states.interactive.states = {...parentState.states.interactive.states, [loadState.id]: loadState}
 			continue
 		}
 
@@ -667,7 +678,7 @@ function makeState(templateState) {
 				states: {}
 			},
 			interactive: {
-				type: 'parallel',
+				type: 'parallel', //TODO: sequentialize interactive states
 				after: {
 					0: 'outTransition',
 					cond: undefined

@@ -53,8 +53,8 @@
         "--inspect-brk=5858",
         "./src/commander.js",
         "parse",
-        "--js",
-        "./scripts/summerAfternoonSm.imp"
+        "--json",
+        "/Volumes/sol/unity/test_libjs/Assets/scripts/mp/house/house.imp"
         //"compileTest",
       ],
       "protocol": "inspector",
