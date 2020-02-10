@@ -81,10 +81,16 @@ function makeLoadState(id) {
 module.exports.impToStream = impToStream
 
 async function impToStream(filePath, script, readScriptFileAndParse) {
-	let rootUnit = await parseLines(filePath, readScriptFileAndParse, script, stream.states.units)
+	let u = {
+		isRoot: true,
+		on: {},
+		states: {}
+	}
+	let rootUnit = await parseLines(filePath, readScriptFileAndParse, script, u)//stream.states.units)
 	isCyclic(rootUnit)
-	stream.states.units = rootUnit
-	return stream
+	//stream.states.units = rootUnit
+	//return stream
+	return rootUnit
 }
 
 function isCyclic(obj) {
