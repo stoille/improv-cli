@@ -189,7 +189,7 @@ async function parseLines(filePath, readScriptFileAndParse,
 					loading: {}
 				}
 			}
-			parentState.states.interactive.states = {...parentState.states.interactive.states, [loadState.id]: loadState}
+			parentState.states.interactive.states = { ...parentState.states.interactive.states, [loadState.id]: loadState }
 			continue
 		}
 
@@ -429,7 +429,12 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			if (obj.viewMovement) {
 				curr.states.setView.meta.movementType = obj.viewMovement
 			}
+
 			curr.states.setView.meta.shotTime = obj.shotTime
+			let useLastShotTime = obj.shotTime.min === 0 && obj.shotTime.sec === 0 && parentState.states.setView && parentState.states.setView.meta && parentState.states.setView.meta.shotTime
+			if (useLastShotTime) {
+				curr.states.setView.meta.shotTime = parentState.states.setView.meta.shotTime
+			}
 
 			if (transitions.length) {
 				let t = transitions.pop()
@@ -454,6 +459,12 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			//create states for each action line and name them after the total interactive time
 			let startTime = action.meta.interactiveTime
 			let lineStates = [...Object.values(action.states.lines.states), ...obj.lines].map(a => {
+
+				//set default time to last shot length
+				let useLastShotTime = a.time && a.time.min === 0 && a.time.sec === 0 && curr.states.setView && curr.states.setView.meta && curr.states.setView.meta.shotTime
+				if (useLastShotTime) {
+					a.time = curr.states.setView.meta.shotTime
+				}
 				let s = {
 					id: uuidv4(),
 					meta: {
@@ -518,6 +529,11 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			addChild(prev, curr)
 
 			applyTransition(prev, curr, prev.meta.interactiveTime, 0, 'CUT', currStmt.result)
+
+			//carry over previous shot's time
+			if(!curr.states.setView.shotTime || (!curr.states.setView.min && !curr.states.setView.sec)){
+				curr.states.setView.meta.shotTime = currState.states.setView.meta.shotTime
+			}
 
 			parent = curr
 			break
