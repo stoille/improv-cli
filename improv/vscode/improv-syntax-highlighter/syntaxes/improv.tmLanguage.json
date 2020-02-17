@@ -1,0 +1,77 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "improv",
+	"patterns": [
+		{
+			"include": "#keywords"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+				{
+					"name": "comment.line",
+					"match": "#.+"
+				},
+				{
+					"name": "storage.type",
+					"match": "%.+"
+				},
+				{
+					"name": "keyword.other",
+					"match": "[A-Z]+:"
+				},
+				{
+					"name": "keyword.other",
+					"match": "\\b(OR|AND|TRUE|FALSE)\\b"
+				},
+				{
+					"name": "keyword.operator",
+					"match": "\\b(AERIAL|ARC|CRAB|CRANE|ZOOM IN|ZOOM OUT|DEFOCUS|DOLLY ZOOM|CONTRA ZOOM|DOLLY OUT|DOLLY|DOLLY IN|DUTCH TILT|FOLLOW|FOCUS|HANDHELD|JIB|PULL FOCUS|PAN|PEDESTAL|STEADICAM|THROW FOCUS|TILT|TRACKING|WHIP PAN|ZOOM|HANDHELD)\\b"
+				},
+				{
+					"name": "constant.numeric",
+					"match": "[0-9]?[0-9]?:[0-9][0-9]?"
+				},				
+				{
+					"name": "keyword.control",
+					"match": "^[A-Z][A-Z]+"
+				},
+				{
+					"name": "keyword.control",
+					"match": "^\\t+(: )?[A-Z][A-Z]+"
+				},
+				{
+					"name": "entity.name.tag",
+					"match": "[A-Z][A-Z',]+"
+				},
+				{
+					"name": "markup.bold",
+					"match": "[ -] "
+				},
+				
+				{
+					"name": "constant.language",
+					"match": "-?[a-z_, ]+\\n"
+				},
+				{
+					"name": "constant.other",
+					"match": "--[a-z_, ]+"
+				},
+				{
+					"name": "entity.name.tag",
+					"match": "[A-Z][a-z']+:"
+				},
+				{
+					"name": "constant.language",
+					"match": "[a-z_]+"
+				},
+				{
+					"name": "string.quoted.single",
+					"match": "[A-Za-z][A-Za-z ]+[A-Za-z', .?!]+"
+				}
+			]
+		}
+	},
+	"scopeName": "source.improv"
+}
