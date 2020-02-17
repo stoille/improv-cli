@@ -1,0 +1,25 @@
+{
+    "name": "improv-syntax-highlighter",
+    "displayName": "Improv Syntax Highlighter",
+    "description": "Syntax highlighter for the Improv scripting lanugage",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.42.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "improv",
+            "aliases": ["improv", "improv"],
+            "extensions": [".imp"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "improv",
+            "scopeName": "source.improv",
+            "path": "./syntaxes/improv.tmLanguage.json"
+        }]
+    }
+}
