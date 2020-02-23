@@ -634,7 +634,9 @@ function getConds(cond) {
 		return {
 			type: cond.op,
 			root: cond.rhs.root,
-			path: cond.rhs.path
+			path: cond.rhs.path,
+			start: cond.start,
+			end: cond.end
 		}
 	}
 }

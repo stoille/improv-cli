@@ -64,9 +64,8 @@ viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT
 path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
 viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
-timeSpan -> (num ":"):? num _ {% ([min, sec]) => { 
-	return ({ min: min ? min[0] : 0, sec }) } %}
-num -> [0-9]:+ {% d => parseInt(d[0].join('')) %}
+timeSpan -> num:? ":":? num {% ([min, _, sec]) => ({ min: min ? min : 0, sec }) %}
+num -> [0-9]:? [0-9] {% d => parseInt(`${d[0]}${d[1]}`) %}
 
 action -> (wordWS ":"):? sentence:+ marker:? unmarker:? {% ([speaker, lines, marker, unmarker]) => rule('action', {speaker, lines, marker, unmarker}) %}
 
@@ -81,8 +80,8 @@ opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 #TODO: more robust conditional expression syntax
 varName-> [a-zA-Z'_ ]:+ {% d => d[0].join('').trim()  %}
 cond -> cond (SEP ("AND" | "OR") SEP) cond {% ([lhs, op, rhs]) => { return rule('cond', {op:op[1][0], lhs,rhs}) } %}
-	| opName SEP path {% ([op, _, path]) => 
-			rule('cond', {op, rhs: path}) %}
+	| opName SEP path (SEP timeSpan):? (SEP timeSpan):? {% ([op, _, path, start, end]) => 
+			rule('cond', {op, rhs: path, start: start ? start[1] : ({ min:0, sec:0 }), end: end ? end[1] : ({ min:0, sec:0 })}) %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}
