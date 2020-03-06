@@ -43,7 +43,7 @@ unitLine -> _ TAB _ (comment|loadScript|transition|sceneHeading|shot|action|cond
 
 loadScript -> "% " .:+ {% ([_, filePath]) => rule('loadScript', {path:filePath.join('')}) %}
 
-transition -> transitionType (":" _) cond:? (SEP:? timeSpan):? {% ([transitionType, _, cond, transitionTime]) => { 
+transition -> transitionType SEP cond:? (SEP:? timeSpan):? {% ([transitionType, _, cond, transitionTime]) => { 
 	return rule('transition',{transitionType:transitionType[0],transitionTime: generateTime(transitionTime ? transitionTime[1] : undefined), cond:cond}) } %}
 transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
 
@@ -57,8 +57,8 @@ sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"A
 SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
 
-shot -> viewType SEP (path _ "," _):? path (SEP viewMovement):? (SEP timeSpan):? {%
-	([viewType, _, viewSource, viewTarget, viewMovement, shotTime]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, shotTime: generateTime(shotTime ? shotTime[1] : undefined)})
+shot -> viewType SEP (path _ "," _):? path (SEP viewMovement):? (SEP timeSpan):? (SEP marker:? (SEP marker):?):? {%
+	([viewType, _, viewSource, viewTarget, viewMovement, shotTime, markers]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, shotTime: generateTime(shotTime ? shotTime[1] : undefined), marker: markers ? markers[1] : undefined, unmarker: markers && markers[2] ? markers[2][1] : undefined})
 %}
 viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
 path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
@@ -67,12 +67,12 @@ viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"
 timeSpan -> num:? ":":? num {% ([min, _, sec]) => ({ min: min ? min : 0, sec }) %}
 num -> [0-9]:? [0-9] {% d => parseInt(`${d[0]}${d[1]}`) %}
 
-action -> (wordWS ":"):? sentence:+ marker:? unmarker:? {% ([speaker, lines, marker, unmarker]) => rule('action', {speaker, lines, marker, unmarker}) %}
+action -> (wordWS ":"):? sentence:+ {% ([speaker, lines]) => rule('action', {speaker, lines}) %}
 
 sentence -> (wordWS ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), time:generateTime(timeSpan)}) %} 
 
-marker -> SEP opName ((_ "," _) opName):* {% d => [d[1], ...(d[2]?d[2].map(dd=>dd[1]):[])]  %}
-unmarker -> SEP SEP opName ((_ "," _) opName):* {% d => [d[2], ...(d[3]?d[3].map(dd=>dd[1]):[])] %}
+marker -> opName ((_ "," _) opName):* {% d => [d[1], ...(d[2]?d[2].map(dd=>dd[1]):[])]  %}
+#unmarker -> SEP SEP opName ((_ "," _) opName):* {% d => [d[2], ...(d[3]?d[3].map(dd=>dd[1]):[])] %}
 word -> [a-zA-Z,']:+ {% d => d[0].join('').trim()  %}
 wordWS -> [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}

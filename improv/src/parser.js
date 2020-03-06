@@ -166,7 +166,7 @@ async function parseLines(filePath, readScriptFileAndParse,
 			currStmt = parseLine(line)
 			line = line.trim()
 		} catch (error) {
-			console.error(error.message)
+			console.error(`${filePath} - ${error.message}`)
 			process.exit(1)
 		}
 
