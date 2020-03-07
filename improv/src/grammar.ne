@@ -71,7 +71,7 @@ action -> (wordWS ":"):? sentence:+ {% ([speaker, lines]) => rule('action', {spe
 
 sentence -> (wordWS ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), time:generateTime(timeSpan)}) %} 
 
-marker -> opName ((_ "," _) opName):* {% d => [d[1], ...(d[2]?d[2].map(dd=>dd[1]):[])]  %}
+marker -> opName ((_ "," _) opName):* {% d => [d[0], ...(d[1]?d[1].map(dd=>dd[1]):[])]  %}
 #unmarker -> SEP SEP opName ((_ "," _) opName):* {% d => [d[2], ...(d[3]?d[3].map(dd=>dd[1]):[])] %}
 word -> [a-zA-Z,']:+ {% d => d[0].join('').trim()  %}
 wordWS -> [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0].join('').trim()  %}
