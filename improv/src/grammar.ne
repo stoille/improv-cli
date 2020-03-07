@@ -58,7 +58,7 @@ SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
 
 shot -> viewType SEP (path _ "," _):? path (SEP viewMovement):? (SEP timeSpan):? (SEP marker:? (SEP marker):?):? {%
-	([viewType, _, viewSource, viewTarget, viewMovement, shotTime, markers]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, shotTime: generateTime(shotTime ? shotTime[1] : undefined), marker: markers ? markers[1] : undefined, unmarker: markers && markers[2] ? markers[2][1] : undefined})
+	([viewType, _, viewSource, viewTarget, viewMovement, shotTime, markers]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, shotTime: generateTime(shotTime ? shotTime[1] : undefined), marker: markers ? markers[1] : [], unmarker: markers && markers[2] ? markers[2][1] : []})
 %}
 viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
 path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
