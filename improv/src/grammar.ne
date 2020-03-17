@@ -43,8 +43,8 @@ unitLine -> _ TAB _ (comment|loadScript|transition|sceneHeading|shot|action|cond
 
 loadScript -> "% " .:+ {% ([_, filePath]) => rule('loadScript', {path:filePath.join('')}) %}
 
-transition -> transitionType SEP cond:? (SEP:? timeSpan):? {% ([transitionType, _, cond, transitionTime]) => { 
-	return rule('transition',{transitionType:transitionType[0],transitionTime: generateTime(transitionTime ? transitionTime[1] : undefined), cond:cond}) } %}
+transition -> transitionType (SEP cond):? (SEP timeSpan):? {% ([transitionType, cond, transitionTime]) => { 
+	return rule('transition',{transitionType:transitionType[0],transitionTime: generateTime(transitionTime ? transitionTime[1] : undefined), cond:cond?cond[1] : undefined}) } %}
 transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
 
 sceneHeading -> scenePlacement SEP (varName (_ "," _)):? varName SEP sceneTime {% 

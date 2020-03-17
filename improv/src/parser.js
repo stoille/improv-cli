@@ -241,6 +241,14 @@ async function parseLines(filePath, readScriptFileAndParse,
 				transitions,
 				continuedActions)
 		}
+
+		if(lineCursor > lines.length - 1 && transitions.length){
+			let t = transitions.pop()
+			let shotTime = t.from.states.setView.meta.shotTime
+	
+			applyTransition(t.from, currState, shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
+		}
+		
 		parentState = parent
 
 		currState = curr
