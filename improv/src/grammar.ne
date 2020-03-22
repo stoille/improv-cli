@@ -32,9 +32,9 @@ function flattenDeep(arr1) {
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> _ TAB _ (comment|loadScript|transition|sceneHeading|shot|action|cond) _ comment:?{%
+unitLine -> TAB (comment|loadScript|transition|sceneHeading|shot|action|cond) _ comment:?{%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
-	([_,tab, __, d, ___, comment]) => {
+	([tab, d, ___, comment]) => {
 		if(comment) { d[0].comment = comment }
 		d[0].depth = tab ? tab.length : 0
 		return d[0]
@@ -67,14 +67,14 @@ viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"
 timeSpan -> num:? ":":? num {% ([min, _, sec]) => ({ min: min ? min : 0, sec }) %}
 num -> [0-9]:? [0-9] {% d => parseInt(`${d[0]}${d[1]}`) %}
 
-action -> (wordWS ":"):? sentence:+ {% ([speaker, lines]) => rule('action', {speaker, lines}) %}
+action -> (word ":"):? sentence:+ {% ([speaker, lines]) => rule('action', {speaker, lines}) %}
 
 sentence -> (wordWS ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), time:generateTime(timeSpan)}) %} 
 
 marker -> opName ((_ "," _) opName):* {% d => [d[0], ...(d[1]?d[1].map(dd=>dd[1]):[])]  %}
 #unmarker -> SEP SEP opName ((_ "," _) opName):* {% d => [d[2], ...(d[3]?d[3].map(dd=>dd[1]):[])] %}
 word -> [a-zA-Z,']:+ {% d => d[0].join('').trim()  %}
-wordWS -> [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0].join('').trim()  %}
+wordWS -> [a-zA-Z] [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0] + d[1].join('')  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 
 #TODO: more robust conditional expression syntax
@@ -89,4 +89,4 @@ __ -> wschar:+ {% () => ' ' %}
 wschar -> [ ] {% id %}
 TAB -> [\t]:* {% id %}
 
-comment -> _ "#" .:* {% d => rule('comment', d[2].join('')) %}  
+comment -> "#" .:* {% d => rule('comment', d[1].join('')) %}  
