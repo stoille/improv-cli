@@ -453,9 +453,6 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 				} else {
 					curr.states.inTransition.meta.type = t.transitionType
 				}
-			} else if (currStmt.rule === 'action' && parent.id === currState.id) {
-				let currAction = parent.states.interactive.states[parent.meta.actionCount - 1]
-				applyTransition(currAction, curr, obj.shotTime, obj.transitionTime)
 			}
 
 			break
@@ -528,7 +525,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 				curr.states.setView.shotType = currState && currState.states.setView.meta.shotType ? currState.states.setView.meta.shotType : undefined,
 				curr.states.setView.movementType = currState && currState.states.setView.meta.movementType ? currState.states.setView.meta.movementType : undefined,
 
-				makeLoader(curr)
+			makeLoader(curr)
 
 			let prev = currState.states.interactive.states[currState.meta.actionCount - 1]
 			if (!prev) {
@@ -564,6 +561,7 @@ function addUpdateLoop(state, target) {
 }
 
 function makeLoader(curr) {
+	return;
 	curr.states.unloadFar.onEntry = ['log', 'incRec']
 	curr.states.loadNear.onEntry = ['log', 'decRec']
 
@@ -670,6 +668,7 @@ function makeState(templateState) {
 		},
 		after: {},
 		states: {
+			/*
 			unloadFar: {
 				after: {
 					0: {
@@ -690,6 +689,7 @@ function makeState(templateState) {
 				onEntry: {},
 				states: {}
 			},
+			*/
 			setView: {
 				meta: {
 					scene: templateState && templateState.states.setView.meta.scene ? templateState.states.setView.meta.scene : undefined,
