@@ -468,7 +468,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 				//set default time to last shot length
 				let useLastShotTime = a.time && a.time.min === 0 && a.time.sec === 0 && curr.states.setView && curr.states.setView.meta && curr.states.setView.meta.shotTime
 				if (useLastShotTime) {
-					a.time = curr.states.setView.meta.shotTime
+					a.time = MSToTime(timeToMS(curr.states.setView.meta.shotTime) / obj.lines.length)
 				}
 				let s = {
 					id: uuidv4(),
@@ -482,7 +482,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 					after: {},
 					states: {}
 				}
-				let time = timeToMS(a.meta ? a.meta.time : a.time)
+				let time = timeToMS(s.meta.time)
 				startTime += time
 				action.meta.interactiveTime = startTime
 				s.after = {}
@@ -654,6 +654,12 @@ function timeToMS(time) {
 	const minToSec = min => 60 * min
 	const secToMS = sec => 1000 * sec
 	return time ? secToMS(minToSec(time.min) + time.sec) : 0
+}
+
+function MSToTime(millis) {
+  var minutes = Math.floor(millis / 60000);
+  var seconds = (millis % 60000) / 1000;
+  return { min: minutes, sec: Math.round(seconds) }
 }
 
 function makeState(templateState) {
