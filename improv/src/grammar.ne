@@ -16,14 +16,23 @@ function selector(root, path){
 	return ({root, path})
 }
 
-function generateTime(time){
-	let t = {min: 0, sec: 0}
-	//assign time if none had
-	if (time) {
-		t.min = time && time.min ? time.min : 0
-		t.sec = time && time.sec ? time.sec : 0
+function timeToMS(min, sec, secOrMS) {
+	if(!min){
+		min = 0
 	}
-	return t
+	if(!sec){
+		if(secOrMS){
+			secOrMS *= 1000
+		}
+		sec = 0
+	}
+	if(!secOrMS){
+		secOrMS = 0;
+	}
+	
+	const minToSec = min => 60 * min
+	const secToMS = sec => 1000 * sec
+	return secToMS(minToSec(min) + sec) + secOrMS
 }
 
 function flattenDeep(arr1) {
@@ -44,7 +53,7 @@ unitLine -> TAB (comment|loadScript|transition|sceneHeading|shot|action|cond) _ 
 loadScript -> "% " .:+ {% ([_, filePath]) => rule('loadScript', {path:filePath.join('')}) %}
 
 transition -> transitionType (SEP cond):? (SEP timeSpan):? {% ([transitionType, cond, transitionTime]) => { 
-	return rule('transition',{transitionType:transitionType[0],transitionTime: generateTime(transitionTime ? transitionTime[1] : undefined), cond:cond?cond[1] : undefined}) } %}
+	return rule('transition',{transitionType:transitionType[0],transitionTime: transitionTime ? transitionTime[1] : 0, cond:cond?cond[1] : undefined}) } %}
 transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
 
 sceneHeading -> scenePlacement SEP (varName (_ "," _)):? varName SEP sceneTime {% 
@@ -58,18 +67,18 @@ SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
 
 shot -> viewType SEP (path _ "," _):? path (SEP viewMovement):? (SEP timeSpan):? (SEP marker:? (SEP marker):?):? {%
-	([viewType, _, viewSource, viewTarget, viewMovement, shotTime, markers]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, shotTime: generateTime(shotTime ? shotTime[1] : undefined), marker: markers ? markers[1] : [], unmarker: markers && markers[2] ? markers[2][1] : []})
+	([viewType, _, viewSource, viewTarget, viewMovement, duration, markers]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, duration: duration ? duration[1] : 0, marker: markers ? markers[1] : [], unmarker: markers && markers[2] ? markers[2][1] : []})
 %}
 viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
 path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
 viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
-timeSpan -> num:? ":":? num {% ([min, _, sec]) => ({ min: min ? min : 0, sec }) %}
+timeSpan -> num:? ":":? num:? ":":? num {% ([min, _, sec, __, secOrMS]) => timeToMS(min, sec, secOrMS) %}
 num -> [0-9]:? [0-9] {% d => parseInt(`${d[0]}${d[1]}`) %}
 
 action -> (word ":"):? sentence:+ {% ([speaker, lines]) => rule('action', {speaker, lines}) %}
 
-sentence -> (wordWS ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), time:generateTime(timeSpan)}) %} 
+sentence -> (wordWS ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), duration:timeSpan?timeSpan:0}) %} 
 
 marker -> opName ((_ "," _) opName):* {% d => [d[0], ...(d[1]?d[1].map(dd=>dd[1]):[])]  %}
 #unmarker -> SEP SEP opName ((_ "," _) opName):* {% d => [d[2], ...(d[3]?d[3].map(dd=>dd[1]):[])] %}
@@ -81,7 +90,7 @@ opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 varName-> [a-zA-Z'_ ]:+ {% d => d[0].join('').trim()  %}
 cond -> cond (SEP ("AND" | "OR") SEP) cond {% ([lhs, op, rhs]) => { return rule('cond', {op:op[1][0], lhs,rhs}) } %}
 	| opName SEP path (SEP timeSpan):? (SEP timeSpan):? {% ([op, _, path, start, end]) => 
-			rule('cond', {op, rhs: path, start: start ? start[1] : ({ min:0, sec:0 }), end: end ? end[1] : ({ min:0, sec:0 })}) %}
+			rule('cond', {op, rhs: path, start: start ? start[1] : 0, end: end ? end[1] : 0 }) %}
 
 # Whitespace: `_` is optional, `__` is mandatory.
 _  -> wschar:* {% () => ' ' %}

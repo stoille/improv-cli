@@ -80,13 +80,13 @@ function makeLoadState(id) {
 
 module.exports.impToStream = impToStream
 
-async function impToStream(filePath, script, readScriptFileAndParse) {
-	let u = {
+async function impToStream(filePath, readScriptFileAndParse, lines, parentState) {
+	let rootState = {
 		isRoot: true,
 		on: {},
 		states: {}
 	}
-	let rootUnit = await parseLines(filePath, readScriptFileAndParse, script, u)//stream.states.units)
+	let rootUnit = await parseLines(filePath, readScriptFileAndParse, lines, rootState, parentState)
 	isCyclic(rootUnit)
 	//stream.states.units = rootUnit
 	//return stream
@@ -177,7 +177,7 @@ async function parseLines(filePath, readScriptFileAndParse,
 			let path = filePath.slice(0, filePath.lastIndexOf('/'))
 			path = path.slice(0, path.lastIndexOf('/'))
 			path = `${path}${currStmt.result.path}${currStmt.result.path.slice(currStmt.result.path.lastIndexOf('/'))}`
-			let parsedScript = await readScriptFileAndParse(`${path}.imp`, { json: true })
+			let parsedScript = await readScriptFileAndParse(`${path}.imp`, { json: true }, currState)
 			const writeFile = util.promisify(fs.writeFile)
 			await writeFile(`${path}.json`, parsedScript)
 			let scriptPath = `${path}.json`
@@ -242,13 +242,13 @@ async function parseLines(filePath, readScriptFileAndParse,
 				continuedActions)
 		}
 
-		if(lineCursor > lines.length - 1 && transitions.length){
+		if (lineCursor > lines.length - 1 && transitions.length) {
 			let t = transitions.pop()
-			let shotTime = t.from.states.setView.meta.shotTime
-	
-			applyTransition(t.from, currState, shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
+			let duration = t.from.states.setView.meta.duration
+
+			applyTransition(t.from, currState, duration, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
 		}
-		
+
 		parentState = parent
 
 		currState = curr
@@ -263,7 +263,7 @@ async function parseLines(filePath, readScriptFileAndParse,
 function lintStmt(filePath, currStmt, prevStmt, line, lastLine, lineCursor) {
 	let lines = `\n${lineCursor - 1}:${lastLine}\n>>${lineCursor}:${line}`
 
-	if (!prevStmt) {
+	if (prevStmt === null) {
 		if (currStmt.depth > 0) {
 			throw `[${filePath}] Error: first statement must be unindented${lines}`
 		}
@@ -285,42 +285,45 @@ function lintStmt(filePath, currStmt, prevStmt, line, lastLine, lineCursor) {
 			}
 			break
 		case 'sceneHeading':
-			switch (prevStmt.rule) {
-				case 'comment':
-				case 'loadScript':
-				case 'action':
-				case 'transition':
-					if (prevStmt.depth !== currStmt.depth) {
-						throw `[${filePath}] Error: sceneHeading must have the same depth as the statement before it${lines}`
-					}
-					break
-				case 'cond':
-					if (prevStmt.depth === currStmt.depth) {
-						throw `[${filePath}] Error: sceneHeadings that follow a condition must be indented${lines}`
-					}
-					break
-				default:
-					throw `[${filePath}] Error: sceneHeading must follow an action or a transition${lines}`
-					break;
+			if (prevStmt) {
+				switch (prevStmt.rule) {
+					case 'comment':
+					case 'loadScript':
+					case 'action':
+					case 'transition':
+						if (prevStmt.depth !== currStmt.depth) {
+							throw `[${filePath}] Error: sceneHeading must have the same depth as the statement before it${lines}`
+						}
+						break
+					case 'cond':
+						if (prevStmt.depth === currStmt.depth) {
+							throw `[${filePath}] Error: sceneHeadings that follow a condition must be indented${lines}`
+						}
+						break
+					default:
+						throw `[${filePath}] Error: sceneHeading must follow an action or a transition${lines}`
+						break;
+				}
 			}
 			break
 		case 'shot':
-			switch (prevStmt.rule) {
-				case 'comment':
-				case 'loadScript':
-				case 'action':
-				case 'transition':
-				case 'sceneHeading':
-					break
-				case 'cond':
-					//TODO: explore eliminating condition statement depth rules
-					if (prevStmt.depth === currStmt.depth) {
-						throw `[${filePath}] Error: shots that follow a condition must be indented${lines}`
-					}
-					break
-				default:
-					throw `[${filePath}] Error: shot heading must follow an action, transition or sceneHeading${lines}`
-					break;
+			if (prevStmt) {
+				switch (prevStmt.rule) {
+					case 'comment':
+					case 'loadScript':
+					case 'action':
+					case 'transition':
+					case 'sceneHeading':
+						break
+					case 'cond':
+						//TODO: explore eliminating condition statement depth rules
+						if (prevStmt.depth === currStmt.depth) {
+							throw `[${filePath}] Error: shots that follow a condition must be indented${lines}`
+						}
+						break
+					default:
+						throw `[${filePath}] Error: shot heading must follow an action, transition or sceneHeading${lines}`
+				}
 			}
 			break
 		case 'action':
@@ -420,7 +423,7 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			curr.comments += obj.comment
 			break
 		case 'sceneHeading':
-			curr = makeState()
+			curr = makeState(currState)
 			curr.states.setView.meta.scene = obj
 			break
 		case 'shot':
@@ -436,20 +439,21 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			curr.states.setView.meta.viewSource = obj.viewSource ? obj.viewSource : obj.viewTarget
 			curr.states.setView.meta.viewTarget = obj.viewTarget
 			curr.states.setView.meta.shotType = obj.viewType
-			if (obj.viewMovement) {
-				curr.states.setView.meta.movementType = obj.viewMovement
+			if (obj.duration > 0) {
+				curr.states.setView.meta.duration = obj.duration
+			}
+			if (curr.states.setView.meta.duration == 0) {
+				curr.states.setView.meta.duration = parentState.states.setView.meta.duration
 			}
 
-			curr.states.setView.meta.shotTime = obj.shotTime
-			let useLastShotTime = obj.shotTime.min === 0 && obj.shotTime.sec === 0 && parentState.states.setView && parentState.states.setView.meta && parentState.states.setView.meta.shotTime
-			if (useLastShotTime) {
-				curr.states.setView.meta.shotTime = parentState.states.setView.meta.shotTime
+			if (obj.viewMovement) {
+				curr.states.setView.meta.movementType = obj.viewMovement
 			}
 
 			if (transitions.length) {
 				let t = transitions.pop()
 				if (t.from.id) {
-					applyTransition(t.from, curr, obj.shotTime, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
+					applyTransition(t.from, curr, obj.duration, t.transitionTime, t.transitionType, t && t.cond ? t.cond.result : undefined)
 				} else {
 					curr.states.inTransition.meta.type = t.transitionType
 				}
@@ -457,44 +461,45 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 
 			break
 		case 'action':
-			let isContinuedAction = obj.fromCont
-			let action = isContinuedAction ? continuedActions.pop() : makeAction(`action_${uuidv4()}`)
-			action.meta.type = currStmt.rule			
+			let action = makeAction(`action_${uuidv4()}`)
+			action.meta.type = currStmt.rule
 
 			//create states for each action line and name them after the total interactive time
-			let startTime = action.meta.interactiveTime
-			let lineStates = [...Object.values(action.states.lines.states), ...obj.lines].map(a => {
+			let lineStates = []
+			let start = action.meta.interactiveTime
+			let isDefaultTime = line => line.duration === 0
+			let defaultTime = Math.round(curr.states.setView.meta.duration / obj.lines.filter(a => isDefaultTime(a)).length)
 
+			for (let line of obj.lines) {
 				//set default time to last shot length
-				let useLastShotTime = a.time && a.time.min === 0 && a.time.sec === 0 && curr.states.setView && curr.states.setView.meta && curr.states.setView.meta.shotTime
-				if (useLastShotTime) {
-					a.time = MSToTime(timeToMS(curr.states.setView.meta.shotTime) / obj.lines.length)
+				if (isDefaultTime(line)) {
+					line.duration = defaultTime
 				}
 				let s = {
 					id: uuidv4(),
 					meta: {
-						speaker: a.meta ? a.meta.speaker : a.speaker,
-						text: a.meta ? a.meta.text : a.text,
-						time: a.meta ? a.meta.time : a.time,
-						startTime,
+						speaker: line.speaker,
+						text: line.text,
+						duration: line.duration,
+						start,
 					},
 					on: {},
 					after: {},
 					states: {}
 				}
-				let time = timeToMS(s.meta.time)
-				startTime += time
-				action.meta.interactiveTime = startTime
+				start += s.meta.duration
+				action.meta.interactiveTime = start
 				s.after = {}
-				s.after[time] = startTime.toString()
-				return s
-			})
+				s.after[s.meta.duration] = start.toString()
+				lineStates.push(s)
+			}
+
 			//don't loop back last line on self
 			let lastLineState = lineStates[lineStates.length - 1]
 			lastLineState.after = {}
 			//reduce into an object keyed off total time
 			action.states.lines.states = lineStates.reduce((ls, s) => {
-				ls[s.meta.startTime] = s
+				ls[s.meta.start] = s
 				return ls
 			}, {})
 
@@ -521,9 +526,13 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 
 			//TODO: cleanup this assignment into something more generalizable
 			//copy over scene info to new state
-			curr.states.setView.scene = currState && currState.states.setView.meta.scene ? currState.states.setView.meta.scene : undefined,
-				curr.states.setView.shotType = currState && currState.states.setView.meta.shotType ? currState.states.setView.meta.shotType : undefined,
-				curr.states.setView.movementType = currState && currState.states.setView.meta.movementType ? currState.states.setView.meta.movementType : undefined,
+			curr.states.setView.meta.scene = currState && currState.states.setView.meta.scene ? currState.states.setView.meta.scene : undefined,
+				curr.states.setView.meta.shotType = currState && currState.states.setView.meta.shotType ? currState.states.setView.meta.shotType : undefined
+			curr.states.setView.meta.movementType = currState && currState.states.setView.meta.movementType ? currState.states.setView.meta.movementType : undefined
+			curr.states.setView.meta.duration = currState.states.setView.meta.duration
+			if (currStmt.result.start === 0 && currStmt.result.end === 0) {
+				currStmt.result.end = currState.states.setView.meta.duration;
+			}
 
 			makeLoader(curr)
 
@@ -533,11 +542,12 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 			}
 			addChild(prev, curr)
 
-			applyTransition(prev, curr, prev.meta.interactiveTime, 0, 'CUT', currStmt.result)
+			applyTransition(prev, curr, currStmt.result.end, 0, 'CUT', currStmt.result)
 
 			//carry over previous shot's time
-			if(!curr.states.setView.shotTime || (!curr.states.setView.min && !curr.states.setView.sec)){
-				curr.states.setView.meta.shotTime = currState.states.setView.meta.shotTime
+			let useLastDurationForCond = curr.states.setView.meta.start === 0 && curr.states.setView.meta.end === 0
+			if (useLastDurationForCond) {
+				curr.states.setView.meta.duration = parentState.states.setView.meta.duration
 			}
 
 			parent = curr
@@ -576,7 +586,7 @@ function makeLoader(curr) {
 	addUpdateLoop(curr.states.loadNear, 'loadNear')
 }
 
-function applyTransition(from, to, shotTime, transitionTime, transitionType, condition) {
+function applyTransition(from, to, duration, transitionTime, transitionType, condition) {
 	if (!transitionType) {
 		transitionType = 'CUT'
 	}
@@ -592,7 +602,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	let interactiveState = from.states.interactive
 	if (interactiveState) {
 		interactiveState.after[0] = undefined
-		interactiveState.after[timeToMS(shotTime)] = {
+		interactiveState.after[duration] = {
 			target: 'outTransition',
 			cond
 		}
@@ -603,7 +613,7 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 
 	from = from.states.lines && from.states[to.id] ? from.states.lines : from
 	if (from.after) {
-		let t = timeToMS(shotTime)
+		let t = duration
 		//HACK: workaround nearly.js only supporting one slot per after time
 		while (from.after[t]) t += 1
 
@@ -618,11 +628,11 @@ function applyTransition(from, to, shotTime, transitionTime, transitionType, con
 	}
 
 	to.states.inTransition.after = {}
-	to.states.inTransition.after[timeToMS(transitionTime)] = 'interactive'
+	to.states.inTransition.after[transitionTime] = 'interactive'
 
 	//loop back to start of transition
 	let target = from.meta.from ? from.meta.from : `#${from.id}`
-	to.after[timeToMS(shotTime)] = {
+	to.after[duration] = {
 		target
 	}
 	from.meta.from = undefined
@@ -645,21 +655,6 @@ function getConds(cond) {
 			end: cond.end
 		}
 	}
-}
-
-function timeToMS(time) {
-	if (Number.isInteger(time)) {
-		return time
-	}
-	const minToSec = min => 60 * min
-	const secToMS = sec => 1000 * sec
-	return time ? secToMS(minToSec(time.min) + time.sec) : 0
-}
-
-function MSToTime(millis) {
-  var minutes = Math.floor(millis / 60000);
-  var seconds = (millis % 60000) / 1000;
-  return { min: minutes, sec: Math.round(seconds) }
 }
 
 function makeState(templateState) {
@@ -701,6 +696,7 @@ function makeState(templateState) {
 					scene: templateState && templateState.states.setView.meta.scene ? templateState.states.setView.meta.scene : undefined,
 					shotType: templateState && templateState.states.setView.meta.shotType ? templateState.states.setView.meta.shotType : undefined,
 					movementType: templateState && templateState.states.setView.meta.movementType ? templateState.states.setView.meta.movementType : undefined,
+					duration: templateState && templateState.states.setView.meta.duration ? templateState.states.setView.meta.duration : 0
 				},
 				after: {
 					0: 'inTransition'
