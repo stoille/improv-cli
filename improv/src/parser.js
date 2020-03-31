@@ -466,9 +466,11 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 
 			//create states for each action line and name them after the total interactive time
 			let lineStates = []
-			let start = action.meta.interactiveTime
 			let isDefaultTime = line => line.duration === 0
-			let defaultTime = Math.round(curr.states.setView.meta.duration / obj.lines.filter(a => isDefaultTime(a)).length)
+			let noNaN = n => !n ? 0 : n
+			let totalDurationOfTimedLines = obj.lines.reduce((a, b) => noNaN(a.duration) + noNaN(b.duration), {duration:0})
+			let durationOfUntimedLines = curr.states.setView.meta.duration - totalDurationOfTimedLines
+			let defaultTime = durationOfUntimedLines === 0 ? curr.states.setView.meta.duration : Math.round(durationOfUntimedLines / obj.lines.filter(a => isDefaultTime(a)).length)
 
 			for (let line of obj.lines) {
 				//set default time to last shot length
@@ -481,16 +483,15 @@ function ingestStmt(currStmt, prevStmt, currState, parentState, line, transition
 						speaker: line.speaker,
 						text: line.text,
 						duration: line.duration,
-						start,
+						start: action.meta.interactiveTime,
 					},
 					on: {},
 					after: {},
 					states: {}
 				}
-				start += s.meta.duration
-				action.meta.interactiveTime = start
+				action.meta.interactiveTime += s.meta.duration
 				s.after = {}
-				s.after[s.meta.duration] = start.toString()
+				s.after[s.meta.duration] = action.meta.interactiveTime.toString()
 				lineStates.push(s)
 			}
 
