@@ -649,9 +649,9 @@ function getConds(cond) {
 		}
 	} else {
 		return {
-			type: cond.op,
-			root: cond.rhs.root,
-			path: cond.rhs.path,
+			type: cond.op.trim(),
+			root: cond.rhs.root ? cond.rhs.root.trim() : cond.rhs.root,
+			path: cond.rhs.path.map( p => p.trim()),
 			start: cond.start,
 			end: cond.end
 		}
