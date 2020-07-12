@@ -78,12 +78,13 @@ num -> [0-9]:? [0-9] {% d => parseInt(`${d[0]}${d[1]}`) %}
 
 action -> (word ":"):? sentence:+ {% ([speaker, lines]) => rule('action', {speaker, lines}) %}
 
-sentence -> (wordWS ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), duration:timeSpan?timeSpan:0}) %} 
+sentence -> (wordWSC ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]) => ({text:text.map(t=>t[0] + t[1]).join(''), duration:timeSpan?timeSpan:0}) %} 
 
 marker -> opName ((_ "," _) opName):* {% d => [d[0], ...(d[1]?d[1].map(dd=>dd[1]):[])]  %}
 #unmarker -> SEP SEP opName ((_ "," _) opName):* {% d => [d[2], ...(d[3]?d[3].map(dd=>dd[1]):[])] %}
 word -> [a-zA-Z,']:+ {% d => d[0].join('').trim()  %}
-wordWS -> [a-zA-Z] [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0] + d[1].join('')  %}
+wordWS -> [a-zA-Z] [a-zA-Z'\]\[\(\)_ \.!?]:+ {% d => d[0] + d[1].join('').trim()  %}
+wordWSC -> [a-zA-Z] [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0] + d[1].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 
 #TODO: more robust conditional expression syntax
