@@ -4,6 +4,7 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+
     {
       "type": "node",
       "request": "launch",
@@ -46,15 +47,16 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "compile summerAfternoon",
+      "name": "compile house",
       "console": "integratedTerminal",
       //"runtimeExecutable": "npm",
       "runtimeArgs": [
         "--inspect-brk=5858",
         "./src/commander.js",
         "parse",
-        "--json",
-        "/Volumes/sol/unity/test_libjs/Assets/scripts/mp/house/house.imp"
+        "--timeline",
+        "--output-dir=~/dev/MP/Assets/Scenes/mp/output",
+        "~/dev/MP/Assets/Scenes/mp/house/house.imp",
         //"compileTest",
       ],
       "protocol": "inspector",

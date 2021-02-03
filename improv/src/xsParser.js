@@ -837,6 +837,21 @@ function jsonToXStateMachine(jsonDefinition) {
 	`
 }
 
+function jsonToTimeline(jsonDefinition) {
+	return `
+	import { Machine } from 'xstate'
+
+	export const gameMachine = Machine(${jsonDefinition},\n
+		${printMachineOptions},\n
+		${JSON.stringify(machineContext)})\n
+		var funcs = {}\n
+	${printExports(actions)}\n
+	${printExports(guards)}
+	`
+}
+
+module.exports.jsonToTimeline = jsonToTimeline
+
 function printExports(funcs) {
 	return `${Object.keys(funcs).reduce((fns, f, idx, exports) => `${fns}\n\n${funcs[f].toString()}\nfuncs[${f}] = ${f}`, '')}`
 }

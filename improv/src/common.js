@@ -1,3 +1,5 @@
+const path = require("path")
+
 var cache = []
 function filterCircularRefences(key, value) {
 	if (typeof value === 'object' && value !== null) {
@@ -13,3 +15,11 @@ function filterCircularRefences(key, value) {
 	return value;
 }
 exports.filterCircularRefences = filterCircularRefences
+
+function resolveHome(filepath) {
+	if (filepath[0] === '~') {
+		return path.join(process.env.HOME, filepath.slice(1));
+	}
+	return path.resolve(filepath);
+}
+exports.resolveHome = resolveHome
