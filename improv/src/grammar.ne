@@ -41,7 +41,7 @@ function flattenDeep(arr1) {
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> TAB (comment|loadScript|transition|sceneHeading|shot|action|cond) _ comment:?{%
+unitLine -> TAB (comment|loadScript|transition|sceneHeading|shotFullUnmarker|shotFullMarker|shotFullNoMarker|shotNoDurationUnmarker|shotNoDurationMarker|shotNoDurationNoMarker|shotNoMovementUnmarker|shotNoMovementMarker|shotNoMovementNoMarker|shotNoSourceUnmarker|shotNoSourceMarker|shotNoSourceNoMarker|shotNoSourceNoMovementnmarker|shotNoSourceNoMovementMarker|shotNoSourceNoMovementNoMarker|shotNoSourceNoDurationUnmarker|shotNoSourceNoDurationMarker|shotNoSourceNoDurationNoMarker|shotNoMovementNoDurationUnmarker|shotNoMovementNoDurationMarker|shotNoMovementNoDurationNoMarker|shotNoSourceNoMovementNoDurationUnmarker|shotNoSourceNoMovementNoDurationMarker|shotNoSourceNoMovementNoDurationNoMarker|action|cond) _ comment:?{%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
 	([tab, d, ___, comment]) => {
 		if(comment) { d[0].comment = comment }
@@ -65,10 +65,88 @@ sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"A
 
 SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
-
-shot -> viewType SEP (path _ "," _):? path (SEP viewMovement):? (SEP timeSpan):? (SEP marker:? (SEP marker):?):? {%
-	([viewType, _, viewSource, viewTarget, viewMovement, duration, markers]) => rule('shot', {viewType, viewSource:viewSource ? viewSource[0] : undefined, viewTarget, viewMovement: viewMovement ? viewMovement[1] : undefined, duration: duration ? duration[1] : 0, marker: markers ? markers[1] : [], unmarker: markers && markers[2] ? markers[2][1] : []})
+#FULL
+shotFullUnmarker -> viewType SEP (path _ "," _) path (SEP viewMovement) (SEP timeSpan) (SEP SEP marker) {%
+	([viewType, _, viewSource, viewTarget, viewMovement, duration, unmarkers]) => rule('shotFullUnmarker', {viewType, viewSource:viewSource[0], viewTarget, viewMovement: viewMovement[1], duration: duration[1], unmarker: unmarkers})
 %}
+shotFullMarker -> viewType SEP (path _ "," _) path (SEP viewMovement) (SEP timeSpan) (SEP marker) {%
+	([viewType, _, viewSource, viewTarget, viewMovement, duration, markers]) => rule('shotFullMarker', {viewType, viewSource:viewSource[0], viewTarget, viewMovement: viewMovement[1], duration: duration[1], marker: markers[1]})
+%}
+shotFullNoMarker -> viewType SEP (path _ "," _) path (SEP viewMovement) (SEP timeSpan)  {%
+	([viewType, _, viewSource, viewTarget, viewMovement, duration]) => rule('shotFullNoMarker', {viewType, viewSource:viewSource[0], viewTarget, viewMovement: viewMovement[1], duration: duration[1]})
+%}
+#NO DURATION
+shotNoDurationUnmarker -> viewType SEP (path _ "," _) path (SEP viewMovement) (SEP SEP marker) {%
+	([viewType, _, viewSource, viewTarget, viewMovement, duration, unmarkers]) => rule('shotNoDurationUnmarker', {viewType, viewSource:viewSource[0], viewTarget, viewMovement: viewMovement[1], unmarker: unmarkers})
+%}
+shotNoDurationMarker -> viewType SEP (path _ "," _) path (SEP viewMovement) (SEP marker) {%
+	([viewType, _, viewSource, viewTarget, viewMovement, duration, markers]) => rule('shotNoDurationMarker', {viewType, viewSource:viewSource[0], viewTarget, viewMovement: viewMovement[1], marker: markers[1]})
+%}
+shotNoDurationNoMarker -> viewType SEP (path _ "," _) path (SEP viewMovement)  {%
+	([viewType, _, viewSource, viewTarget, viewMovement, duration]) => rule('shotNoDurationNoMarker', {viewType, viewSource:viewSource[0], viewTarget, viewMovement: viewMovement[1]})
+%}
+#NO MOVEMENT
+shotNoMovementUnmarker -> viewType SEP (path _ "," _) path (SEP timeSpan) (SEP SEP marker) {%
+	([viewType, _, viewSource, viewTarget, duration, unmarkers]) => rule('shotNoMovementUnmarker', {viewType, viewSource:viewSource[0], viewTarget, duration: duration[1], unmarker: unmarkers})
+%}
+shotNoMovementMarker -> viewType SEP (path _ "," _) path (SEP timeSpan) (SEP marker) {%
+	([viewType, _, viewSource, viewTarget, duration, markers]) => rule('shotNoMovementMarker', {viewType, viewSource:viewSource[0], viewTarget, duration: duration[1], marker: markers[1]})
+%}
+shotNoMovementNoMarker -> viewType SEP (path _ "," _) path (SEP timeSpan)  {%
+	([viewType, _, viewSource, viewTarget, duration]) => rule('shotNoMovementNoMarker', {viewType, viewSource:viewSource[0], viewTarget, duration: duration[1]})
+%}
+#NO SOURCE
+shotNoSourceUnmarker -> viewType SEP path (SEP viewMovement) (SEP timeSpan) (SEP SEP marker) {%
+	([viewType, _, viewTarget, viewMovement, duration, unmarkers]) => rule('shotNoSourceUnmarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1], duration: duration[1], unmarker: unmarkers})
+%}
+shotNoSourceMarker -> viewType SEP path (SEP viewMovement) (SEP timeSpan) (SEP marker) {%
+	([viewType, _, viewTarget, viewMovement, duration, markers]) => rule('shotNoSourceMarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1], duration: duration[1], marker: markers[1]})
+%}
+shotNoSourceNoMarker -> viewType SEP path (SEP viewMovement) (SEP timeSpan)  {%
+	([viewType, _, viewTarget, viewMovement, duration]) => rule('shotNoSourceNoMarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1], duration: duration[1]})
+%}
+#NO SOURCE AND NO MOVEMENT
+shotNoSourceNoMovementnmarker -> viewType SEP path (SEP timeSpan) (SEP SEP marker) {%
+	([viewType, _, viewTarget, duration, unmarkers]) => rule('shotNoSourceNoMovementUnmarker', {viewType, viewSource:viewTarget, viewTarget, duration: duration[1], unmarker: unmarkers})
+%}
+shotNoSourceNoMovementMarker -> viewType SEP path (SEP timeSpan) (SEP marker) {%
+	([viewType, _, viewTarget, duration, markers]) => rule('shotNoSourceNoMovementMarker', {viewType, viewSource:viewTarget, viewTarget, duration: duration[1], marker: markers[1]})
+%}
+shotNoSourceNoMovementNoMarker -> viewType SEP path (SEP timeSpan)  {%
+	([viewType, _, viewTarget, duration]) => rule('shotNoSourceNoMovementNoMarker', {viewType, viewSource:viewTarget, viewTarget, duration: duration[1]})
+%}
+#NO SOURCE AND NO DURATION
+shotNoSourceNoDurationUnmarker -> viewType SEP path (SEP viewMovement) (SEP SEP marker) {%
+	([viewType, _, viewTarget, viewMovement, unmarkers]) => rule('shotNoSourceNoDurationUnmarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1], unmarker: unmarkers})
+%}
+shotNoSourceNoDurationMarker -> viewType SEP path (SEP viewMovement) (SEP marker) {%
+	([viewType, _, viewTarget, viewMovement, markers]) => rule('shotNoSourceNoDurationMarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1], marker: markers[1]})
+%}
+shotNoSourceNoDurationNoMarker -> viewType SEP path (SEP viewMovement)  {%
+	([viewType, _, viewTarget, viewMovement]) => rule('shotNoSourceNoDurationNoMarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1]})
+%}
+#NO MOVEMENT AND NO DURATION
+shotNoMovementNoDurationUnmarker -> viewType SEP (path _ "," _) path (SEP SEP marker) {%
+	([viewType, _, viewSource, viewTarget, unmarkers]) => rule('shotNoMovementNoDurationUnmarker', {viewType, viewSource:viewSource[0], viewTarget, unmarker: unmarkers})
+%}
+shotNoMovementNoDurationMarker -> viewType SEP (path _ "," _) path (SEP marker) {%
+	([viewType, _, viewSource, viewTarget, markers]) => rule('shotNoMovementNoDurationMarker', {viewType, viewSource:viewSource[0], viewTarget, marker: markers[1]})
+%}
+shotNoMovementNoDurationNoMarker -> viewType SEP (path _ "," _) path  {%
+	([viewType, _, viewSource, viewTarget]) => rule('shotNoMovementNoDurationNoMarker', {viewType, viewSource:viewSource[0], viewTarget})
+%}
+
+#NO SOURCE AND NO MOVEMENT AND NO DURATION 
+shotNoSourceNoMovementNoDurationUnmarker -> viewType SEP path (SEP SEP marker) {%
+	([viewType, _, viewTarget, unmarkers]) => rule('shotNoSourceNoMovementNoDurationUnmarker', {viewType, viewTarget, unmarker: unmarkers})
+%}
+shotNoSourceNoMovementNoDurationMarker -> viewType SEP path (SEP marker) {%
+	([viewType, _, viewTarget, markers]) => rule('shotNoSourceNoMovementNoDurationMarker', {viewType, viewTarget, marker: markers[1]})
+%}
+shotNoSourceNoMovementNoDurationNoMarker -> viewType SEP path  {%
+	([viewType, _, viewTarget]) => rule('shotNoSourceNoMovementNoDurationNoMarker', {viewType, viewTarget})
+%}
+
 viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
 path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
 viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
