@@ -7,6 +7,8 @@ const writeFile = util.promisify(fs.writeFile)
 const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *t*$/) !== null
 const { resolveHome } = require('./common')
 
+var DEBUG = true
+
 var IntervalType = {
 	SCENE: "SCENE",//0,
 	MARKER: "MARKER",//1,
@@ -62,17 +64,17 @@ class Timeline {
 		}
 	}
 	addScene(time, scenePlacement, sceneName, location, timeOfDay) {
-		let scene = this._addInterval(time, 0, IntervalType.SCENE, this.scenes.length)
+		let scene = this._addInterval(time, 1, IntervalType.SCENE, this.scenes.length)
 		this.scenes.push({ id: uuidv4(), scenePlacement, sceneName, location, timeOfDay })
 		return scene
 	}
 	addMarker(name, time) {
-		let marker = this._addInterval(time, 0, IntervalType.MARKER, this.markerNames.length)
+		let marker = this._addInterval(time, 1, IntervalType.MARKER, this.markerNames.length)
 		this.markerNames.push(name)
 		return marker
 	}
 	addUnmarker(name, time) {
-		let unmarker = this._addInterval(time, 0, IntervalType.UNMARKER, this.markerNames.length)
+		let unmarker = this._addInterval(time, 1, IntervalType.UNMARKER, this.markerNames.length)
 		this.markerNames.push(name)
 		return unmarker
 	}
@@ -127,12 +129,12 @@ class Timeline {
 	}
 	addTimelineLoad(start, timelineIdx) {
 		{
-			var timeline = this._addInterval(start, 0, IntervalType.LOAD, this.loads.length)
+			var timeline = this._addInterval(start, 1, IntervalType.LOAD, this.loads.length)
 			this.loads.push(timelineIdx)
-			return timeline.duration
+			return timeline
 		}
 	}
-	async ingestStmt(stmt, start, lastShot) {
+	async ingestStmt(stmt, start, lastShot, lineText) {
 		let stmtDuration = 0
 		switch (stmt.rule) {
 			case 'comment':
@@ -160,15 +162,21 @@ class Timeline {
 				let timelineJson = JSON.stringify(loadedTimeline)
 				await writeFile(`${outputDirectory}/${id}.json`, timelineJson)
 
-				let timelineInterval = this.addTimelineLoad(start, loadedTimelineIdx)
+				let timelineInterval = this.addTimelineLoad(lastShot.duration + start, loadedTimelineIdx)
 				stmtDuration = 0
+				if (DEBUG) {
+					timelineInterval.line = lineText
+				}
 				break
 			case 'sceneHeading':
 				let sceneInterval = this.addScene(start, stmt.scenePlacement, stmt.scene, stmt.scene, stmt.sceneTime)
 				stmtDuration = sceneInterval.duration
+				if (DEBUG) {
+					sceneInterval.line = lineText
+				}
 				break
 			case 'shot':
-				let shot = this.addShot(
+				let shotInterval = this.addShot(
 					start,
 					Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration,
 					stmt.viewType,
@@ -177,14 +185,17 @@ class Timeline {
 					stmt.viewTarget,
 					stmt.marker,
 					stmt.unmarker)
-
+				let shot = this.shots[shotInterval.idx]
 				if (shot.marker) {
-					this.addMarker(line.marker, action.start)
+					this.addMarker(lineText.marker, shotInterval.start)
 				}
 				if (shot.unmarker) {
-					this.addUnmarker(line.marker, action.start)
+					this.addUnmarker(lineText.marker, shotInterval.start)
 				}
-				stmtDuration = shot.duration
+				stmtDuration = shotInterval.duration
+				if (DEBUG) {
+					shotInterval.line = lineText
+				}
 				break
 			case 'action':
 				let isDefaultTime = line => line.duration === 0
@@ -199,8 +210,11 @@ class Timeline {
 					if (isDefaultTime(line)) {
 						line.duration = defaultTime
 					}
-					let action = this.addAction(actionDuration, line.duration, line.speaker, line.text)
+					let action = this.addAction(start + actionDuration, line.duration, line.speaker, line.text)
 					actionDuration += action.duration
+					if (DEBUG) {
+						action.line = lineText
+					}
 				}
 				stmtDuration = actionDuration
 				break
@@ -213,9 +227,12 @@ class Timeline {
 					stmt,
 					toTime)
 				stmtDuration = goto.duration
+				if (DEBUG) {
+					goto.line = lineText
+				}
 				break
 			case 'transition':
-				let transition = this.addTransition(stmt.transitionTime, stmt.transitionType, lastShot)
+				this.addTransition(stmt.transitionTime, stmt.transitionType, lastShot)
 
 				//when there's a condition present the unit will loop back on itself until the condition is met
 				let transitionDuration = 0
@@ -226,6 +243,9 @@ class Timeline {
 						stmt.cond.result,
 						start + lastShot.duration)
 					transitionDuration += goto.duration
+					if (DEBUG) {
+						goto.line = lineText
+					}
 				}
 				stmtDuration = transitionDuration
 				break;
@@ -265,11 +285,6 @@ async function parseLines(
 				continue
 			}
 
-			if (stmt.duration) {
-				lastDefinedDuration = stmt.duration
-			} else {
-				stmt.duration = lastDefinedDuration
-			}
 			line = line.trim()
 
 			if (isTabIncreased(stmt, prevStmt)) {
@@ -282,8 +297,10 @@ async function parseLines(
 				})
 			} else if (isTabDecreased(stmt, prevStmt)) {
 				//RETURN TO PARENT SHOT. THIS MUST BE DONE BEFORE POPPING ENV STACK
-				let currShotEnd = timeline.shots.length === 0 ? 0 : timeline.shots[timeline.shots.length - 1].start + timeline.shots[timeline.shots.length - 1].duration
-				timeline.addGoto(currShotEnd, 0, undefined, lastShot.start)
+				let ls = timeline.shots[timeline.shots.length - 1]
+				let currShotEnd = timeline.shots.length === 0 ? 0 : ls.start + ls.duration
+				timeline.addGoto(currShotEnd - 1, 1, undefined, lastShot.start)
+				startOfNextInterval += 1
 				//KEEP IN ORDER WITH ABOVE
 				let d = prevStmt.depth - 1
 				let env = envs.pop()
@@ -299,16 +316,22 @@ async function parseLines(
 				prevStmt = env.prevStmt
 			}
 			lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor)
+			
+			if (stmt.duration) {
+				lastDefinedDuration = stmt.duration
+			} else {
+				stmt.duration = lastShot.duration//lastDefinedDuration
+			}
 
 		} catch (error) {
 			console.error(`${filePath} - ${error.message}`)
 			process.exit(1)
 		}
 		let start = stmt.rule == "shot" ? startOfNextInterval : lastShot.start
-		await timeline.ingestStmt(stmt, start, lastShot)
+		await timeline.ingestStmt(stmt, start, lastShot, line)
 
 		if (stmt.rule == "shot") {
-			startOfNextInterval = timeline.duration
+			startOfNextInterval = timeline.duration// + 1
 			lastShot = timeline.shots[timeline.shots.length - 1]
 		}
 		if (stmt.rule !== "loadScript") {
@@ -359,13 +382,10 @@ function parseLine(lineText) {
 	//HACK: enforce rule precedence ambiguity - why doesn't nearly.js do this?
 	let results = {}
 	for (let result of parser.results) {
-		if (!results.hasOwnProperty(result.rule)) {
-			results[result.rule] = result
-		}
+		results[result.rule] = result
 	}
 
 	let addRule = (r, ruleOverride) => ({ rule: ruleOverride ? ruleOverride : r.rule, depth: r.depth, ...r.result })
-	if (results.sceneHeading) return addRule(results.sceneHeading)
 	if (results.sceneHeading) return addRule(results.sceneHeading)
 	if (results.shotFullUnmarker) return addRule(results.shotFullUnmarker, 'shot')
 	if (results.shotFullMarker) return addRule(results.shotFullMarker, 'shot')
@@ -398,7 +418,6 @@ function parseLine(lineText) {
 	if (results.loadScript) return addRule(results.loadScript)
 	return undefined
 }
-
 
 function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 	let lines = `\n${lineCursor - 1}:${lastLine}\n>>${lineCursor}:${line}`

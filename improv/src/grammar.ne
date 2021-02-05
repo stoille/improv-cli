@@ -16,23 +16,25 @@ function selector(root, path){
 	return ({root, path})
 }
 
-function timeToMS(min, sec, secOrMS) {
-	if(!min){
-		min = 0
+function timeToMS(n1, n2, n3) {
+	let min = n1 && n2 && n3 ? n1 : n1 && n3 ? n1 : n2 && n3 ? n2 : '0'
+	let sec = n1 && n2 && n3 ? n2 : n3
+	let ms = n1 && n2 && n3 || !n1 && !n2 ? n3 : '0'
+
+	let totalMS = 0
+	if(min){
+		const minToMS = m => m * 60 * 1000
+		totalMS += minToMS(parseInt(min))
 	}
-	if(!sec){
-		if(secOrMS){
-			secOrMS *= 1000
-		}
-		sec = 0
+	if(sec){
+		const secToMS = s => s * 1000
+		totalMS += secToMS(parseInt(sec))
 	}
-	if(!secOrMS){
-		secOrMS = 0;
-	}
+	if(ms){
+		totalMS += parseInt(ms)
+	}	
 	
-	const minToSec = min => 60 * min
-	const secToMS = sec => 1000 * sec
-	return secToMS(minToSec(min) + sec) + secOrMS
+	return totalMS
 }
 
 function flattenDeep(arr1) {
@@ -105,17 +107,17 @@ shotNoSourceMarker -> viewType SEP path (SEP viewMovement) (SEP timeSpan) (SEP m
 shotNoSourceNoMarker -> viewType SEP path (SEP viewMovement) (SEP timeSpan)  {%
 	([viewType, _, viewTarget, viewMovement, duration]) => rule('shotNoSourceNoMarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1], duration: duration[1]})
 %}
-#NO SOURCE AND NO MOVEMENT
+#NO SOURCE, NO MOVEMENT
 shotNoSourceNoMovementnmarker -> viewType SEP path (SEP timeSpan) (SEP SEP marker) {%
 	([viewType, _, viewTarget, duration, unmarkers]) => rule('shotNoSourceNoMovementUnmarker', {viewType, viewSource:viewTarget, viewTarget, duration: duration[1], unmarker: unmarkers})
 %}
 shotNoSourceNoMovementMarker -> viewType SEP path (SEP timeSpan) (SEP marker) {%
 	([viewType, _, viewTarget, duration, markers]) => rule('shotNoSourceNoMovementMarker', {viewType, viewSource:viewTarget, viewTarget, duration: duration[1], marker: markers[1]})
 %}
-shotNoSourceNoMovementNoMarker -> viewType SEP path (SEP timeSpan)  {%
-	([viewType, _, viewTarget, duration]) => rule('shotNoSourceNoMovementNoMarker', {viewType, viewSource:viewTarget, viewTarget, duration: duration[1]})
+shotNoSourceNoMovementNoMarker -> viewType SEP path SEP timeSpan  {%
+	([viewType, _, viewTarget, __, duration]) => rule('shotNoSourceNoMovementNoMarker', {viewType, viewSource:viewTarget, viewTarget, duration})
 %}
-#NO SOURCE AND NO DURATION
+#NO SOURCE, NO DURATION
 shotNoSourceNoDurationUnmarker -> viewType SEP path (SEP viewMovement) (SEP SEP marker) {%
 	([viewType, _, viewTarget, viewMovement, unmarkers]) => rule('shotNoSourceNoDurationUnmarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1], unmarker: unmarkers})
 %}
@@ -125,7 +127,7 @@ shotNoSourceNoDurationMarker -> viewType SEP path (SEP viewMovement) (SEP marker
 shotNoSourceNoDurationNoMarker -> viewType SEP path (SEP viewMovement)  {%
 	([viewType, _, viewTarget, viewMovement]) => rule('shotNoSourceNoDurationNoMarker', {viewType, viewSource:viewTarget, viewTarget, viewMovement: viewMovement[1]})
 %}
-#NO MOVEMENT AND NO DURATION
+#NO MOVEMENT, NO DURATION
 shotNoMovementNoDurationUnmarker -> viewType SEP (path _ "," _) path (SEP SEP marker) {%
 	([viewType, _, viewSource, viewTarget, unmarkers]) => rule('shotNoMovementNoDurationUnmarker', {viewType, viewSource:viewSource[0], viewTarget, unmarker: unmarkers})
 %}
@@ -136,7 +138,7 @@ shotNoMovementNoDurationNoMarker -> viewType SEP (path _ "," _) path  {%
 	([viewType, _, viewSource, viewTarget]) => rule('shotNoMovementNoDurationNoMarker', {viewType, viewSource:viewSource[0], viewTarget})
 %}
 
-#NO SOURCE AND NO MOVEMENT AND NO DURATION 
+#NO SOURCE, NO MOVEMENT, NO DURATION 
 shotNoSourceNoMovementNoDurationUnmarker -> viewType SEP path (SEP SEP marker) {%
 	([viewType, _, viewTarget, unmarkers]) => rule('shotNoSourceNoMovementNoDurationUnmarker', {viewType, viewTarget, unmarker: unmarkers})
 %}
@@ -151,8 +153,8 @@ viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT
 path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
 viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
-timeSpan -> num:? ":":? num:? ":":? num {% ([min, _, sec, __, secOrMS]) => timeToMS(min, sec, secOrMS) %}
-num -> [0-9]:? [0-9] {% d => parseInt(`${d[0]}${d[1]}`) %}
+timeSpan -> ([0-9]:+ ":"):? ([0-9]:+ ":"):? [0-9]:+ {% ([min, sec, ms]) => timeToMS(min ? min[0].join('') : undefined, sec ? sec[0].join('') : undefined, ms ? ms.join('') : undefined) %}
+#num -> [0-9]:? [0-9] {% (d1,d2) => parseInt(`${d1 ? d1 : ''}${d2}`) %}
 
 action -> (word ":"):? sentence:+ {% ([speaker, lines]) => rule('action', {speaker, lines}) %}
 
