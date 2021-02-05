@@ -154,7 +154,7 @@ class Timeline {
 				let loadedTimelineIdx = timelines.findIndex(t => t.id === id)
 				if (loadedTimelineIdx < 0) {
 					let impPath = `${path}.imp`
-					let timeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, lastShot)
+					let timeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this)//, lastShot)
 					loadedTimelineIdx = timelines.findIndex(t => t.id === timeline.id)
 				}
 
@@ -272,7 +272,7 @@ async function parseLines(
 	//for each line
 	// advance lines until next unit at tab level
 	// make unit recursively	
-	let startOfNextInterval = 0
+	let startOfNextInterval = 0//lastTimeline.duration
 	while (lineCursor < lines.length) {
 		let line = lines[lineCursor]
 		lineCursor += 1
