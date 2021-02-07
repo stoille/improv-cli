@@ -1,6 +1,5 @@
 const nearley = require('nearley')
 const grammar = require('./grammar')
-const uuidv4 = require('uuid/v4')
 const util = require('util')
 const fs = require('fs')
 const writeFile = util.promisify(fs.writeFile)
@@ -10,16 +9,17 @@ const { resolveHome } = require('./common')
 var DEBUG = true
 
 var IntervalType = {
+	INTERVAL: "INTERVAL",//0,
 	SCENE: "SCENE",//0,
 	MARKER: "MARKER",//1,
 	UNMARKER: "UNMARKER",//2,
-	GOTO: "GOTO",//4,
-	SHOT: "SHOT",//8,
+	JUMP: "JUMP",//4,
+	VIEW: "VIEW",//8,
 	ACTION: "ACTION",//16,
-	LOAD: "LOAD"//32
+	GOTO: "GOTO"//32
 }
 
-var timelines = []
+var timelinesManifest = []
 var outputDirectory = undefined
 
 class Timeline {
@@ -28,22 +28,29 @@ class Timeline {
 	duration = 0
 	intervals = []
 	scenes = []
-	markerNames = []
-	gotos = []
+	markers = []
+	jumps = []
 	conds = []
 	views = []
 	actions = []
-	loads = []
+	gotos = []
+	_indices = {}
 
 	constructor(path, readScriptFileAndParse) {
 		this.path = path
 		this.id = path.slice(path.lastIndexOf('/') + 1, path.lastIndexOf('.'))
 		//function to read a new script
 		this._readScriptFileAndParse = readScriptFileAndParse
-		timelines.push(this)
+		timelinesManifest.push(this)
+	}
+	_getIdx(type) {
+		if (!this._indices.hasOwnProperty(type)) {
+			this._indices[type] = 0
+		}
+		return this._indices[type]++
 	}
 	_addInterval(start, duration, type, idx) {
-		let i = { id: uuidv4(), type, idx, start, duration }
+		let i = { id: this._getIdx(IntervalType.INTERVAL), type, idx, start, duration }
 		this.intervals.push(i)
 		let end = start + duration
 		if (end > this.duration) {
@@ -54,36 +61,42 @@ class Timeline {
 	getClip(type, idx) {
 		switch (type) {
 			case IntervalType.SCENE: return this.scenes[idx]
-			case IntervalType.MARKER: return this.markerNames[idx]
-			case IntervalType.UNMARKER: return this.markerNames[idx]
-			case IntervalType.GOTO: return this.gotos[idx]
-			case IntervalType.SHOT: return this.views[idx]
+			case IntervalType.MARKER: return this.markers[idx]
+			case IntervalType.UNMARKER: return this.markers[idx]
+			case IntervalType.JUMP: return this.jumps[idx]
+			case IntervalType.VIEW: return this.views[idx]
 			case IntervalType.ACTION: return this.actions[idx]
-			case IntervalType.LOAD: return this.loads[idx]
+			case IntervalType.GOTO: return this.gotos[idx]
 			default: return undefined
 		}
 	}
 	addScene(time, scenePlacement, sceneName, location, timeOfDay) {
-		let scene = this._addInterval(time, 1, IntervalType.SCENE, this.scenes.length)
-		this.scenes.push({ id: uuidv4(), scenePlacement, sceneName: sceneName, location: location ? location : null, timeOfDay })
-		return scene
+		let sceneInterval = this._addInterval(time, 1, IntervalType.SCENE, this.scenes.length)
+		this.scenes.push({ id: this._getIdx(IntervalType.SCENE), scenePlacement, sceneName: sceneName, location: location ? location : null, timeOfDay })
+		return sceneInterval
 	}
 	addMarker(name, time) {
-		let marker = this._addInterval(time, 1, IntervalType.MARKER, this.markerNames.length)
-		this.markerNames.push(name)
-		return marker
+		let markerInterval = this._addInterval(time, 1, IntervalType.MARKER, this.markers.length)
+		let marker = this.markers.find(m => m == name)
+		if (!marker) {
+			this.markers.push(name)
+		}
+		return markerInterval
 	}
 	addUnmarker(name, time) {
-		let unmarker = this._addInterval(time, 1, IntervalType.UNMARKER, this.markerNames.length)
-		this.markerNames.push(name)
-		return unmarker
+		let unmarkerInterval = this._addInterval(time, 1, IntervalType.UNMARKER, this.markers.length)
+		let marker = this.markers.find(m => m == name)
+		if (!marker) {
+			this.markers.push(name)
+		}
+		return unmarkerInterval
 	}
-	addGoto(start, duration, cond, toTime) {
+	addJump(start, duration, cond, toTime) {
 		//TODO deduplication logic
-		let goto = this._addInterval(start, duration, IntervalType.GOTO, this.gotos.length)
+		let jumpInterval = this._addInterval(start, duration, IntervalType.JUMP, this.jumps.length)
 		let condIdx = this._getConds(cond)
-		this.gotos.push({ id: uuidv4(), condIdx, toTime })
-		return goto
+		this.jumps.push({ id: this._getIdx(IntervalType.JUMP), condIdx, toTime })
+		return jumpInterval
 	}
 	_getConds(condExp) {
 		if (!condExp) {
@@ -101,36 +114,37 @@ class Timeline {
 		this.conds.push(cond)
 		return this.conds.length - 1
 	}
-	addView(start, duration, viewType, movementType, viewSource, viewTarget, marker, unmarker) {
-		let shot = this._addInterval(start, duration, IntervalType.SHOT, this.views.length)
+	addView(start, duration, viewType, movementType, viewSource, viewTarget, markers, unmarkers) {
+		let viewInteval = this._addInterval(start, duration, IntervalType.VIEW, this.views.length)
 		this.views.push({
-			id: uuidv4(),
+			id: this._getIdx(IntervalType.VIEW),
 			viewType,
 			duration,
 			start,
 			movementType,
 			viewSource,
 			viewTarget,
-			marker,
-			unmarker
 		})
-		return shot
+
+		markers
+		unmarkers
+		return viewInteval
 	}
-	addTransition(duration, transitionType, shot) {
-		shot.outTransitionType = transitionType
-		shot.outTransitionDuration = duration
+	addTransition(duration, transitionType, view) {
+		view.outTransitionType = transitionType
+		view.outTransitionDuration = duration
 	}
 	addAction(start, duration, speaker, text) {
 		{
-			var action = this._addInterval(start, duration, IntervalType.ACTION, this.actions.length)
-			this.actions.push({ id: uuidv4(), speaker, text })
-			return action
+			var actionInterval = this._addInterval(start, duration, IntervalType.ACTION, this.actions.length)
+			this.actions.push({ id: this._getIdx(IntervalType.ACTION), speaker, text })
+			return actionInterval
 		}
 	}
-	addTimelineLoad(start, timelineIdx) {
+	addGoto(start, timelineIdx) {
 		{
-			var timeline = this._addInterval(start, 1, IntervalType.LOAD, this.loads.length)
-			this.loads.push(timelineIdx)
+			var timeline = this._addInterval(start, 1, IntervalType.GOTO, this.gotos.length)
+			this.gotos.push(timelineIdx)
 			return timeline
 		}
 	}
@@ -139,29 +153,26 @@ class Timeline {
 		switch (stmt.rule) {
 			case 'comment':
 				throw `[${stmt}] Error: comments should be skipped and not processed`
-			case 'loadScript':
+			case 'goto':
 				if (!this.comments) {
 					this.comments = []
 				}
 				if (stmt.comment) {
 					this.comments.push(stmt.comment)
 				}
-				const assetPath = 'Assets/Scenes'
 				let root = this.path.slice(0, this.path.indexOf(this.id) - 1)
 				let id = stmt.path.slice(stmt.path.lastIndexOf('/') + 1)
 				let impPath = `${root}${stmt.path}/${id}.imp`
 
-				let loadedTimelineIdx = timelines.findIndex(t => t.id === id)
-				if (loadedTimelineIdx < 0) {
-					let timeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, lastShot)
-					loadedTimelineIdx = timelines.findIndex(t => t.id === timeline.id)
-
-					let loadedTimeline = timelines[loadedTimelineIdx]
+				let timelineManifestId = timelinesManifest.findIndex(t => t.id === id)
+				if (timelineManifestId < 0) {
+					timelineManifestId = timelinesManifest.length
+					let loadedTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, lastShot)					
 					let timelineJson = JSON.stringify(loadedTimeline)
 					await writeFile(`${outputDirectory}/${id}.json`, timelineJson)
 				}
 
-				let timelineInterval = this.addTimelineLoad(lastShot.duration + start, loadedTimelineIdx)
+				let timelineInterval = this.addGoto(lastShot.duration + start, timelineManifestId)
 				stmtDuration = 0
 				if (DEBUG) {
 					timelineInterval.line = lineText
@@ -174,26 +185,28 @@ class Timeline {
 					sceneInterval.line = lineText
 				}
 				break
-			case 'shot':
-				let shotInterval = this.addView(
+			case 'view':
+				let viewInterval = this.addView(
 					start,
 					Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration,
 					stmt.viewType,
 					stmt.viewMovement,
 					stmt.viewSource ? stmt.viewSource : stmt.viewTarget,
-					stmt.viewTarget,
-					stmt.marker,
-					stmt.unmarker)
-				let shot = this.views[shotInterval.idx]
-				if (shot.marker) {
-					this.addMarker(lineText.marker, shotInterval.start)
+					stmt.viewTarget)
+
+				if (stmt.markers) {
+					for (let marker of stmt.markers) {
+						this.addMarker(marker, viewInterval.start)
+					}
 				}
-				if (shot.unmarker) {
-					this.addUnmarker(lineText.marker, shotInterval.start)
+				if (stmt.unmarkers) {
+					for (let unmarker of stmt.unmarkers) {
+						this.addUnmarker(unmarker, viewInterval.start)
+					}
 				}
-				stmtDuration = shotInterval.duration
+				stmtDuration = viewInterval.duration
 				if (DEBUG) {
-					shotInterval.line = lineText
+					viewInterval.line = lineText
 				}
 				break
 			case 'action':
@@ -205,7 +218,7 @@ class Timeline {
 
 				let actionDuration = 0
 				for (let line of stmt.lines) {
-					//set default time to last shot length
+					//set default time to last view length
 					if (isDefaultTime(line)) {
 						line.duration = defaultTime
 					}
@@ -220,7 +233,7 @@ class Timeline {
 			case 'cond':
 				let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration
 				let toTime = start + duration
-				let goto = this.addGoto(
+				let goto = this.addJump(
 					start,
 					Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration,
 					stmt,
@@ -236,7 +249,7 @@ class Timeline {
 				//when there's a condition present the unit will loop back on itself until the condition is met
 				let transitionDuration = 0
 				if (stmt.cond) {
-					let goto = this.addGoto(
+					let goto = this.addJump(
 						start,
 						Number.isInteger(stmt.cond.result.end) && stmt.cond.result.end > 0 ? stmt.cond.result.end : lastShot.duration,
 						stmt.cond.result,
@@ -295,10 +308,10 @@ async function parseLines(
 					prevStmt
 				})
 			} else if (isTabDecreased(stmt, prevStmt)) {
-				//RETURN TO PARENT SHOT. THIS MUST BE DONE BEFORE POPPING ENV STACK
+				//RETURN TO PARENT VIEW. THIS MUST BE DONE BEFORE POPPING ENV STACK
 				let ls = timeline.views[timeline.views.length - 1]
 				let currShotEnd = timeline.views.length === 0 ? 0 : ls.start + ls.duration
-				timeline.addGoto(currShotEnd - 1, 1, undefined, lastShot.start)
+				timeline.addJump(currShotEnd - 1, 1, undefined, lastShot.start)
 				startOfNextInterval += 1
 				//KEEP IN ORDER WITH ABOVE
 				let d = prevStmt.depth - 1
@@ -326,14 +339,16 @@ async function parseLines(
 			console.error(`${filePath} - ${error.message}`)
 			process.exit(1)
 		}
-		let start = stmt.rule == "shot" || stmt.rule == "sceneHeading" ? startOfNextInterval : lastShot.start
+		let start = stmt.rule == "view" || stmt.rule == "sceneHeading" ? startOfNextInterval : lastShot.start
+
+		//INGEST
 		await timeline.ingestStmt(stmt, start, lastShot, line)
 
-		if (stmt.rule == "shot") {
+		if (stmt.rule == "view") {
 			startOfNextInterval = timeline.duration// + 1
 			lastShot = timeline.views[timeline.views.length - 1]
 		}
-		if (stmt.rule !== "loadScript") {
+		if (stmt.rule !== "goto") {
 			prevStmt = stmt
 			lastLine = line
 		}
@@ -359,7 +374,7 @@ async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines,
 	let timeline = new Timeline(filePath, readScriptFileAndParse);
 	timeline = await parseLines(filePath, lines, timeline, lastShot)
 	if (firstRun) {
-		let timelineIds = JSON.stringify(timelines.map(t => ({ id: t.id, path: `${outputDirectory}/${t.id}.json` })))
+		let timelineIds = JSON.stringify(timelinesManifest.map(t => ({ id: t.id, path: `${outputDirectory}/${t.id}.json` })))
 		writeFile(`${outputDirectory}/manifest.json`, timelineIds)
 	}
 	return timeline
@@ -385,38 +400,42 @@ function parseLine(lineText) {
 	}
 
 	let addRule = (r, ruleOverride) => ({ rule: ruleOverride ? ruleOverride : r.rule, depth: r.depth, ...r.result })
-	if (results.sceneHeading) return addRule(results.sceneHeading)
-	if (results.shotFullUnmarker) return addRule(results.shotFullUnmarker, 'shot')
-	if (results.shotFullMarker) return addRule(results.shotFullMarker, 'shot')
-	if (results.shotFullNoMarker) return addRule(results.shotFullNoMarker, 'shot')
-	if (results.shotNoDurationUnmarker) return addRule(results.shotNoDurationUnmarker, 'shot')
-	if (results.hotNoDurationMarker) return addRule(results.hotNoDurationMarker, 'shot')
-	if (results.shotNoDurationNoMarker) return addRule(results.shotNoDurationNoMarker, 'shot')
-	if (results.shotNoMovementUnmarker) return addRule(results.shotNoMovementUnmarker, 'shot')
-	if (results.shotNoMovementMarker) return addRule(results.shotNoMovementMarker, 'shot')
-	if (results.shotNoMovementNoMarker) return addRule(results.shotNoMovementNoMarker, 'shot')
-	if (results.shotNoSourceUnmarker) return addRule(results.shotNoSourceUnmarker, 'shot')
-	if (results.shotNoSourceMarker) return addRule(results.shotNoSourceMarker, 'shot')
-	if (results.shotNoSourceNoMarker) return addRule(results.shotNoSourceNoMarker, 'shot')
-	if (results.shotNoSourceNoMovementnmarker) return addRule(results.shotNoSourceNoMovementnmarker, 'shot')
-	if (results.shotNoSourceNoMovementMarker) return addRule(results.shotNoSourceNoMovementMarker, 'shot')
-	if (results.shotNoSourceNoMovementNoMarker) return addRule(results.shotNoSourceNoMovementNoMarker, 'shot')
-	if (results.shotNoSourceNoDurationUnmarker) return addRule(results.shotNoSourceNoDurationUnmarker, 'shot')
-	if (results.shotNoSourceNoDurationMarker) return addRule(results.shotNoSourceNoDurationMarker, 'shot')
-	if (results.shotNoSourceNoDurationNoMarker) return addRule(results.shotNoSourceNoDurationNoMarker, 'shot')
-	if (results.shotNoMovementNoDurationUnmarker) return addRule(results.shotNoMovementNoDurationUnmarker, 'shot')
-	if (results.shotNoMovementNoDurationMarker) return addRule(results.shotNoMovementNoDurationMarker, 'shot')
-	if (results.shotNoMovementNoDurationNoMarker) return addRule(results.shotNoMovementNoDurationNoMarker, 'shot')
-	if (results.shotNoSourceNoMovementNoDurationUnmarker) return addRule(results.shotNoSourceNoMovementNoDurationUnmarker, 'shot')
-	if (results.shotNoSourceNoMovementNoDurationMarker) return addRule(results.shotNoSourceNoMovementNoDurationMarker, 'shot')
-	if (results.shotNoSourceNoMovementNoDurationNoMarker) return addRule(results.shotNoSourceNoMovementNoDurationNoMarker, 'shot')
-	if (results.action) return addRule(results.action)
-	if (results.transition) return addRule(results.transition)
-	if (results.cond) return addRule(results.cond)
 	if (results.comment) return addRule(results.comment)
-	if (results.loadScript) return addRule(results.loadScript)
+	if (results.goto) return addRule(results.goto)
+	if (results.transition) return addRule(results.transition)
+	if (results.sceneHeading) return addRule(results.sceneHeading)
+	if (results.cond) return addRule(results.cond)
+	if (results.viewFullUnmarker) return addRule(results.viewFullUnmarker, 'view')
+	if (results.viewFullMarker) return addRule(results.viewFullMarker, 'view')
+	if (results.viewFullNoMarker) return addRule(results.viewFullNoMarker, 'view')
+	if (results.viewNoDurationUnmarker) return addRule(results.viewNoDurationUnmarker, 'view')
+	if (results.hotNoDurationMarker) return addRule(results.hotNoDurationMarker, 'view')
+	if (results.viewNoDurationNoMarker) return addRule(results.viewNoDurationNoMarker, 'view')
+	if (results.viewNoMovementUnmarker) return addRule(results.viewNoMovementUnmarker, 'view')
+	if (results.viewNoMovementMarker) return addRule(results.viewNoMovementMarker, 'view')
+	if (results.viewNoMovementNoMarker) return addRule(results.viewNoMovementNoMarker, 'view')
+	if (results.viewNoSourceUnmarker) return addRule(results.viewNoSourceUnmarker, 'view')
+	if (results.viewNoSourceMarker) return addRule(results.viewNoSourceMarker, 'view')
+	if (results.viewNoSourceNoMarker) return addRule(results.viewNoSourceNoMarker, 'view')
+	if (results.viewNoSourceNoMovementnmarker) return addRule(results.viewNoSourceNoMovementnmarker, 'view')
+	if (results.viewNoSourceNoMovementMarker) return addRule(results.viewNoSourceNoMovementMarker, 'view')
+	if (results.viewNoSourceNoMovementNoMarker) return addRule(results.viewNoSourceNoMovementNoMarker, 'view')
+	if (results.viewNoSourceNoDurationUnmarker) return addRule(results.viewNoSourceNoDurationUnmarker, 'view')
+	if (results.viewNoSourceNoDurationMarker) return addRule(results.viewNoSourceNoDurationMarker, 'view')
+	if (results.viewNoSourceNoDurationNoMarker) return addRule(results.viewNoSourceNoDurationNoMarker, 'view')
+	if (results.viewNoMovementNoDurationUnmarker) return addRule(results.viewNoMovementNoDurationUnmarker, 'view')
+	if (results.viewNoMovementNoDurationMarker) return addRule(results.viewNoMovementNoDurationMarker, 'view')
+	if (results.viewNoMovementNoDurationNoMarker) return addRule(results.viewNoMovementNoDurationNoMarker, 'view')
+	if (results.viewNoSourceNoMovementNoDurationUnmarker) return addRule(results.viewNoSourceNoMovementNoDurationUnmarker, 'view')
+	if (results.viewNoSourceNoMovementNoDurationMarker) return addRule(results.viewNoSourceNoMovementNoDurationMarker, 'view')
+	if (results.viewNoSourceNoMovementNoDurationNoMarker) return addRule(results.viewNoSourceNoMovementNoDurationNoMarker, 'view')
+	if (results.action) return addRule(results.action)
 	return undefined
 }
+
+/*
+comment|goto|transition|sceneHeading|cond|viewFullUnmarker|viewFullMarker|viewFullNoMarker|viewNoDurationUnmarker|viewNoDurationMarker|viewNoDurationNoMarker|viewNoMovementUnmarker|viewNoMovementMarker|viewNoMovementNoMarker|viewNoSourceUnmarker|viewNoSourceMarker|viewNoSourceNoMarker|viewNoSourceNoMovementnmarker|viewNoSourceNoMovementMarker|viewNoSourceNoMovementNoMarker|viewNoSourceNoDurationUnmarker|viewNoSourceNoDurationMarker|viewNoSourceNoDurationNoMarker|viewNoMovementNoDurationUnmarker|viewNoMovementNoDurationMarker|viewNoMovementNoDurationNoMarker|viewNoSourceNoMovementNoDurationUnmarker|viewNoSourceNoMovementNoDurationMarker|viewNoSourceNoMovementNoDurationNoMarker|action
+*/
 
 function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 	let lines = `\n${lineCursor - 1}:${lastLine}\n>>${lineCursor}:${line}`
@@ -432,7 +451,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 		case 'transition':
 			switch (prevStmt.rule) {
 				case 'comment':
-				case 'loadScript':
+				case 'goto':
 				case 'action':
 					if (prevStmt.depth !== stmt.depth) {
 						throw `[${filePath}] Error: transitions must have the same depth as the action before them${lines}`
@@ -446,9 +465,10 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 			if (prevStmt) {
 				switch (prevStmt.rule) {
 					case 'comment':
-					case 'loadScript':
+					case 'goto':
 					case 'action':
 					case 'transition':
+					case 'view':
 						if (prevStmt.depth !== stmt.depth) {
 							throw `[${filePath}] Error: sceneHeading must have the same depth as the statement before it${lines}`
 						}
@@ -464,14 +484,15 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 				}
 			}
 			break
-		case 'shot':
+		case 'view':
 			if (prevStmt) {
 				switch (prevStmt.rule) {
 					case 'comment':
-					case 'loadScript':
+					case 'goto':
 					case 'action':
 					case 'transition':
 					case 'sceneHeading':
+					case 'view':
 						break
 					case 'cond':
 						//TODO: explore eliminating condition statement depth rules
@@ -480,16 +501,16 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 						}
 						break
 					default:
-						throw `[${filePath}] Error: shot heading must follow an action, transition or sceneHeading${lines}`
+						throw `[${filePath}] Error: view heading must follow an action, transition or sceneHeading${lines}`
 				}
 			}
 			break
 		case 'action':
 			switch (prevStmt.rule) {
 				case 'comment':
-				case 'loadScript':
+				case 'goto':
 				case 'action':
-				case 'shot':
+				case 'view':
 					break
 				case 'cond':
 					//TODO: explore eliminating condition statement depth rules
@@ -498,25 +519,25 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 					}
 					break
 				default:
-					throw `[${filePath}] Error: action must follow a shot heading, or another action${lines}`
+					throw `[${filePath}] Error: action must follow a view heading, or another action${lines}`
 			}
 			break
 		case 'cond':
 			switch (prevStmt.rule) {
 				case 'comment':
-				case 'loadScript':
+				case 'goto':
 					break
 				case 'action':
-				case 'shot':
+				case 'view':
 					//TODO: explore eliminating rule that conditions be indented under actions
 					if (prevStmt.depth === stmt.depth) {
-						throw `[${filePath}] Error: conditions must always be indented under the action or shot that preceeds them${lines}`
+						throw `[${filePath}] Error: conditions must always be indented under the action or view that preceeds them${lines}`
 					}
 					break
 				case 'cond':
 					break
 				default:
-					throw `[${filePath}] Error: conditions must follow an action, shot heading, or a previous condition${lines}`
+					throw `[${filePath}] Error: conditions must follow an action, view heading, or a previous condition${lines}`
 					break;
 			}
 			break
@@ -527,7 +548,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 			throw `[${filePath}] Error: statement depth greater than parent${lines}`
 		}
 		if (stmt.rule !== 'cond' && prevStmt.rule !== 'cond') {
-			throw `[${filePath}] Error: statement depth increase may only come before or after a condition${lines}`
+			//throw `[${filePath}] Error: statement depth increase may only come before or after a condition${lines}`
 		}
 	}
 	if (isTabDecreased(stmt, prevStmt)) {
