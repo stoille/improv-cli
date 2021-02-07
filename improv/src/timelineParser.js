@@ -31,7 +31,7 @@ class Timeline {
 	markerNames = []
 	gotos = []
 	conds = []
-	shots = []
+	views = []
 	actions = []
 	loads = []
 
@@ -57,7 +57,7 @@ class Timeline {
 			case IntervalType.MARKER: return this.markerNames[idx]
 			case IntervalType.UNMARKER: return this.markerNames[idx]
 			case IntervalType.GOTO: return this.gotos[idx]
-			case IntervalType.SHOT: return this.shots[idx]
+			case IntervalType.SHOT: return this.views[idx]
 			case IntervalType.ACTION: return this.actions[idx]
 			case IntervalType.LOAD: return this.loads[idx]
 			default: return undefined
@@ -65,7 +65,7 @@ class Timeline {
 	}
 	addScene(time, scenePlacement, sceneName, location, timeOfDay) {
 		let scene = this._addInterval(time, 1, IntervalType.SCENE, this.scenes.length)
-		this.scenes.push({ id: uuidv4(), scenePlacement, sceneName, location, timeOfDay })
+		this.scenes.push({ id: uuidv4(), scenePlacement, sceneName: sceneName, location: location ? location : null, timeOfDay })
 		return scene
 	}
 	addMarker(name, time) {
@@ -101,11 +101,11 @@ class Timeline {
 		this.conds.push(cond)
 		return this.conds.length - 1
 	}
-	addShot(start, duration, shotType, movementType, viewSource, viewTarget, marker, unmarker) {
-		let shot = this._addInterval(start, duration, IntervalType.SHOT, this.shots.length)
-		this.shots.push({
+	addView(start, duration, viewType, movementType, viewSource, viewTarget, marker, unmarker) {
+		let shot = this._addInterval(start, duration, IntervalType.SHOT, this.views.length)
+		this.views.push({
 			id: uuidv4(),
-			shotType,
+			viewType,
 			duration,
 			start,
 			movementType,
@@ -146,21 +146,20 @@ class Timeline {
 				if (stmt.comment) {
 					this.comments.push(stmt.comment)
 				}
-				let path = this.path.slice(0, this.path.lastIndexOf('/'))
-				path = path.slice(0, path.lastIndexOf('/'))
-				path = `${path}${stmt.path}${stmt.path.slice(stmt.path.lastIndexOf('/'))}`
+				const assetPath = 'Assets/Scenes'
+				let root = this.path.slice(0, this.path.indexOf(this.id) - 1)
+				let id = stmt.path.slice(stmt.path.lastIndexOf('/') + 1)
+				let impPath = `${root}${stmt.path}/${id}.imp`
 
-				let id = path.slice(path.lastIndexOf('/') + 1)
 				let loadedTimelineIdx = timelines.findIndex(t => t.id === id)
 				if (loadedTimelineIdx < 0) {
-					let impPath = `${path}.imp`
-					let timeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this)//, lastShot)
+					let timeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, lastShot)
 					loadedTimelineIdx = timelines.findIndex(t => t.id === timeline.id)
-				}
 
-				let loadedTimeline = timelines[loadedTimelineIdx]
-				let timelineJson = JSON.stringify(loadedTimeline)
-				await writeFile(`${outputDirectory}/${id}.json`, timelineJson)
+					let loadedTimeline = timelines[loadedTimelineIdx]
+					let timelineJson = JSON.stringify(loadedTimeline)
+					await writeFile(`${outputDirectory}/${id}.json`, timelineJson)
+				}
 
 				let timelineInterval = this.addTimelineLoad(lastShot.duration + start, loadedTimelineIdx)
 				stmtDuration = 0
@@ -169,14 +168,14 @@ class Timeline {
 				}
 				break
 			case 'sceneHeading':
-				let sceneInterval = this.addScene(start, stmt.scenePlacement, stmt.scene, stmt.scene, stmt.sceneTime)
+				let sceneInterval = this.addScene(start, stmt.scenePlacement, stmt.sceneName, stmt.location, stmt.sceneTime)
 				stmtDuration = sceneInterval.duration
 				if (DEBUG) {
 					sceneInterval.line = lineText
 				}
 				break
 			case 'shot':
-				let shotInterval = this.addShot(
+				let shotInterval = this.addView(
 					start,
 					Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration,
 					stmt.viewType,
@@ -185,7 +184,7 @@ class Timeline {
 					stmt.viewTarget,
 					stmt.marker,
 					stmt.unmarker)
-				let shot = this.shots[shotInterval.idx]
+				let shot = this.views[shotInterval.idx]
 				if (shot.marker) {
 					this.addMarker(lineText.marker, shotInterval.start)
 				}
@@ -297,8 +296,8 @@ async function parseLines(
 				})
 			} else if (isTabDecreased(stmt, prevStmt)) {
 				//RETURN TO PARENT SHOT. THIS MUST BE DONE BEFORE POPPING ENV STACK
-				let ls = timeline.shots[timeline.shots.length - 1]
-				let currShotEnd = timeline.shots.length === 0 ? 0 : ls.start + ls.duration
+				let ls = timeline.views[timeline.views.length - 1]
+				let currShotEnd = timeline.views.length === 0 ? 0 : ls.start + ls.duration
 				timeline.addGoto(currShotEnd - 1, 1, undefined, lastShot.start)
 				startOfNextInterval += 1
 				//KEEP IN ORDER WITH ABOVE
@@ -316,7 +315,7 @@ async function parseLines(
 				prevStmt = env.prevStmt
 			}
 			lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor)
-			
+
 			if (stmt.duration) {
 				lastDefinedDuration = stmt.duration
 			} else {
@@ -327,19 +326,19 @@ async function parseLines(
 			console.error(`${filePath} - ${error.message}`)
 			process.exit(1)
 		}
-		let start = stmt.rule == "shot" ? startOfNextInterval : lastShot.start
+		let start = stmt.rule == "shot" || stmt.rule == "sceneHeading" ? startOfNextInterval : lastShot.start
 		await timeline.ingestStmt(stmt, start, lastShot, line)
 
 		if (stmt.rule == "shot") {
 			startOfNextInterval = timeline.duration// + 1
-			lastShot = timeline.shots[timeline.shots.length - 1]
+			lastShot = timeline.views[timeline.views.length - 1]
 		}
 		if (stmt.rule !== "loadScript") {
 			prevStmt = stmt
 			lastLine = line
 		}
 
-		//TODO: extend all action durations in parent shots
+		//TODO: extend all action durations in parent views
 		/*
 		let end = start + duration
 		if (end > parentShot.duration) {
@@ -477,7 +476,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 					case 'cond':
 						//TODO: explore eliminating condition statement depth rules
 						if (prevStmt.depth === stmt.depth) {
-							throw `[${filePath}] Error: shots that follow a condition must be indented${lines}`
+							throw `[${filePath}] Error: views that follow a condition must be indented${lines}`
 						}
 						break
 					default:
