@@ -52,18 +52,23 @@ unitLine -> TAB (comment|loadScript|transition|sceneHeading|shotFullUnmarker|sho
 	}
 %}
 
+scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") {% d => d[0][0] %}
+sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
+
+viewType -> ("BCU"|"CA"|"CU"|"CUSTOM"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
+path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
+viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
+
+sceneHeading -> scenePlacement SEP (varName (_ "," _)):? varName SEP sceneTime {% 
+	([scenePlacement, _, location, sceneName, __, sceneTime]) => {
+		return rule('sceneHeading',{ scenePlacement, location: location ? location[0] : undefined, sceneName, sceneTime}) }
+%}
+
 loadScript -> "% " .:+ {% ([_, filePath]) => rule('loadScript', {path:filePath.join('')}) %}
 
 transition -> transitionType (SEP cond):? (SEP timeSpan):? {% ([transitionType, cond, transitionTime]) => { 
 	return rule('transition',{transitionType:transitionType[0],transitionTime: transitionTime ? transitionTime[1] : 0, cond:cond?cond[1] : undefined}) } %}
-transitionType -> ("CUT IN"|"CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK"|"SMASH CUT"|"SMASH"|"QUICK SHOT"|"QUICK") _  {% d => d[0] %}
-
-sceneHeading -> scenePlacement SEP (varName (_ "," _)):? varName SEP sceneTime {% 
-	([scenePlacement, _, scene, location, __, sceneTime]) => {
-		return rule('sceneHeading',{ scenePlacement, scene: scene ? scene[0] : undefined, location, sceneTime}) }
-%}
-scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") {% d => d[0][0] %}
-sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
+transitionType -> ("CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK") _  {% d => d[0] %}
 
 SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
@@ -148,10 +153,6 @@ shotNoSourceNoMovementNoDurationMarker -> viewType SEP path (SEP marker) {%
 shotNoSourceNoMovementNoDurationNoMarker -> viewType SEP path  {%
 	([viewType, _, viewTarget]) => rule('shotNoSourceNoMovementNoDurationNoMarker', {viewType, viewTarget})
 %}
-
-viewType -> ("BCU"|"CA"|"CU"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
-path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
-viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT|EASE"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
 
 timeSpan -> ([0-9]:+ ":"):? ([0-9]:+ ":"):? [0-9]:+ {% ([min, sec, ms]) => timeToMS(min ? min[0].join('') : undefined, sec ? sec[0].join('') : undefined, ms ? ms.join('') : undefined) %}
 #num -> [0-9]:? [0-9] {% (d1,d2) => parseInt(`${d1 ? d1 : ''}${d2}`) %}
