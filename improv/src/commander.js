@@ -23,18 +23,20 @@ program
 			//console.log(program.helpInformation())
 		} else {
 			//console.log(parsedScript)
-			const writeFile = util.promisify(fs.writeFile)
-			let path = scriptPath.slice(0, scriptPath.lastIndexOf('.'))
-			let name = path.slice(path.lastIndexOf('/') + 1)
-			path = cmd.outputDir ? `${resolveHome(cmd.outputDir)}/${name}.json`: `${path}.json`
-			parsedScript = isString(parsedScript) ? parsedScript : JSON.stringify(parsedScript)
-			await writeFile(path, parsedScript)
+			if (!parsedScript._indices) {				
+				const writeFile = util.promisify(fs.writeFile)
+				let path = scriptPath.slice(0, scriptPath.lastIndexOf('.'))
+				let name = path.slice(path.lastIndexOf('/') + 1)
+				path = cmd.outputDir ? `${resolveHome(cmd.outputDir)}/${name}.json` : `${path}.json`
+				parsedScript = isString(parsedScript) ? parsedScript : JSON.stringify(parsedScript)
+				await writeFile(path, parsedScript)
+			}
 		}
 		process.exit(0)
 	})
 
 program.parse(process.argv)
 
-function isString (obj) {
+function isString(obj) {
 	return (Object.prototype.toString.call(obj) === '[object String]');
-  }
+}

@@ -167,9 +167,7 @@ class Timeline {
 				let timelineManifestId = timelinesManifest.findIndex(t => t.id === id)
 				if (timelineManifestId < 0) {
 					timelineManifestId = timelinesManifest.length
-					let loadedTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, lastShot)					
-					let timelineJson = JSON.stringify(loadedTimeline)
-					await writeFile(`${outputDirectory}/${id}.json`, timelineJson)
+					let loadedTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, lastShot)
 				}
 
 				let timelineInterval = this.addGoto(lastShot.duration + start, timelineManifestId)
@@ -371,12 +369,17 @@ async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines,
 		outputDirectory = resolveHome(outputDir);
 	}
 
-	let timeline = new Timeline(filePath, readScriptFileAndParse);
-	timeline = await parseLines(filePath, lines, timeline, lastShot)
+	let timeline = await parseLines(filePath, lines, new Timeline(filePath, readScriptFileAndParse, lastShot))
+	let timelinePath = `${outputDirectory}/${timeline.path.slice(timeline.path.lastIndexOf('/') + 1, timeline.path.lastIndexOf('.'))}.json`
+	delete timeline.path// = timeline.path.slice(timeline.path.lastIndexOf('/') + 1, timeline.path.lastIndexOf('.'))
+	let timelineJson = JSON.stringify(timeline)
+	await writeFile(timelinePath, timelineJson)
+
 	if (firstRun) {
-		let timelineIds = JSON.stringify(timelinesManifest.map(t => ({ id: t.id, path: `${outputDirectory}/${t.id}.json` })))
-		writeFile(`${outputDirectory}/manifest.json`, timelineIds)
+		let timelineIds = JSON.stringify(timelinesManifest.map(t => t.id))
+		await writeFile(`${outputDirectory}/manifest.json`, timelineIds)
 	}
+
 	return timeline
 }
 
