@@ -55,7 +55,7 @@
         "./src/commander.js",
         "parse",
         "--timeline",
-        "--output-dir=~/dev/MP/Assets/Scenes/mp/output",
+        "--output-dir=~/dev/MP/Assets/Resources/Scenes",
         "~/dev/MP/Assets/Scenes/mp/house/house.imp",
         //"compileTest",
       ],
