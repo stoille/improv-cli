@@ -86,19 +86,22 @@ class Timeline {
 		return sceneInterval
 	}
 	addMarker(name, time) {
-		let markerInterval = this._addInterval(time, 1, IntervalTypes.MARKER, this.markers.length)
-		let marker = this.markers.find(m => m == name)
-		if (!marker) {
+		
+		let markerIdx = this.markers.findIndex(m => m == name)
+		if (markerIdx < 0) {
+			markerIdx = this.markers.length
 			this.markers.push(name)
 		}
+		let markerInterval = this._addInterval(time, 1, IntervalTypes.MARKER, markerIdx)
 		return markerInterval
 	}
 	addUnmarker(name, time) {
-		let unmarkerInterval = this._addInterval(time, 1, IntervalTypes.UNMARKER, this.markers.length)
-		let marker = this.markers.find(m => m == name)
-		if (!marker) {
+		let markerIdx = this.markers.findIndex(m => m == name)
+		if (markerIdx < 0) {
+			markerIdx = this.markers.length
 			this.markers.push(name)
 		}
+		let unmarkerInterval = this._addInterval(time, 1, IntervalTypes.UNMARKER, markerIdx)		
 		return unmarkerInterval
 	}
 	addJump(start, duration, cond, toTime) {
@@ -136,8 +139,6 @@ class Timeline {
 			viewTarget,
 		})
 
-		markers
-		unmarkers
 		return viewInteval
 	}
 	addTransition(duration, transitionType, view) {
@@ -204,12 +205,18 @@ class Timeline {
 
 				if (stmt.markers) {
 					for (let marker of stmt.markers) {
-						this.addMarker(marker, viewInterval.start)
+						let addedMarker = this.addMarker(marker, viewInterval.start)
+						if(DEBUG){
+							addedMarker.line = lineText
+						}
 					}
 				}
 				if (stmt.unmarkers) {
 					for (let unmarker of stmt.unmarkers) {
-						this.addUnmarker(unmarker, viewInterval.start)
+						let addedUnmarker = this.addUnmarker(unmarker, viewInterval.start)
+						if(DEBUG){
+							addedUnmarker.line = lineText
+						}
 					}
 				}
 				stmtDuration = viewInterval.duration
