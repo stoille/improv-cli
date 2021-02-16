@@ -8,15 +8,24 @@ const { resolveHome } = require('./common')
 
 var DEBUG = true
 
-var IntervalType = {
-	INTERVAL: "INTERVAL",//0,
-	SCENE: "SCENE",//0,
-	MARKER: "MARKER",//1,
-	UNMARKER: "UNMARKER",//2,
-	JUMP: "JUMP",//4,
-	VIEW: "VIEW",//8,
-	ACTION: "ACTION",//16,
-	GOTO: "GOTO"//32
+var IntervalTypes = {
+	INTERVAL: 0,
+	SCENE: 1,
+	MARKER: 2,
+	UNMARKER: 4,
+	JUMP: 8,
+	VIEW: 16,
+	ACTION: 32,
+	GOTO: 64
+}
+
+var CondTypes = {
+	AND: 0,
+	OR: 1,
+	SELECT: 2,
+	TRUE: 4,
+	FALSE: 8,
+	INPUT: 16
 }
 
 var timelinesManifest = []
@@ -25,6 +34,7 @@ var outputDirectory = undefined
 class Timeline {
 	id = ""
 	path = ""
+	start = 0
 	duration = 0
 	intervals = []
 	scenes = []
@@ -50,7 +60,7 @@ class Timeline {
 		return this._indices[type]++
 	}
 	_addInterval(start, duration, type, idx) {
-		let i = { id: this._getIdx(IntervalType.INTERVAL), type, idx, start, duration }
+		let i = { id: this._getIdx(IntervalTypes.INTERVAL), type, idx, start, duration }
 		this.intervals.push(i)
 		let end = start + duration
 		if (end > this.duration) {
@@ -60,23 +70,23 @@ class Timeline {
 	}
 	getClip(type, idx) {
 		switch (type) {
-			case IntervalType.SCENE: return this.scenes[idx]
-			case IntervalType.MARKER: return this.markers[idx]
-			case IntervalType.UNMARKER: return this.markers[idx]
-			case IntervalType.JUMP: return this.jumps[idx]
-			case IntervalType.VIEW: return this.views[idx]
-			case IntervalType.ACTION: return this.actions[idx]
-			case IntervalType.GOTO: return this.gotos[idx]
+			case IntervalTypes.SCENE: return this.scenes[idx]
+			case IntervalTypes.MARKER: return this.markers[idx]
+			case IntervalTypes.UNMARKER: return this.markers[idx]
+			case IntervalTypes.JUMP: return this.jumps[idx]
+			case IntervalTypes.VIEW: return this.views[idx]
+			case IntervalTypes.ACTION: return this.actions[idx]
+			case IntervalTypes.GOTO: return this.gotos[idx]
 			default: return undefined
 		}
 	}
 	addScene(time, scenePlacement, sceneName, location, timeOfDay) {
-		let sceneInterval = this._addInterval(time, 1, IntervalType.SCENE, this.scenes.length)
-		this.scenes.push({ id: this._getIdx(IntervalType.SCENE), scenePlacement, sceneName: sceneName, location: location ? location : null, timeOfDay })
+		let sceneInterval = this._addInterval(time, 1, IntervalTypes.SCENE, this.scenes.length)
+		this.scenes.push({ id: this._getIdx(IntervalTypes.SCENE), scenePlacement, sceneName: sceneName, location: location ? location : null, timeOfDay })
 		return sceneInterval
 	}
 	addMarker(name, time) {
-		let markerInterval = this._addInterval(time, 1, IntervalType.MARKER, this.markers.length)
+		let markerInterval = this._addInterval(time, 1, IntervalTypes.MARKER, this.markers.length)
 		let marker = this.markers.find(m => m == name)
 		if (!marker) {
 			this.markers.push(name)
@@ -84,7 +94,7 @@ class Timeline {
 		return markerInterval
 	}
 	addUnmarker(name, time) {
-		let unmarkerInterval = this._addInterval(time, 1, IntervalType.UNMARKER, this.markers.length)
+		let unmarkerInterval = this._addInterval(time, 1, IntervalTypes.UNMARKER, this.markers.length)
 		let marker = this.markers.find(m => m == name)
 		if (!marker) {
 			this.markers.push(name)
@@ -93,9 +103,9 @@ class Timeline {
 	}
 	addJump(start, duration, cond, toTime) {
 		//TODO deduplication logic
-		let jumpInterval = this._addInterval(start, duration, IntervalType.JUMP, this.jumps.length)
+		let jumpInterval = this._addInterval(start, duration, IntervalTypes.JUMP, this.jumps.length)
 		let condIdx = this._getConds(cond)
-		this.jumps.push({ id: this._getIdx(IntervalType.JUMP), condIdx, toTime })
+		this.jumps.push({ id: this._getIdx(IntervalTypes.JUMP), condIdx, toTime })
 		return jumpInterval
 	}
 	_getConds(condExp) {
@@ -106,7 +116,7 @@ class Timeline {
 			condExp = condExp.result
 		}
 		let cond = {
-			type: condExp.op.trim(),
+			type: CondTypes[condExp.op.trim()],
 			lhsIdx: this._getConds(condExp.lhs),
 			rhsIdx: condExp.rhs.root ? Number.NaN : this._getConds(condExp.rhs),
 			value: condExp.rhs.root ? condExp.rhs.root.trim() + condExp.rhs.path.map(p => p.trim()) : undefined
@@ -115,9 +125,9 @@ class Timeline {
 		return this.conds.length - 1
 	}
 	addView(start, duration, viewType, movementType, viewSource, viewTarget, markers, unmarkers) {
-		let viewInteval = this._addInterval(start, duration, IntervalType.VIEW, this.views.length)
+		let viewInteval = this._addInterval(start, duration, IntervalTypes.VIEW, this.views.length)
 		this.views.push({
-			id: this._getIdx(IntervalType.VIEW),
+			id: this._getIdx(IntervalTypes.VIEW),
 			viewType,
 			duration,
 			start,
@@ -136,14 +146,14 @@ class Timeline {
 	}
 	addAction(start, duration, speaker, text) {
 		{
-			var actionInterval = this._addInterval(start, duration, IntervalType.ACTION, this.actions.length)
-			this.actions.push({ id: this._getIdx(IntervalType.ACTION), speaker, text })
+			var actionInterval = this._addInterval(start, duration, IntervalTypes.ACTION, this.actions.length)
+			this.actions.push({ id: this._getIdx(IntervalTypes.ACTION), speaker, text })
 			return actionInterval
 		}
 	}
 	addGoto(start, timelineIdx) {
 		{
-			var timeline = this._addInterval(start, 1, IntervalType.GOTO, this.gotos.length)
+			var timeline = this._addInterval(start, 1, IntervalTypes.GOTO, this.gotos.length)
 			this.gotos.push(timelineIdx)
 			return timeline
 		}
@@ -167,7 +177,7 @@ class Timeline {
 				let timelineManifestId = timelinesManifest.findIndex(t => t.id === id)
 				if (timelineManifestId < 0) {
 					timelineManifestId = timelinesManifest.length
-					let loadedTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, lastShot)
+					let loadedTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, this)
 				}
 
 				let timelineInterval = this.addGoto(lastShot.duration + start, timelineManifestId)
@@ -271,7 +281,7 @@ async function parseLines(
 	filePath,
 	lines,
 	timeline,
-	lastShot = { duration: 0 },
+	lastShotOrTimeline,
 	lineCursor = 0,
 	prevStmt = undefined,
 	lastDefinedDuration = undefined,
@@ -283,6 +293,7 @@ async function parseLines(
 	// advance lines until next unit at tab level
 	// make unit recursively	
 	let startOfNextInterval = 0//lastTimeline.duration
+	lastShotOrTimeline = lastShotOrTimeline ? lastShotOrTimeline : { duration: 0 }
 	while (lineCursor < lines.length) {
 		let line = lines[lineCursor]
 		lineCursor += 1
@@ -302,14 +313,14 @@ async function parseLines(
 					timeline,
 					startOfNextInterval,
 					lastDefinedDuration,
-					lastShot,
+					lastShotOrTimeline,
 					prevStmt
 				})
 			} else if (isTabDecreased(stmt, prevStmt)) {
 				//RETURN TO PARENT VIEW. THIS MUST BE DONE BEFORE POPPING ENV STACK
 				let ls = timeline.views[timeline.views.length - 1]
 				let currShotEnd = timeline.views.length === 0 ? 0 : ls.start + ls.duration
-				timeline.addJump(currShotEnd - 1, 1, undefined, lastShot.start)
+				timeline.addJump(currShotEnd - 1, 1, undefined, lastShotOrTimeline.start)
 				startOfNextInterval += 1
 				//KEEP IN ORDER WITH ABOVE
 				let d = prevStmt.depth - 1
@@ -322,7 +333,7 @@ async function parseLines(
 				timeline = env.timeline
 				//startOfNextInterval = env.startOfNextInterval
 				lastDefinedDuration = env.lastDefinedDuration
-				lastShot = env.lastShot
+				lastShotOrTimeline = env.lastShotOrTimeline
 				prevStmt = env.prevStmt
 			}
 			lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor)
@@ -330,21 +341,21 @@ async function parseLines(
 			if (stmt.duration) {
 				lastDefinedDuration = stmt.duration
 			} else {
-				stmt.duration = lastShot.duration//lastDefinedDuration
+				stmt.duration = lastShotOrTimeline.duration//lastDefinedDuration
 			}
 
 		} catch (error) {
 			console.error(`${filePath} - ${error.message}`)
 			process.exit(1)
 		}
-		let start = stmt.rule == "view" || stmt.rule == "sceneHeading" ? startOfNextInterval : lastShot.start
+		let start = stmt.rule == "view" || stmt.rule == "sceneHeading" ? startOfNextInterval : lastShotOrTimeline.start
 
 		//INGEST
-		await timeline.ingestStmt(stmt, start, lastShot, line)
+		await timeline.ingestStmt(stmt, start, lastShotOrTimeline, line)
 
 		if (stmt.rule == "view") {
 			startOfNextInterval = timeline.duration// + 1
-			lastShot = timeline.views[timeline.views.length - 1]
+			lastShotOrTimeline = timeline.views[timeline.views.length - 1]
 		}
 		if (stmt.rule !== "goto") {
 			prevStmt = stmt
@@ -364,20 +375,26 @@ async function parseLines(
 
 module.exports.impToTimeline = impToTimeline
 
-async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines, lastShot, firstRun) {
+async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines, lastTimeline, isFirstTimelineInManifest) {
 	if (!outputDirectory) {
 		outputDirectory = resolveHome(outputDir);
 	}
 
-	let timeline = await parseLines(filePath, lines, new Timeline(filePath, readScriptFileAndParse, lastShot))
+	//let start = lastTimeline ? lastTimeline.start + lastTimeline.duration + 1 : 0
+	let timeline = await parseLines(filePath, lines, new Timeline(filePath, readScriptFileAndParse), lastTimeline)
 	let timelinePath = `${outputDirectory}/${timeline.path.slice(timeline.path.lastIndexOf('/') + 1, timeline.path.lastIndexOf('.'))}.json`
 	delete timeline.path// = timeline.path.slice(timeline.path.lastIndexOf('/') + 1, timeline.path.lastIndexOf('.'))
 	let timelineJson = JSON.stringify(timeline)
 	await writeFile(timelinePath, timelineJson)
 
-	if (firstRun) {
-		let timelineIds = JSON.stringify(timelinesManifest.map(t => t.id))
-		await writeFile(`${outputDirectory}/manifest.json`, timelineIds)
+	if (isFirstTimelineInManifest) {
+		let lastTimelineInManifest = null
+		for (let timeline of timelinesManifest) {
+			timeline.start = lastTimelineInManifest ? lastTimelineInManifest.start + lastTimelineInManifest.duration + 1 : 0
+			lastTimelineInManifest = timeline
+		}
+		let manifest = JSON.stringify(timelinesManifest.map(t => ({ id: t.id, start: t.start, duration: t.duration })))
+		await writeFile(`${outputDirectory}/manifest.json`, manifest)
 	}
 
 	return timeline
