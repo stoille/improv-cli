@@ -45,6 +45,8 @@ class Timeline {
 	actions = []
 	gotos = []
 	_indices = {}
+	CurrTrackId = 0
+	CurrGroupId = 0
 
 	constructor(path, readScriptFileAndParse) {
 		this.path = path
@@ -60,7 +62,7 @@ class Timeline {
 		return this._indices[type]++
 	}
 	_addInterval(start, duration, type, idx) {
-		let i = { id: this._getIdx(IntervalTypes.INTERVAL), type, idx, start, duration }
+		let i = { id: this._getIdx(IntervalTypes.INTERVAL), type, idx, start, duration, track: this.CurrTrackId, group: this.CurrGroupId }
 		this.intervals.push(i)
 		let end = start + duration
 		if (end > this.duration) {
@@ -86,7 +88,7 @@ class Timeline {
 		return sceneInterval
 	}
 	addMarker(name, time) {
-		
+
 		let markerIdx = this.markers.findIndex(m => m == name)
 		if (markerIdx < 0) {
 			markerIdx = this.markers.length
@@ -101,12 +103,13 @@ class Timeline {
 			markerIdx = this.markers.length
 			this.markers.push(name)
 		}
-		let unmarkerInterval = this._addInterval(time, 1, IntervalTypes.UNMARKER, markerIdx)		
+		let unmarkerInterval = this._addInterval(time, 1, IntervalTypes.UNMARKER, markerIdx)
 		return unmarkerInterval
 	}
 	addJump(start, duration, cond, toTime) {
-		//TODO deduplication logic
+		//TODO deduplication logic		
 		let jumpInterval = this._addInterval(start, duration, IntervalTypes.JUMP, this.jumps.length)
+		++this.CurrGroupId
 		let condIdx = this._getConds(cond)
 		this.jumps.push({ id: this._getIdx(IntervalTypes.JUMP), condIdx, toTime })
 		return jumpInterval
@@ -127,7 +130,7 @@ class Timeline {
 		this.conds.push(cond)
 		return this.conds.length - 1
 	}
-	addView(start, duration, viewType, movementType, viewSource, viewTarget, markers, unmarkers) {
+	addView(start, duration, viewType, movementType, viewSource, viewTarget) {
 		let viewInteval = this._addInterval(start, duration, IntervalTypes.VIEW, this.views.length)
 		this.views.push({
 			id: this._getIdx(IntervalTypes.VIEW),
@@ -160,7 +163,7 @@ class Timeline {
 		}
 	}
 	async ingestStmt(stmt, start, lastShot, lineText) {
-		let stmtDuration = 0
+		let interval = null
 		switch (stmt.rule) {
 			case 'comment':
 				throw `[${stmt}] Error: comments should be skipped and not processed`
@@ -182,14 +185,14 @@ class Timeline {
 				}
 
 				let timelineInterval = this.addGoto(lastShot.duration + start, timelineManifestId)
-				stmtDuration = 0
+				interval = timelineInterval
 				if (DEBUG) {
 					timelineInterval.line = lineText
 				}
 				break
 			case 'sceneHeading':
 				let sceneInterval = this.addScene(start, stmt.scenePlacement, stmt.sceneName, stmt.location, stmt.sceneTime)
-				stmtDuration = sceneInterval.duration
+				interval = sceneInterval
 				if (DEBUG) {
 					sceneInterval.line = lineText
 				}
@@ -206,7 +209,7 @@ class Timeline {
 				if (stmt.markers) {
 					for (let marker of stmt.markers) {
 						let addedMarker = this.addMarker(marker, viewInterval.start)
-						if(DEBUG){
+						if (DEBUG) {
 							addedMarker.line = lineText
 						}
 					}
@@ -214,12 +217,12 @@ class Timeline {
 				if (stmt.unmarkers) {
 					for (let unmarker of stmt.unmarkers) {
 						let addedUnmarker = this.addUnmarker(unmarker, viewInterval.start)
-						if(DEBUG){
+						if (DEBUG) {
 							addedUnmarker.line = lineText
 						}
 					}
 				}
-				stmtDuration = viewInterval.duration
+				interval = viewInterval
 				if (DEBUG) {
 					viewInterval.line = lineText
 				}
@@ -243,7 +246,7 @@ class Timeline {
 						action.line = lineText
 					}
 				}
-				stmtDuration = actionDuration
+				interval = actionDuration
 				break
 			case 'cond':
 				let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration
@@ -253,13 +256,13 @@ class Timeline {
 					Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration,
 					stmt,
 					toTime)
-				stmtDuration = goto.duration
+				interval = goto.duration
 				if (DEBUG) {
 					goto.line = lineText
 				}
 				break
 			case 'transition':
-				this.addTransition(stmt.transitionTime, stmt.transitionType, lastShot)
+				interval = this.addTransition(stmt.transitionTime, stmt.transitionType, lastShot)
 
 				//when there's a condition present the unit will loop back on itself until the condition is met
 				let transitionDuration = 0
@@ -274,11 +277,12 @@ class Timeline {
 						goto.line = lineText
 					}
 				}
-				stmtDuration = transitionDuration
+
 				break;
 		}
+		++this.CurrTrackId
 
-		return stmtDuration
+		return interval
 	}
 }
 
@@ -321,7 +325,9 @@ async function parseLines(
 					startOfNextInterval,
 					lastDefinedDuration,
 					lastShotOrTimeline,
-					prevStmt
+					prevStmt,
+					timelineCurrTrackId: timeline.CurrTrackId,
+					timelineCurrGroupId: timeline.CurrGroupId
 				})
 			} else if (isTabDecreased(stmt, prevStmt)) {
 				//RETURN TO PARENT VIEW. THIS MUST BE DONE BEFORE POPPING ENV STACK
@@ -330,8 +336,8 @@ async function parseLines(
 				timeline.addJump(currShotEnd - 1, 1, undefined, lastShotOrTimeline.start)
 				startOfNextInterval += 1
 				//KEEP IN ORDER WITH ABOVE
-				let d = prevStmt.depth - 1
-				let env = envs.pop()
+				let d = prevStmt.depth
+				let env = null
 				while (d > stmt.depth) {
 					env = envs.pop()
 					d -= 1
@@ -342,6 +348,8 @@ async function parseLines(
 				lastDefinedDuration = env.lastDefinedDuration
 				lastShotOrTimeline = env.lastShotOrTimeline
 				prevStmt = env.prevStmt
+				timeline.CurrTrackId = env.timelineCurrTrackId
+				timeline.CurrGroupId = env.timelineCurrGroupId
 			}
 			lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor)
 
@@ -355,13 +363,13 @@ async function parseLines(
 			console.error(`${filePath} - ${error.message}`)
 			process.exit(1)
 		}
-		let start = stmt.rule == "view" || stmt.rule == "sceneHeading" ? startOfNextInterval : lastShotOrTimeline.start
+		let start = stmt.rule == "view" || stmt.rule == "sceneHeading" ? startOfNextInterval : lastShotOrTimeline.start ? lastShotOrTimeline.start : 0
 
 		//INGEST
-		await timeline.ingestStmt(stmt, start, lastShotOrTimeline, line)
+		let interval = await timeline.ingestStmt(stmt, start, lastShotOrTimeline, line)
 
 		if (stmt.rule == "view") {
-			startOfNextInterval = timeline.duration// + 1
+			startOfNextInterval = timeline.duration + 1
 			lastShotOrTimeline = timeline.views[timeline.views.length - 1]
 		}
 		if (stmt.rule !== "goto") {
