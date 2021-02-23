@@ -11,11 +11,11 @@ var DEBUG = true
 var IntervalTypes = {
 	INTERVAL: 0,
 	SCENE: 1,
-	MARKER: 2,
-	UNMARKER: 4,
-	JUMP: 8,
-	VIEW: 16,
-	ACTION: 32,
+	VIEW: 2,
+	MARKER: 4,
+	UNMARKER: 8,
+	ACTION: 16,
+	JUMP: 32,
 	GOTO: 64
 }
 
@@ -47,6 +47,7 @@ class Timeline {
 	_indices = {}
 	CurrTrackId = 0
 	CurrGroupId = 0
+	NextGroupId = 1
 
 	constructor(path, readScriptFileAndParse) {
 		this.path = path
@@ -61,14 +62,17 @@ class Timeline {
 		}
 		return this._indices[type]++
 	}
-	_addInterval(start, duration, type, idx) {
-		let i = { id: this._getIdx(IntervalTypes.INTERVAL), type, idx, start, duration, track: this.CurrTrackId, group: this.CurrGroupId }
+	_addInterval(start, duration, type, idx, parentGroupId) {
+		let i = { id: this._getIdx(IntervalTypes.INTERVAL), type, idx, start, duration, track: this.CurrTrackId, group: this.CurrGroupId, parent: parentGroupId ? parentGroupId : this.CurrGroupId }
 		this.intervals.push(i)
 		let end = start + duration
 		if (end > this.duration) {
 			this.duration = end
 		}
 		return i
+	}
+	sortIntervals() {
+		this.intervals.sort((a, b) => a.group - b.group || a.track - b.track || a.type - b.type)
 	}
 	getClip(type, idx) {
 		switch (type) {
@@ -88,13 +92,13 @@ class Timeline {
 		return sceneInterval
 	}
 	addMarker(name, time) {
-
 		let markerIdx = this.markers.findIndex(m => m == name)
 		if (markerIdx < 0) {
 			markerIdx = this.markers.length
 			this.markers.push(name)
 		}
 		let markerInterval = this._addInterval(time, 1, IntervalTypes.MARKER, markerIdx)
+		//--this.CurrTrackId
 		return markerInterval
 	}
 	addUnmarker(name, time) {
@@ -107,9 +111,12 @@ class Timeline {
 		return unmarkerInterval
 	}
 	addJump(start, duration, cond, toTime) {
-		//TODO deduplication logic		
-		let jumpInterval = this._addInterval(start, duration, IntervalTypes.JUMP, this.jumps.length)
-		++this.CurrGroupId
+		let parentGroupId = this.CurrGroupId
+		if (duration > 1) {
+			this.CurrGroupId = this.NextGroupId
+			this.NextGroupId += 1
+		}
+		let jumpInterval = this._addInterval(start, duration, IntervalTypes.JUMP, this.jumps.length, parentGroupId)
 		let condIdx = this._getConds(cond)
 		this.jumps.push({ id: this._getIdx(IntervalTypes.JUMP), condIdx, toTime })
 		return jumpInterval
@@ -278,7 +285,7 @@ class Timeline {
 					}
 				}
 
-				break;
+				break
 		}
 		++this.CurrTrackId
 
@@ -342,13 +349,18 @@ async function parseLines(
 					env = envs.pop()
 					d -= 1
 				}
+				//HANDLE TAB DECREASING TO NEXT CONDITION
+				let isOdd = n => n % 2
+				if (isOdd(d)) {
+					env = envs[d - 1]
+				}
 
 				timeline = env.timeline
 				//startOfNextInterval = env.startOfNextInterval
 				lastDefinedDuration = env.lastDefinedDuration
 				lastShotOrTimeline = env.lastShotOrTimeline
 				prevStmt = env.prevStmt
-				timeline.CurrTrackId = env.timelineCurrTrackId
+				//timeline.CurrTrackId = env.timelineCurrTrackId
 				timeline.CurrGroupId = env.timelineCurrGroupId
 			}
 			lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor)
@@ -363,13 +375,14 @@ async function parseLines(
 			console.error(`${filePath} - ${error.message}`)
 			process.exit(1)
 		}
-		let start = stmt.rule == "view" || stmt.rule == "sceneHeading" ? startOfNextInterval : lastShotOrTimeline.start ? lastShotOrTimeline.start : 0
+		let start = stmt.rule == "view" || stmt.rule == "sceneHeading" || prevStmt.rule == "cond" ? startOfNextInterval : lastShotOrTimeline.start ? lastShotOrTimeline.start : 0
 
 		//INGEST
 		let interval = await timeline.ingestStmt(stmt, start, lastShotOrTimeline, line)
 
+		//if (stmt.rule == "view" || stmt) {
+		startOfNextInterval = timeline.duration + 1
 		if (stmt.rule == "view") {
-			startOfNextInterval = timeline.duration + 1
 			lastShotOrTimeline = timeline.views[timeline.views.length - 1]
 		}
 		if (stmt.rule !== "goto") {
@@ -385,6 +398,8 @@ async function parseLines(
 		}
 		*/
 	}
+	//SORT BY TYPE
+	timeline.sortIntervals()
 	return timeline
 }
 
@@ -392,7 +407,7 @@ module.exports.impToTimeline = impToTimeline
 
 async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines, lastTimeline, isFirstTimelineInManifest) {
 	if (!outputDirectory) {
-		outputDirectory = resolveHome(outputDir);
+		outputDirectory = resolveHome(outputDir)
 	}
 
 	//let start = lastTimeline ? lastTimeline.start + lastTimeline.duration + 1 : 0
@@ -468,10 +483,6 @@ function parseLine(lineText) {
 	return undefined
 }
 
-/*
-comment|goto|transition|sceneHeading|cond|viewFullUnmarker|viewFullMarker|viewFullNoMarker|viewNoDurationUnmarker|viewNoDurationMarker|viewNoDurationNoMarker|viewNoMovementUnmarker|viewNoMovementMarker|viewNoMovementNoMarker|viewNoSourceUnmarker|viewNoSourceMarker|viewNoSourceNoMarker|viewNoSourceNoMovementnmarker|viewNoSourceNoMovementMarker|viewNoSourceNoMovementNoMarker|viewNoSourceNoDurationUnmarker|viewNoSourceNoDurationMarker|viewNoSourceNoDurationNoMarker|viewNoMovementNoDurationUnmarker|viewNoMovementNoDurationMarker|viewNoMovementNoDurationNoMarker|viewNoSourceNoMovementNoDurationUnmarker|viewNoSourceNoMovementNoDurationMarker|viewNoSourceNoMovementNoDurationNoMarker|action
-*/
-
 function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 	let lines = `\n${lineCursor - 1}:${lastLine}\n>>${lineCursor}:${line}`
 
@@ -492,6 +503,11 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 						throw `[${filePath}] Error: transitions must have the same depth as the action before them${lines}`
 					}
 					break
+				case 'cond':
+					if (prevStmt.depth - stmt.depth > 1) {
+						throw `[${filePath}] Error: transitions must have smaller depth as the condition before them${lines}`
+					}
+					break;
 				default:
 					throw `[${filePath}] Error: transition must follow an action.${lines}`
 			}
@@ -515,7 +531,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 						break
 					default:
 						throw `[${filePath}] Error: sceneHeading must follow an action or a transition${lines}`
-						break;
+						break
 				}
 			}
 			break
@@ -573,7 +589,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 					break
 				default:
 					throw `[${filePath}] Error: conditions must follow an action, view heading, or a previous condition${lines}`
-					break;
+					break
 			}
 			break
 	}
@@ -587,14 +603,14 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 		}
 	}
 	if (isTabDecreased(stmt, prevStmt)) {
-		if (prevStmt.rule === 'action') {
+		if (prevStmt.rule === 'action' || prevStmt.rule === 'cond') {
 			let depth = prevStmt.depth - stmt.depth
 			let isOdd = n => n % 2
 			if (stmt.rule === 'cond') {
 				if (!isOdd(depth)) {
 					throw `[${filePath}] Error: statement depth decreased and does not align with a parent action's conditions${lines}`
 				}
-			} else if (isOdd(depth)) {
+			} else if (isOdd(depth) && prevStmt.rule !== 'cond') {
 				throw `[${filePath}] Error: statement depth decreased and does not align with a parent unit's action${lines}`
 			}
 		} else {
