@@ -30,6 +30,7 @@ var CondTypes = {
 
 var timelinesManifest = []
 var outputDirectory = undefined
+var timelineStart = 0
 
 class Timeline {
 	id = ""
@@ -68,6 +69,8 @@ class Timeline {
 		let end = start + duration
 		if (end > this.duration) {
 			this.duration = end
+			this.start = timelineStart
+			timelineStart += this.duration
 		}
 		return i
 	}
@@ -110,20 +113,53 @@ class Timeline {
 		let unmarkerInterval = this._addInterval(time, 1, IntervalTypes.UNMARKER, markerIdx)
 		return unmarkerInterval
 	}
-	addJump(start, duration, cond, toTime) {
+	addJump(start, duration, cond, toTime, groupId) {
+				
 		let parentGroupId = this.CurrGroupId
 		if (duration > 1) {
-			this.CurrGroupId = this.NextGroupId
-			this.NextGroupId += 1
+			if (Number.isInteger(groupId)) {
+				this.CurrGroupId = groupId
+			} else {
+				this.CurrGroupId = this.NextGroupId
+				this.NextGroupId += 1
+			}
 		}
-		let jumpInterval = this._addInterval(start, duration, IntervalTypes.JUMP, this.jumps.length, parentGroupId)
+
 		let condIdx = this._getConds(cond)
-		this.jumps.push({ id: this._getIdx(IntervalTypes.JUMP), condIdx, toTime })
+		//AVOID ADDING DUPLICATES
+		if (duration == 1) {
+			let jumps = this.jumps
+			let duplicate = this.intervals.find(i => {
+				if (i.type == IntervalTypes.JUMP) {
+					let j = jumps[i.idx]
+					return i.start == start && i.duration == duration && j.toTime == toTime
+				}
+				return false
+			})
+			if (duplicate) {
+				let jump = jumps[duplicate.idx]
+				let condDuplicate = jump.condIdxs.find(idx => condIdx == idx)
+				if (condDuplicate) {
+					return duplicate
+				}
+				if (condIdx >= 0) {
+					jump.condIdxs.push(condIdx)
+				}
+				return duplicate
+			}
+		}
+		//ADD NORMAL JUMP INTERVAL IF NO DUPLICATES
+		let jumpInterval = this._addInterval(start, duration, IntervalTypes.JUMP, this.jumps.length, parentGroupId)
+		let condIdxs = []
+		if (condIdx >= 0) {
+			condIdxs.push(condIdx)
+		}
+		this.jumps.push({ id: this._getIdx(IntervalTypes.JUMP), condIdxs, toTime })
 		return jumpInterval
 	}
 	_getConds(condExp) {
 		if (!condExp) {
-			return Number.NaN
+			return -1
 		}
 		if (condExp.result) {
 			condExp = condExp.result
@@ -131,7 +167,7 @@ class Timeline {
 		let cond = {
 			type: CondTypes[condExp.op.trim()],
 			lhsIdx: this._getConds(condExp.lhs),
-			rhsIdx: condExp.rhs.root ? Number.NaN : this._getConds(condExp.rhs),
+			rhsIdx: condExp.rhs.root ? -1 : this._getConds(condExp.rhs),
 			value: condExp.rhs.root ? condExp.rhs.root.trim() + condExp.rhs.path.map(p => p.trim()) : undefined
 		}
 		this.conds.push(cond)
@@ -156,18 +192,14 @@ class Timeline {
 		view.outTransitionDuration = duration
 	}
 	addAction(start, duration, speaker, text) {
-		{
-			var actionInterval = this._addInterval(start, duration, IntervalTypes.ACTION, this.actions.length)
-			this.actions.push({ id: this._getIdx(IntervalTypes.ACTION), speaker, text })
-			return actionInterval
-		}
+		let actionInterval = this._addInterval(start, duration, IntervalTypes.ACTION, this.actions.length)
+		this.actions.push({ id: this._getIdx(IntervalTypes.ACTION), speaker, text })
+		return actionInterval
 	}
 	addGoto(start, timelineIdx) {
-		{
-			var timeline = this._addInterval(start, 1, IntervalTypes.GOTO, this.gotos.length)
-			this.gotos.push(timelineIdx)
-			return timeline
-		}
+		var gotoInterval = this._addInterval(start, 1, IntervalTypes.GOTO, this.gotos.length)
+		this.gotos.push(timelineIdx)
+		return gotoInterval
 	}
 	async ingestStmt(stmt, start, lastShot, lineText) {
 		let interval = null
@@ -253,7 +285,7 @@ class Timeline {
 						action.line = lineText
 					}
 				}
-				interval = actionDuration
+				interval = ({ start, duration: actionDuration })
 				break
 			case 'cond':
 				let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration
@@ -263,28 +295,32 @@ class Timeline {
 					Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration,
 					stmt,
 					toTime)
-				interval = goto.duration
+				interval = goto
 				if (DEBUG) {
 					goto.line = lineText
 				}
 				break
 			case 'transition':
-				interval = this.addTransition(stmt.transitionTime, stmt.transitionType, lastShot)
+				this.addTransition(stmt.transitionTime, stmt.transitionType, lastShot)
 
 				//when there's a condition present the unit will loop back on itself until the condition is met
 				let transitionDuration = 0
 				if (stmt.cond) {
+					//OVERRIDE GROUP ID SO THAT THIS JUMP IS INCLUEDED ON ORIGINAL SHOT GROUP
 					let goto = this.addJump(
-						start,
-						Number.isInteger(stmt.cond.result.end) && stmt.cond.result.end > 0 ? stmt.cond.result.end : lastShot.duration,
+						lastShot.start,
+						lastShot.duration,
 						stmt.cond.result,
-						start + lastShot.duration)
+						start + lastShot.duration,
+						this.CurrGroupId)
 					transitionDuration += goto.duration
+					interval = goto
 					if (DEBUG) {
 						goto.line = lineText
 					}
+				} else {
+					interval = ({ start: lastShot.start, duration: lastShot.duration })
 				}
-
 				break
 		}
 		++this.CurrTrackId
@@ -343,16 +379,16 @@ async function parseLines(
 				timeline.addJump(currShotEnd - 1, 1, undefined, lastShotOrTimeline.start)
 				startOfNextInterval += 1
 				//KEEP IN ORDER WITH ABOVE
+				//let d = prevStmt.depth
+				let env// = envs.pop()
 				let d = prevStmt.depth
-				let env = null
 				while (d > stmt.depth) {
 					env = envs.pop()
-					d -= 1
+					--d
 				}
-				//HANDLE TAB DECREASING TO NEXT CONDITION
-				let isOdd = n => n % 2
-				if (isOdd(d)) {
-					env = envs[d - 1]
+				//when listing conditionals in a row, use the top of the stack but don't pop it
+				if (stmt.rule == "cond" && env.prevStmt.rule == "cond") {
+					env = envs[envs.length - 1]
 				}
 
 				timeline = env.timeline
@@ -375,14 +411,49 @@ async function parseLines(
 			console.error(`${filePath} - ${error.message}`)
 			process.exit(1)
 		}
-		let start = stmt.rule == "view" || stmt.rule == "sceneHeading" || prevStmt.rule == "cond" ? startOfNextInterval : lastShotOrTimeline.start ? lastShotOrTimeline.start : 0
+
+		let start = 0
+		if (lastShotOrTimeline.hasOwnProperty('start')) {
+			start = lastShotOrTimeline.start
+		}
+		if (stmt.rule == "view" && prevStmt.rule == "action") {
+			startOfNextInterval = timeline.duration
+		}
+		if (stmt.rule == "view" || stmt.rule == "sceneHeading") {
+			start = startOfNextInterval
+		}
+		if (prevStmt && prevStmt.rule == "cond") {
+			start = timeline.duration
+		}
+		//add view for actions
+		let viewAction = null
+		if (stmt.rule == "action" && prevStmt.rule == "cond") {
+			let duration = stmt.duration ? stmt.duration : lastShotOrTimeline.duration
+			let view = timeline.addView(start, duration, lastShotOrTimeline.viewType, lastShotOrTimeline.movementType, lastShotOrTimeline.viewSource, lastShotOrTimeline.viewTarget)
+			viewAction = timeline.views[view.idx]
+		}
 
 		//INGEST
 		let interval = await timeline.ingestStmt(stmt, start, lastShotOrTimeline, line)
 
-		//if (stmt.rule == "view" || stmt) {
-		startOfNextInterval = timeline.duration + 1
+		//add view for actions
+		if (viewAction != null) {
+			viewAction.track = interval.track
+			viewAction.group = interval.parent
+		}
+
+		//ADD JUMP AT CONDITIONS
+		if (stmt.rule == "cond" && prevStmt.rule == "action") {
+			let goto = timeline.addJump(
+				interval.start + interval.duration,
+				1,
+				null,
+				lastShotOrTimeline.start)
+			//goto.track = interval.track
+			//goto.group = interval.parent
+		}
 		if (stmt.rule == "view") {
+			startOfNextInterval = timeline.duration + 1
 			lastShotOrTimeline = timeline.views[timeline.views.length - 1]
 		}
 		if (stmt.rule !== "goto") {
@@ -496,6 +567,8 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 	switch (stmt.rule) {
 		case 'transition':
 			switch (prevStmt.rule) {
+				case 'cond':
+					break
 				case 'comment':
 				case 'goto':
 				case 'action':
@@ -503,11 +576,6 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 						throw `[${filePath}] Error: transitions must have the same depth as the action before them${lines}`
 					}
 					break
-				case 'cond':
-					if (prevStmt.depth - stmt.depth > 1) {
-						throw `[${filePath}] Error: transitions must have smaller depth as the condition before them${lines}`
-					}
-					break;
 				default:
 					throw `[${filePath}] Error: transition must follow an action.${lines}`
 			}
