@@ -28,12 +28,26 @@ var CondTypes = {
 	INPUT: 16
 }
 
+var ViewModes = {
+	CONTINUE: 0,
+	RETURN: 1,
+	LOOP: 2
+}
+
+var JumpModes = {
+	AUTO: 0,
+	CONDITION: 1,
+	TRANSITION: 2,
+	GOTO: 4
+}
+
 var timelinesManifest = []
 var outputDirectory = undefined
 var timelineStart = 0
 
 class Timeline {
 	id = ""
+	sceneName = ""
 	path = ""
 	start = 0
 	duration = 0
@@ -90,6 +104,7 @@ class Timeline {
 		}
 	}
 	addScene(time, scenePlacement, sceneName, location, timeOfDay) {
+		this.sceneName = sceneName
 		let sceneInterval = this._addInterval(time, 1, IntervalTypes.SCENE, this.scenes.length)
 		this.scenes.push({ id: this._getIdx(IntervalTypes.SCENE), scenePlacement, sceneName: sceneName, location: location ? location : null, timeOfDay })
 		return sceneInterval
@@ -113,8 +128,8 @@ class Timeline {
 		let unmarkerInterval = this._addInterval(time, 1, IntervalTypes.UNMARKER, markerIdx)
 		return unmarkerInterval
 	}
-	addJump(start, duration, cond, toTime, groupId) {
-				
+	addJump(start, duration, condExp, toTime, groupId, jumpMode = 0) {
+
 		let parentGroupId = this.CurrGroupId
 		if (duration > 1) {
 			if (Number.isInteger(groupId)) {
@@ -125,7 +140,7 @@ class Timeline {
 			}
 		}
 
-		let condIdx = this._getConds(cond)
+		let condIdx = this._getConds(condExp)
 		//AVOID ADDING DUPLICATES
 		if (duration == 1) {
 			let jumps = this.jumps
@@ -149,12 +164,17 @@ class Timeline {
 			}
 		}
 		//ADD NORMAL JUMP INTERVAL IF NO DUPLICATES
-		let jumpInterval = this._addInterval(start, duration, IntervalTypes.JUMP, this.jumps.length, parentGroupId)
+		let jumpInterval = this._addInterval(start, duration, IntervalTypes.JUMP, this.jumps.length, groupId)
 		let condIdxs = []
 		if (condIdx >= 0) {
 			condIdxs.push(condIdx)
 		}
-		this.jumps.push({ id: this._getIdx(IntervalTypes.JUMP), condIdxs, toTime })
+		this.jumps.push({ id: this._getIdx(IntervalTypes.JUMP), condIdxs, toTime, jumpMode })
+		if (DEBUG) {
+			let joinedConds = condIdxs.join('_')
+			joinedConds = (joinedConds.length > 0 ? '_' : '') + joinedConds
+			jumpInterval.line = `${start}_${toTime}${joinedConds}`
+		}
 		return jumpInterval
 	}
 	_getConds(condExp) {
@@ -173,7 +193,7 @@ class Timeline {
 		this.conds.push(cond)
 		return this.conds.length - 1
 	}
-	addView(start, duration, viewType, movementType, viewSource, viewTarget) {
+	addView(start, duration, viewType, movementType, viewSource, viewTarget, mode) {
 		let viewInteval = this._addInterval(start, duration, IntervalTypes.VIEW, this.views.length)
 		this.views.push({
 			id: this._getIdx(IntervalTypes.VIEW),
@@ -183,6 +203,7 @@ class Timeline {
 			movementType,
 			viewSource,
 			viewTarget,
+			mode
 		})
 
 		return viewInteval
@@ -223,7 +244,7 @@ class Timeline {
 					let loadedTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, this)
 				}
 
-				let timelineInterval = this.addGoto(lastShot.duration + start, timelineManifestId)
+				let timelineInterval = this.addGoto(start, timelineManifestId)
 				interval = timelineInterval
 				if (DEBUG) {
 					timelineInterval.line = lineText
@@ -243,7 +264,8 @@ class Timeline {
 					stmt.viewType,
 					stmt.viewMovement,
 					stmt.viewSource ? stmt.viewSource : stmt.viewTarget,
-					stmt.viewTarget)
+					stmt.viewTarget,
+					ViewModes.CONTINUE)
 
 				if (stmt.markers) {
 					for (let marker of stmt.markers) {
@@ -289,12 +311,14 @@ class Timeline {
 				break
 			case 'cond':
 				let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration
-				let toTime = start + duration
+				let toTime = this.duration
 				let goto = this.addJump(
 					start,
 					Number.isInteger(stmt.duration) ? stmt.duration : lastShot.duration,
 					stmt,
-					toTime)
+					toTime,
+					undefined,
+					JumpModes.CONDITION)
 				interval = goto
 				if (DEBUG) {
 					goto.line = lineText
@@ -306,17 +330,20 @@ class Timeline {
 				//when there's a condition present the unit will loop back on itself until the condition is met
 				let transitionDuration = 0
 				if (stmt.cond) {
+					let toTime = this.duration
 					//OVERRIDE GROUP ID SO THAT THIS JUMP IS INCLUEDED ON ORIGINAL SHOT GROUP
-					let goto = this.addJump(
+					let jump = this.addJump(
 						lastShot.start,
 						lastShot.duration,
 						stmt.cond.result,
-						start + lastShot.duration,
-						this.CurrGroupId)
-					transitionDuration += goto.duration
-					interval = goto
+						toTime,
+						this.CurrGroupId,
+						JumpModes.TRANSITION)
+					lastShot.mode = ViewModes.LOOP
+					transitionDuration += jump.duration
+					interval = jump
 					if (DEBUG) {
-						goto.line = lineText
+						jump.line = lineText
 					}
 				} else {
 					interval = ({ start: lastShot.start, duration: lastShot.duration })
@@ -335,19 +362,20 @@ async function parseLines(
 	filePath,
 	lines,
 	timeline,
-	lastShotOrTimeline,
+	lastViewOrTimeline,
 	lineCursor = 0,
 	prevStmt = undefined,
 	lastDefinedDuration = undefined,
 	lastLine = undefined,
 	envs = []
 ) {
+	let originalTimeline = timeline
 	//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
 	//for each line
 	// advance lines until next unit at tab level
 	// make unit recursively	
 	let startOfNextInterval = 0//lastTimeline.duration
-	lastShotOrTimeline = lastShotOrTimeline ? lastShotOrTimeline : { duration: 0 }
+	lastViewOrTimeline = lastViewOrTimeline ? lastViewOrTimeline : { duration: 0 }
 	while (lineCursor < lines.length) {
 		let line = lines[lineCursor]
 		lineCursor += 1
@@ -367,7 +395,7 @@ async function parseLines(
 					timeline,
 					startOfNextInterval,
 					lastDefinedDuration,
-					lastShotOrTimeline,
+					lastViewOrTimeline,
 					prevStmt,
 					timelineCurrTrackId: timeline.CurrTrackId,
 					timelineCurrGroupId: timeline.CurrGroupId
@@ -376,8 +404,9 @@ async function parseLines(
 				//RETURN TO PARENT VIEW. THIS MUST BE DONE BEFORE POPPING ENV STACK
 				let ls = timeline.views[timeline.views.length - 1]
 				let currShotEnd = timeline.views.length === 0 ? 0 : ls.start + ls.duration
-				timeline.addJump(currShotEnd - 1, 1, undefined, lastShotOrTimeline.start)
-				startOfNextInterval += 1
+				//timeline.addJump(currShotEnd - 1, 1, null, lastViewOrTimeline.start)
+				//startOfNextInterval += 1
+				lastViewOrTimeline.mode = ViewModes.RETURN
 				//KEEP IN ORDER WITH ABOVE
 				//let d = prevStmt.depth
 				let env// = envs.pop()
@@ -394,7 +423,7 @@ async function parseLines(
 				timeline = env.timeline
 				//startOfNextInterval = env.startOfNextInterval
 				lastDefinedDuration = env.lastDefinedDuration
-				lastShotOrTimeline = env.lastShotOrTimeline
+				lastViewOrTimeline = env.lastViewOrTimeline
 				prevStmt = env.prevStmt
 				//timeline.CurrTrackId = env.timelineCurrTrackId
 				timeline.CurrGroupId = env.timelineCurrGroupId
@@ -404,7 +433,7 @@ async function parseLines(
 			if (stmt.duration) {
 				lastDefinedDuration = stmt.duration
 			} else {
-				stmt.duration = lastShotOrTimeline.duration//lastDefinedDuration
+				stmt.duration = lastViewOrTimeline.duration//lastDefinedDuration
 			}
 
 		} catch (error) {
@@ -413,8 +442,8 @@ async function parseLines(
 		}
 
 		let start = 0
-		if (lastShotOrTimeline.hasOwnProperty('start')) {
-			start = lastShotOrTimeline.start
+		if (lastViewOrTimeline.hasOwnProperty('start')) {
+			start = lastViewOrTimeline.start
 		}
 		if (stmt.rule == "view" && prevStmt.rule == "action") {
 			startOfNextInterval = timeline.duration
@@ -426,35 +455,62 @@ async function parseLines(
 			start = timeline.duration
 		}
 		//add view for actions
-		let viewAction = null
+		let actionView = null
 		if (stmt.rule == "action" && prevStmt.rule == "cond") {
-			let duration = stmt.duration ? stmt.duration : lastShotOrTimeline.duration
-			let view = timeline.addView(start, duration, lastShotOrTimeline.viewType, lastShotOrTimeline.movementType, lastShotOrTimeline.viewSource, lastShotOrTimeline.viewTarget)
-			viewAction = timeline.views[view.idx]
+			let duration = stmt.duration ? stmt.duration : lastViewOrTimeline.duration
+			let view = timeline.addView(start, duration, lastViewOrTimeline.viewType, lastViewOrTimeline.movementType, lastViewOrTimeline.viewSource, lastViewOrTimeline.viewTarget, ViewModes.CONTINUE)
+			actionView = timeline.views[view.idx]
+		}
+		//IF SCENE ALREADY EXISTS ADD TO TIMELINE FOR THE SCENE
+		if (stmt.rule == 'sceneHeading') {
+			let timelineForSceneIdx = timelinesManifest.findIndex(t => t.sceneName == stmt.sceneName)
+			if (timelineForSceneIdx >= 0) {
+				let timelineForScene = timelinesManifest[timelineForSceneIdx]
+				let goto = timeline.addGoto(start, timelineForSceneIdx)
+				let condExp = {
+					op: "TRUE",
+					lhs: null,
+					rhs: { root: `from_${timeline.sceneId}_${timeline.duration}`, path: [] }
+				}
+				let jump = timelineForScene.addJump(0, 1, condExp, timelineForScene.duration, JumpModes.GOTO)
+				timeline = timelineForScene
+				startOfNextInterval = timeline.duration
+				prevStmt = stmt
+				lastLine = line
+				continue
+			}
 		}
 
 		//INGEST
-		let interval = await timeline.ingestStmt(stmt, start, lastShotOrTimeline, line)
+		let interval = await timeline.ingestStmt(stmt, start, lastViewOrTimeline, line)
+
+		if (stmt.rule == "goto") {
+			startOfNextInterval = interval.start + interval.duration
+		}
 
 		//add view for actions
-		if (viewAction != null) {
-			viewAction.track = interval.track
-			viewAction.group = interval.parent
+		if (actionView != null) {
+			actionView.track = interval.track
+			actionView.group = interval.parent
+			lastViewOrTimeline = actionView
 		}
 
 		//ADD JUMP AT CONDITIONS
 		if (stmt.rule == "cond" && prevStmt.rule == "action") {
+			/*
 			let goto = timeline.addJump(
 				interval.start + interval.duration,
 				1,
 				null,
-				lastShotOrTimeline.start)
+				lastViewOrTimeline.start)
+				*/
+			lastViewOrTimeline.mode = ViewModes.RETURN
 			//goto.track = interval.track
 			//goto.group = interval.parent
 		}
 		if (stmt.rule == "view") {
 			startOfNextInterval = timeline.duration + 1
-			lastShotOrTimeline = timeline.views[timeline.views.length - 1]
+			lastViewOrTimeline = timeline.views[timeline.views.length - 1]
 		}
 		if (stmt.rule !== "goto") {
 			prevStmt = stmt
@@ -470,8 +526,8 @@ async function parseLines(
 		*/
 	}
 	//SORT BY TYPE
-	timeline.sortIntervals()
-	return timeline
+	originalTimeline.sortIntervals()
+	return originalTimeline
 }
 
 module.exports.impToTimeline = impToTimeline
@@ -484,9 +540,11 @@ async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines,
 	//let start = lastTimeline ? lastTimeline.start + lastTimeline.duration + 1 : 0
 	let timeline = await parseLines(filePath, lines, new Timeline(filePath, readScriptFileAndParse), lastTimeline)
 	let timelinePath = `${outputDirectory}/${timeline.path.slice(timeline.path.lastIndexOf('/') + 1, timeline.path.lastIndexOf('.'))}.json`
+	let savedPath = timeline.path
 	delete timeline.path// = timeline.path.slice(timeline.path.lastIndexOf('/') + 1, timeline.path.lastIndexOf('.'))
 	let timelineJson = JSON.stringify(timeline)
 	await writeFile(timelinePath, timelineJson)
+	timeline.path = savedPath
 
 	if (isFirstTimelineInManifest) {
 		let lastTimelineInManifest = null
