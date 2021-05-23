@@ -5,11 +5,12 @@ const fs = require('fs')
 const writeFile = util.promisify(fs.writeFile)
 const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *t*$/) !== null
 const { resolveHome } = require('./common')
+const { start } = require('xstate/lib/actions')
 
 var DEBUG = true
 
 var IntervalTypes = {
-	INTERVAL: 0,
+	RETURN: 0,
 	SCENE: 1,
 	VIEW: 2,
 	MARKER: 4,
@@ -78,7 +79,7 @@ class Timeline {
 		return this._indices[type]++
 	}
 	_addInterval(startTimeLocal, duration, type, idx, parentGroupId) {
-		let i = { id: this._getIdx(IntervalTypes.INTERVAL), type, idx, startTimeLocal: startTimeLocal, duration, track: this.CurrTrackId, group: this.CurrGroupId, parent: parentGroupId ? parentGroupId : this.CurrGroupId }
+		let i = { id: this._getIdx("INTERVAL"), type, idx, startTimeLocal: startTimeLocal, duration, track: this.CurrTrackId, group: this.CurrGroupId, parent: parentGroupId ? parentGroupId : this.CurrGroupId }
 		this.intervals.push(i)
 		let endTimeLocal = startTimeLocal + duration
 		if (endTimeLocal > this.duration) {
@@ -131,11 +132,20 @@ class Timeline {
 		let unmarkerInterval = this._addInterval(startTimeLocal, 1, IntervalTypes.UNMARKER, markerIdx)
 		return unmarkerInterval
 	}
-	addGoto(startTimeLocal, duration, timelineIndex) {
-		let gotoImterval = this._addInterval(startTimeLocal, duration, IntervalTypes.GOTO, this.gotos.length)
+	addGoto(startTimeLocal, timelineIndex) {
+		let gotoInterval = this._addInterval(startTimeLocal, 1, IntervalTypes.GOTO, this.gotos.length)
+		let timeline = timelinesManifest[timelineIndex]
+		if (timeline) {
+			gotoInterval.line = `GOTO ${timeline.scriptName}`
+		}
 		let id = this._getIdx(IntervalTypes.GOTO)
 		this.gotos.push({ id, timelineIndex })
-		return gotoImterval
+		return gotoInterval
+	}
+	addReturn(startTimeLocal) {
+		let returnInterval = this._addInterval(startTimeLocal, 1, IntervalTypes.RETURN, this.gotos.length)
+		returnInterval.line = "RETURN"
+		return returnInterval
 	}
 	addJump(startTimeLocal, duration, condExp, toTimeLocal, groupId, jumpMode = 0) {
 
@@ -144,6 +154,7 @@ class Timeline {
 			this.CurrGroupId = groupId
 			jumpMode = JumpModes.CONDITION
 		} else if (jumpMode == JumpModes.CONDITION) {
+			``
 			this.CurrGroupId = this.NextGroupId
 			this.NextGroupId += 1
 		}
@@ -253,18 +264,17 @@ class Timeline {
 				let impPath = `${inputDirectory}${stmt.path}/${scriptName}.imp`
 
 				var dur = Number.isInteger(stmt.duration) ? stmt.duration : lastView.duration
-				let gotoInterval = this.addGoto(startTimeLocal + dur, 1, null)
+				let gotoInterval = this.addGoto(startTimeLocal + dur, null)
 				interval = gotoInterval
 
 				let foundTimelineIdx = timelinesManifest.findIndex(t => t.sceneId === scriptName || t.scriptName === scriptName)
 				if (foundTimelineIdx < 0) {
 					let foundTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, this)
 					foundTimelineIdx = timelinesManifest.length - 1
+					gotoInterval.line = `GOTO ${scriptName}`
 				}
 				let goto = this.gotos[gotoInterval.idx]
 				goto.timelineIndex = foundTimelineIdx
-				gotoInterval.line = `from_${gotoInterval.startTimeLocal}_to_${scriptName}`
-
 
 				if (DEBUG) {
 					gotoInterval.line = lineText
@@ -438,11 +448,14 @@ async function parseLines(
 						viewsNeedingReturnTime.push(env.lastUnitInterval)
 					}
 				}
+				if (startTimeLocal < 0) {
+					throw `[${filePath}] Error: no scoped environments found on tab decrease`
+				}
 				returnJumps = returnJumps
 					.filter((v, i, a) => a.indexOf(v) === i) //unique entries only
 					.filter(v => !timeline.intervals.find(interval => interval.type === IntervalTypes.GOTO && interval.startTimeLocal === v)) //don't add return jumps on top of gotos
 				for (let returnJumpStartTimeLocal of returnJumps) {
-					timeline.addJump(returnJumpStartTimeLocal, 1, null, startTimeLocal, env.lastUnitInterval.groupId, JumpModes.IMMEDIATE)
+					timeline.addJump(returnJumpStartTimeLocal - 1, 1, null, startTimeLocal, env.lastUnitInterval.groupId, JumpModes.IMMEDIATE)
 				}
 
 				for (let view of viewsNeedingReturnTime) {
@@ -493,8 +506,8 @@ async function parseLines(
 		let actionViewInterval = null
 		if (stmt.rule == "action" && prevStmt.rule == "cond") {
 			let lastView = timeline.views[lastUnitInterval.idx]
-			let duration = stmt.duration ? stmt.duration : lastView.duration
-			let view = timeline.addView(startTimeLocal, duration, lastView.viewType, lastView.movementType, lastView.viewSource, lastView.viewTarget, ViewModes.CONTINUE, lastView)
+			let stmtDuration = stmt.duration ? stmt.duration : lastView.duration
+			let view = timeline.addView(startTimeLocal, stmtDuration, lastView.viewType, lastView.movementType, lastView.viewSource, lastView.viewTarget, ViewModes.CONTINUE, lastView)
 			actionViewInterval = view
 		}
 		//IF SCENE ALREADY EXISTS ADD TO TIMELINE FOR THE SCENE
@@ -508,7 +521,7 @@ async function parseLines(
 				}
 			} else {
 				let timelineForScene = timelinesManifest[timelineForSceneIdx]
-				let goto = timeline.addGoto(startTimeLocal, 1, timelineForSceneIdx)
+				let goto = timeline.addGoto(startTimeLocal, timelineForSceneIdx)
 				let condExp = {
 					op: "TRUE",
 					lhs: null,
@@ -564,13 +577,7 @@ async function parseLines(
 		*/
 	}
 	let mergedTimeline = timelinesManifest.find(t => t.scriptName == originalTimeline.scriptName)
-	let returnToParentScope = mergedTimeline.addJump(
-		mergedTimeline.duration,
-		1,
-		null,
-		-1,
-		this.CurrGroupId,
-		JumpModes.GOTO)
+	let returnToParentScope = mergedTimeline.addReturn(mergedTimeline.duration)
 
 	//SORT BY TYPE
 	//mergedTimeline.sortIntervals()
