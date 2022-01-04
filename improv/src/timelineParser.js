@@ -5,8 +5,6 @@ const fs = require('fs')
 const writeFile = util.promisify(fs.writeFile)
 const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
 const { resolveHome } = require('./common')
-const { start } = require('xstate/lib/actions')
-const { env } = require('process')
 
 const DEBUG = true
 const DELAY = 200 //ms
