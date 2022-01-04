@@ -19,9 +19,9 @@ async function parseScript(filePath, text, ops, parent, lastShot) {
 }
 module.exports.parseScript = parseScript
 
-async function readScriptFileAndParse(scriptPath, ops, parent, lastShot) {
+async function readScriptFileAndParse(scriptPath, ops, parent, lastView) {
   const readFile = util.promisify(fs.readFile)
   let rawText = await readFile(scriptPath, 'utf8')
-  return parseScript(scriptPath, rawText, ops, parent, lastShot)
+  return parseScript(scriptPath, rawText, ops, parent, lastView)
 }
 module.exports.readScriptFileAndParse = readScriptFileAndParse

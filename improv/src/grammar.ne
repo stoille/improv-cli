@@ -56,7 +56,7 @@ scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") {% d => d[0].join('') %}
 sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
 
 #TODO: more robust conditional expression syntax
-condType -> ("INPUT"|"SELECT"|"TRUE"|"FALSE") {% (d => d[0].join(''))%}
+condType -> ("INPUT"|"SELECT"|"TRUE"|"FALSE"|"NEAR") {% (d => d[0].join(''))%}
 
 cond -> cond (SEP ("AND" | "OR") SEP) cond {% ([lhs, op, rhs]) => { return rule('cond', {op:op[1][0], lhs,rhs}) } %}
 	| condType SEP path (SEP timeSpan):? (SEP timeSpan):? {% ([op, _, path, start, end]) => 
