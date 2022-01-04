@@ -3,11 +3,14 @@ const grammar = require('./grammar')
 const util = require('util')
 const fs = require('fs')
 const writeFile = util.promisify(fs.writeFile)
-const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *t*$/) !== null
+const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
 const { resolveHome } = require('./common')
 const { start } = require('xstate/lib/actions')
+const { env } = require('process')
 
-var DEBUG = true
+const DEBUG = true
+const DELAY = 200 //ms
+
 
 var IntervalTypes = {
 	RETURN: 0,
@@ -109,7 +112,7 @@ class Timeline {
 	addScene(startTimeLocal, scenePlacement, sceneName, location, timeOfDay) {
 		let sceneId = `${sceneName}${location ? ', ' + location : ''}`
 		this.sceneId = sceneId
-		let sceneInterval = this._addInterval(startTimeLocal, 1, IntervalTypes.SCENE, this.scenes.length)
+		let sceneInterval = this._addInterval(startTimeLocal, DELAY, IntervalTypes.SCENE, this.scenes.length)
 		this.scenes.push({ id: this._getIdx(IntervalTypes.SCENE), scenePlacement, sceneName, location: location ? location : null, timeOfDay })
 		return sceneInterval
 	}
@@ -119,7 +122,7 @@ class Timeline {
 			markerIdx = this.markers.length
 			this.markers.push(name)
 		}
-		let markerInterval = this._addInterval(startTimeLocal, 1, IntervalTypes.MARKER, markerIdx)
+		let markerInterval = this._addInterval(startTimeLocal, DELAY, IntervalTypes.MARKER, markerIdx)
 		//--this.CurrTrackId
 		return markerInterval
 	}
@@ -129,11 +132,11 @@ class Timeline {
 			markerIdx = this.markers.length
 			this.markers.push(name)
 		}
-		let unmarkerInterval = this._addInterval(startTimeLocal, 1, IntervalTypes.UNMARKER, markerIdx)
+		let unmarkerInterval = this._addInterval(startTimeLocal, DELAY, IntervalTypes.UNMARKER, markerIdx)
 		return unmarkerInterval
 	}
 	addGoto(startTimeLocal, timelineIndex) {
-		let gotoInterval = this._addInterval(startTimeLocal, 1, IntervalTypes.GOTO, this.gotos.length)
+		let gotoInterval = this._addInterval(startTimeLocal, DELAY, IntervalTypes.GOTO, this.gotos.length)
 		let timeline = timelinesManifest[timelineIndex]
 		if (timeline) {
 			gotoInterval.line = `GOTO ${timeline.scriptName}`
@@ -142,25 +145,24 @@ class Timeline {
 		this.gotos.push({ id, timelineIndex })
 		return gotoInterval
 	}
-	addReturn(startTimeLocal) {
-		let returnInterval = this._addInterval(startTimeLocal, 1, IntervalTypes.RETURN, this.gotos.length)
-		returnInterval.line = "RETURN"
+	addReturn(startTimeLocal, returnName) {
+		let returnInterval = this._addInterval(startTimeLocal, DELAY, IntervalTypes.RETURN, this.gotos.length)
+		returnInterval.line = `RETURN ${returnName}`
 		return returnInterval
 	}
 	addJump(startTimeLocal, duration, condExp, toTimeLocal, groupId, jumpMode = 0) {
+		//HACK: don't overlap
+		toTimeLocal += 1
 
-		//if (duration > 1) {
 		if (jumpMode == JumpModes.TRANSITION) {
 			this.CurrGroupId = groupId
 			jumpMode = JumpModes.CONDITION
 		} else if (jumpMode == JumpModes.CONDITION) {
-			``
 			this.CurrGroupId = this.NextGroupId
 			this.NextGroupId += 1
 		}
-		//}
 
-		let condIdx = this._getConds(condExp)
+		let condIdx = this._createConds(condExp)
 		//AVOID ADDING DUPLICATES
 		if (duration == 1) {
 			let jumps = this.jumps
@@ -173,6 +175,7 @@ class Timeline {
 			})
 			if (duplicate) {
 				let jump = jumps[duplicate.idx]
+				jump.toTimeLocal = toTimeLocal
 				let condDuplicate = jump.condIdxs.find(idx => condIdx == idx)
 				if (condDuplicate) {
 					return duplicate
@@ -198,7 +201,7 @@ class Timeline {
 		}
 		return jumpInterval
 	}
-	_getConds(condExp) {
+	_createConds(condExp) {
 		if (!condExp) {
 			return -1
 		}
@@ -207,8 +210,8 @@ class Timeline {
 		}
 		let cond = {
 			type: CondTypes[condExp.op.trim()],
-			lhsIdx: this._getConds(condExp.lhs),
-			rhsIdx: condExp.rhs.root ? -1 : this._getConds(condExp.rhs),
+			lhsIdx: this._createConds(condExp.lhs),
+			rhsIdx: condExp.rhs.root ? -1 : this._createConds(condExp.rhs),
 			value: condExp.rhs.root ? condExp.rhs.root.trim() + condExp.rhs.path.map(p => p.trim()) : undefined
 		}
 		this.conds.push(cond)
@@ -248,28 +251,29 @@ class Timeline {
 		this.actions.push({ id: this._getIdx(IntervalTypes.ACTION), speaker, text })
 		return actionInterval
 	}
-	async ingestStmt(stmt, startTimeLocal, lastView, lineText) {
+	async ingestStmt(stmt, startTimeLocal, lastUnitInterval, lineText) {
 		let interval = null
 		switch (stmt.rule) {
 			case 'comment':
 				throw `[${stmt}] Error: comments should be skipped and not processed`
-			case 'goto':
+			case 'goto': //TODO: change lastUnitInterval instead of creating goto, then check trasitions uses same approach, then remove extra returns
 				if (!this.comments) {
 					this.comments = []
 				}
 				if (stmt.comment) {
 					this.comments.push(stmt.comment)
 				}
+
 				let scriptName = stmt.path.slice(stmt.path.lastIndexOf('/') + 1)
 				let impPath = `${inputDirectory}${stmt.path}/${scriptName}.imp`
 
-				var dur = Number.isInteger(stmt.duration) ? stmt.duration : lastView.duration
-				let gotoInterval = this.addGoto(startTimeLocal + dur, null)
+				var dur = Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration
+				let gotoInterval = this.addGoto(this.duration, null)
 				interval = gotoInterval
 
 				let foundTimelineIdx = timelinesManifest.findIndex(t => t.sceneId === scriptName || t.scriptName === scriptName)
 				if (foundTimelineIdx < 0) {
-					let foundTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, this)
+					let foundTimeline = await this._readScriptFileAndParse(impPath, { timeline: true }, this, lastUnitInterval)
 					foundTimelineIdx = timelinesManifest.length - 1
 					gotoInterval.line = `GOTO ${scriptName}`
 				}
@@ -290,17 +294,23 @@ class Timeline {
 			case 'view':
 				let viewInterval = this.addView(
 					startTimeLocal,
-					Number.isInteger(stmt.duration) ? stmt.duration : lastView.duration,
+					Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration,
 					stmt.viewType,
 					stmt.viewMovement,
 					stmt.viewSource ? stmt.viewSource : stmt.viewTarget,
 					stmt.viewTarget,
 					ViewModes.CONTINUE,
-					lastView)
+					lastUnitInterval)
+
+				//TODO: all views should add to the lastUnitInterval.
+				if (lastUnitInterval.skipInterval) {
+					let jump = this.jumps[lastUnitInterval.skipInterval.idx]
+					//jump.toTimeLocal = this.duration
+				}
 
 				if (stmt.markers) {
 					for (let marker of stmt.markers) {
-						let addedMarker = this.addMarker(marker, viewInterval.startTimeLocal)
+						let addedMarker = this.addMarker(marker, Math.round((viewInterval.startTimeLocal + (viewInterval.duration / 2))))
 						if (DEBUG) {
 							addedMarker.line = lineText
 						}
@@ -308,7 +318,7 @@ class Timeline {
 				}
 				if (stmt.unmarkers) {
 					for (let unmarker of stmt.unmarkers) {
-						let addedUnmarker = this.addUnmarker(unmarker, viewInterval.startTimeLocal)
+						let addedUnmarker = this.addUnmarker(unmarker, Math.round((viewInterval.startTimeLocal + (viewInterval.duration / 2))))
 						if (DEBUG) {
 							addedUnmarker.line = lineText
 						}
@@ -323,8 +333,8 @@ class Timeline {
 				let isDefaultTime = line => line.duration === 0
 				let noNaN = n => !n ? 0 : n
 				let totalDurationOfTimedLines = stmt.lines.reduce((a, b) => noNaN(a.duration) + noNaN(b.duration), { duration: 0 })
-				let durationOfUntimedLines = lastView.duration - totalDurationOfTimedLines
-				let defaultTime = durationOfUntimedLines === 0 ? lastView.duration : Math.round(durationOfUntimedLines / stmt.lines.filter(a => isDefaultTime(a)).length)
+				let durationOfUntimedLines = lastUnitInterval.duration - totalDurationOfTimedLines
+				let defaultTime = durationOfUntimedLines === 0 ? lastUnitInterval.duration : Math.round(durationOfUntimedLines / stmt.lines.filter(a => isDefaultTime(a)).length)
 
 				let actionDuration = 0
 				for (let line of stmt.lines) {
@@ -341,11 +351,11 @@ class Timeline {
 				interval = ({ startTimeLocal: startTimeLocal, duration: actionDuration })
 				break
 			case 'cond':
-				let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastView.duration
+				let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration
 				let toTimeLocal = this.duration
 				let jmp = this.addJump(
 					startTimeLocal,
-					Number.isInteger(stmt.duration) ? stmt.duration : lastView.duration,
+					Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration,
 					stmt,
 					toTimeLocal,
 					undefined,
@@ -356,25 +366,29 @@ class Timeline {
 				}
 				break
 			case 'transition':
-				this.addTransition(stmt.transitionTime, stmt.transitionType, lastView)
+				this.addTransition(stmt.transitionTime, stmt.transitionType, lastUnitInterval)
 
 				//when there's a condition present the unit will loop back on itself until the condition is met
 				if (stmt.cond) {
-					let toTimeLocal = this.duration
 					//OVERRIDE GROUP ID SO THAT THIS JUMP IS INCLUEDED ON ORIGINAL SHOT GROUP
 					let jump = this.addJump(
-						lastView.startTimeLocal,
-						lastView.duration,
+						lastUnitInterval.startTimeLocal,
+						lastUnitInterval.duration,
 						stmt.cond.result,
-						toTimeLocal,
+						this.duration,
 						this.CurrGroupId,
 						JumpModes.TRANSITION)
 					interval = jump
+
+					//make the unit loop on the condition
+					let loopJump = this.jumps[lastUnitInterval.skipInterval.idx]
+					loopJump.toTimeLocal = lastUnitInterval.startTimeLocal
+
 					if (DEBUG) {
 						jump.line = lineText
 					}
 				} else {
-					interval = ({ startTimeLocal: lastView.startTimeLocal, duration: lastView.duration })
+					interval = ({ startTimeLocal: lastUnitInterval.startTimeLocal, duration: lastUnitInterval.duration })
 				}
 				break
 		}
@@ -385,6 +399,8 @@ class Timeline {
 }
 
 module.exports.parseLines = parseLines
+
+let sceneJumpReturnFunctions = {}
 
 async function parseLines(
 	scriptName,
@@ -407,64 +423,88 @@ async function parseLines(
 	while (lineCursor < lines.length) {
 		let line = lines[lineCursor]
 		lineCursor += 1
+		if (line == '') {
+			continue
+		}
 
 		let stmt
 		try {
+			if (isEmptyOrSpaces(line)) {
+				continue
+			}
+
 			stmt = parseLine(line)
 
-			if (!stmt || stmt.rule === 'comment' || isEmptyOrSpaces(line)) {
+			if (stmt == undefined) {
+				throw `line parsed to undefined statement: ${line}`
+			}
+
+			if (!stmt || stmt.rule === 'comment') {
 				continue
 			}
 
 			line = line.trim()
 
-			if (isTabIncreased(stmt, prevStmt)) {
+			if (isTabIncreased(stmt, prevStmt) && stmt.rule == 'cond') {
+
+				lastUnitInterval.originalDuration = lastUnitInterval.originalDuration ? lastUnitInterval.originalDuration : lastUnitInterval.duration
+
+				if (!lastUnitInterval.skipInterval) {
+					let env = envs[envs.length - 1]
+					let toTimeLocal = env ? env.lastUnitInterval.startTimeLocal : lastUnitInterval.startTimeLocal
+					lastUnitInterval.skipInterval = timeline.addJump(
+						nextIntervalStartTimeLocal,
+						DELAY,
+						null,
+						toTimeLocal,
+						timeline.CurrGroupId,
+						JumpModes.TRANSITION)
+				}
+				nextIntervalStartTimeLocal = timeline.duration
+
 				envs.push({
 					timeline,
 					nextIntervalStartTimeLocal,
 					lastDefinedDuration,
 					lastUnitInterval,
+					stmt,
 					prevStmt,
 					timelineCurrTrackId: timeline.CurrTrackId,
 					timelineCurrGroupId: timeline.CurrGroupId
 				})
-			} else if (isTabDecreased(stmt, prevStmt)) {
-				//RETURN TO PARENT VIEW. THIS MUST BE DONE BEFORE POPPING ENV STACK
-				//let ls = timeline.views[timeline.views.length - 1]				
-				//let returnJump = timeline.addJump(currViewEnd, 1, null, lastUnitInterval.startTimeLocal, lastUnitInterval.groupId, JumpModes.IMMEDIATE)
+			}
+			else if (isTabDecreased(stmt, prevStmt)) {
 				let startTimeLocal = -1
-				let viewsNeedingReturnTime = [lastUnitInterval]
 				let currViewEnd = lastUnitInterval.startTimeLocal + lastUnitInterval.duration
-				let returnJumps = [currViewEnd]
+				let returnJumpTimes = [currViewEnd]
 				//KEEP IN ORDER WITH ABOVE
-				let env// = envs.pop()
-				let d = prevStmt.depth
-				while (d > stmt.depth) {
-					env = envs.pop()
-					startTimeLocal = env.lastUnitInterval.startTimeLocal
-					returnJumps.push(env.lastUnitInterval.startTimeLocal + env.lastUnitInterval.duration)
-					--d
-					if (d > stmt.depth) {
-						viewsNeedingReturnTime.push(env.lastUnitInterval)
+				let depth = prevStmt.depth
+				//don't pop the parent scope since it does't get reintroduced on consecutive conditions
+				let env = envs[envs.length - 1]
+
+				while (depth >= stmt.depth) {
+					if (stmt.rule == 'cond') {
+						env = envs.length == 1 || depth - 1 <= stmt.depth ? envs[envs.length - 1] : envs.pop()
+						returnJumpTimes.push(env.lastUnitInterval.startTimeLocal + env.lastUnitInterval.duration)
 					}
+					depth -= 1
 				}
+				startTimeLocal = env.lastUnitInterval.startTimeLocal + env.lastUnitInterval.duration
 				if (startTimeLocal < 0) {
 					throw `[${filePath}] Error: no scoped environments found on tab decrease`
 				}
-				returnJumps = returnJumps
+
+				returnJumpTimes = returnJumpTimes
 					.filter((v, i, a) => a.indexOf(v) === i) //unique entries only
 					.filter(v => !timeline.intervals.find(interval => interval.type === IntervalTypes.GOTO && interval.startTimeLocal === v)) //don't add return jumps on top of gotos
-				for (let returnJumpStartTimeLocal of returnJumps) {
-					timeline.addJump(returnJumpStartTimeLocal - 1, 1, null, startTimeLocal, env.lastUnitInterval.groupId, JumpModes.IMMEDIATE)
-				}
-
-				for (let view of viewsNeedingReturnTime) {
-					view.returnTime = startTimeLocal
-				}
-
-				//when listing conditionals in a row, use the top of the stack but don't pop it
-				if (stmt.rule == "cond" && env.prevStmt.rule == "cond") {
-					env = envs[envs.length - 1]
+				for (let rjStartTimeLocal of returnJumpTimes) {
+					let existingReturnJump = timeline.intervals.find(interval => interval.type === IntervalTypes.JUMP && interval.startTimeLocal === rjStartTimeLocal)
+					if (existingReturnJump == undefined) {
+						timeline.addJump(rjStartTimeLocal, DELAY, null, startTimeLocal, env.timelineCurrGroupId, JumpModes.IMMEDIATE)
+					} else {
+						let jump = timeline.jumps[existingReturnJump.idx]
+						jump.toTimeLocal = startTimeLocal
+					}
 				}
 
 				timeline = env.timeline
@@ -501,7 +541,6 @@ async function parseLines(
 		if (prevStmt && prevStmt.rule == "cond") {
 			startTimeLocal = timeline.duration
 		}
-
 		//add view for actions
 		let actionViewInterval = null
 		if (stmt.rule == "action" && prevStmt.rule == "cond") {
@@ -510,7 +549,7 @@ async function parseLines(
 			let view = timeline.addView(startTimeLocal, stmtDuration, lastView.viewType, lastView.movementType, lastView.viewSource, lastView.viewTarget, ViewModes.CONTINUE, lastView)
 			actionViewInterval = view
 		}
-		//IF SCENE ALREADY EXISTS ADD TO TIMELINE FOR THE SCENE
+		//IF SCENE ALREADY EXISTS ADD TO TIMELINE FOR THE SCENE		
 		if (stmt.rule == 'sceneHeading') {
 			let sceneId = `${stmt.sceneName}${stmt.location ? ', ' + stmt.location : ''}`
 			let timelineForSceneIdx = timelinesManifest.findIndex(t => t.sceneId == sceneId)
@@ -528,7 +567,19 @@ async function parseLines(
 					rhs: { root: `from_${timeline.scriptName}`, path: [] }
 				}
 				let firstView = timelineForScene.views[0]
-				let jump = timelineForScene.addJump(0, firstView.duration, condExp, timelineForScene.startTimeGlobal + timelineForScene.duration, timeline.CurrGroupId, JumpModes.CONDITION)
+				let groupId = 0//timelineForScene.NextGroupId
+				timelineForScene.NextGroupId = groupId
+				let jumpToScene = timelineForScene.addJump(0, firstView.duration, condExp, timelineForScene.duration + DELAY, groupId, JumpModes.CONDITION)
+
+				timelineForScene.duration += DELAY
+
+				let jumpToReturn = (toTimeLocal) => timelineForScene.addJump(toTimeLocal, DELAY, null, 0, groupId, JumpModes.IMMEDIATE)
+
+				if (!sceneJumpReturnFunctions.hasOwnProperty(timelineForScene.scriptName)) {
+					sceneJumpReturnFunctions[timelineForScene.scriptName] = []
+				}
+				sceneJumpReturnFunctions[timelineForScene.scriptName].push(jumpToReturn)
+
 				//nextIntervalStartTimeLocal = timelineForScene.startTimeGlobal
 				if (!timeline.sceneId) {
 					//get script name from temp timeline and remove from manifest
@@ -560,7 +611,7 @@ async function parseLines(
 		}
 
 		if (stmt.rule == "view") {
-			nextIntervalStartTimeLocal = timeline.duration + 1
+			nextIntervalStartTimeLocal = timeline.duration
 			lastUnitInterval = interval//timeline.views[timeline.views.length - 1]
 		}
 		if (stmt.rule !== "goto") {
@@ -577,8 +628,13 @@ async function parseLines(
 		*/
 	}
 	let mergedTimeline = timelinesManifest.find(t => t.scriptName == originalTimeline.scriptName)
-	let returnToParentScope = mergedTimeline.addReturn(mergedTimeline.duration)
+	let returnToParentScope = mergedTimeline.addReturn(nextIntervalStartTimeLocal, mergedTimeline.scriptName)
 
+	let sceneJumps = sceneJumpReturnFunctions[mergedTimeline.scriptName]
+	while (sceneJumps && sceneJumps.length > 0) {
+		let jumpToReturnFunction = sceneJumps.pop()
+		jumpToReturnFunction(mergedTimeline.duration)
+	}
 	//SORT BY TYPE
 	//mergedTimeline.sortIntervals()
 	return mergedTimeline
@@ -593,7 +649,6 @@ async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines,
 		outputDirectory = resolveHome(outputDir)
 	}
 
-	//let start = lastTimeline ? lastTimeline.startTimeLocal + lastTimeline.duration + 1 : 0
 	let scriptName = filePath.slice(filePath.lastIndexOf('/') + 1, filePath.lastIndexOf('.'))
 	let nextTimeline = new Timeline(readScriptFileAndParse, null, scriptName)
 	let lastTimelineStartTimeLocal = lastTimeline ? lastTimeline.startTimeGlobal : 0
@@ -601,14 +656,14 @@ async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines,
 	let lastInterval = { startTimeLocal: nextTimeline.startTimeGlobal - lastTimelineStartTimeLocal, duration: lastTimelineDuration }
 	let timeline = await parseLines(scriptName, lines, nextTimeline, lastInterval)
 
-	let timelinePath = `${outputDirectory}/${timeline.sceneId}.json`//${timeline.path.slice(timeline.path.lastIndexOf('/') + 1, timeline.path.lastIndexOf('.'))}.json`
+	let timelinePath = `${outputDirectory}/${timeline.sceneId}.json`
 	timelineJson = JSON.stringify(timeline)
 	await writeFile(timelinePath, timelineJson)
 
 	if (isFirstTimelineInManifest) {
 		let lastTimelineInManifest = null
 		for (let timeline of timelinesManifest) {
-			timeline.startTimeGlobal = lastTimelineInManifest ? lastTimelineInManifest.startTimeGlobal + lastTimelineInManifest.duration + 1 : 0
+			timeline.startTimeGlobal = lastTimelineInManifest ? lastTimelineInManifest.startTimeGlobal + lastTimelineInManifest.duration : 0
 			lastTimelineInManifest = timeline
 		}
 		let manifest = JSON.stringify(timelinesManifest.map(t => ({ scriptName: t.scriptName, sceneId: t.sceneId, startTimeGlobal: t.startTimeGlobal, duration: t.duration })))
@@ -765,7 +820,6 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 					break
 				case 'action':
 				case 'view':
-					//TODO: explore eliminating rule that conditions be indented under actions
 					if (prevStmt.depth === stmt.depth) {
 						throw `[${filePath}] Error: conditions must always be indented under the action or view that preceeds them${lines}`
 					}
@@ -784,7 +838,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 			throw `[${filePath}] Error: statement depth greater than parent${lines}`
 		}
 		if (stmt.rule !== 'cond' && prevStmt.rule !== 'cond') {
-			//throw `[${filePath}] Error: statement depth increase may only come before or after a condition${lines}`
+			throw `[${filePath}] Error: statement depth increase may only come before or after a condition${lines}`
 		}
 	}
 	if (isTabDecreased(stmt, prevStmt)) {

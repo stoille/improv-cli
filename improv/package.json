@@ -8,7 +8,7 @@
     "commander": "^2.20.3",
     "flatted": "^0.2.3",
     "glob": "^7.1.2",
-    "inquirer": "^5.1.0",
+    "inquirer": "^8.2.0",
     "json-beautify": "^1.1.1",
     "lowdb": "^1.0.0",
     "nearley": "^2.19.0",
@@ -17,10 +17,10 @@
   },
   "scripts": {
     "generate-grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.js",
-    "compileTest": "node ./src/commander.js parse --timeline ~/dev/MP/Assets/Scenes/mp/house/house.im",
+    "compileTest": "node ./src/commander.js parse --timeline ~/dev/MP/Assets/Scenes/mp/house/house.imp",
     "test": "cd test; tap ./driverTest.js"
   },
   "devDependencies": {
-    "tap": "^12.0.1"
+    "tap": "^15.1.5"
   }
 }
