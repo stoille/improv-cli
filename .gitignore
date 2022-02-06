@@ -89,3 +89,5 @@ summer-afternoon/*
 old/*
 package-lock*
 Web pack
+improv-plugin/build
+improv-plugin/declaration

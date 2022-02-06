@@ -1,0 +1,20 @@
+{
+    "name": "babylonjs-editor-improv-plugin",
+    "version": "1.0.0",
+    "description": "",
+    "main": "build/src/index.js",
+    "author": {
+        "name": "stoile"
+    },
+    "scripts": {
+        "watch": "tsc -p . --watch"
+    },
+    "devDependencies": {
+        "@types/nearley": "^2.11.2",
+        "babylonjs-editor": "file:../module",
+        "litegraph.js": "^0.7.8"
+    },
+    "dependencies": {
+        "nearley": "^2.20.1"
+    }
+}

@@ -1,0 +1,270 @@
+{
+	"last_node_id": 186,
+	"last_link_id": 177,
+	"nodes": [
+		{
+			"id": 182,
+			"type": "mesh/pick_mesh",
+			"pos": {
+				"0": 357.37188720703125,
+				"1": 1558.19775390625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 142
+			},
+			"flags": {},
+			"order": 0,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": null
+				},
+				{
+					"name": "x",
+					"type": "number",
+					"link": null
+				},
+				{
+					"name": "y",
+					"type": "number",
+					"link": null
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Pick Infos",
+					"type": "PickInfo",
+					"links": null
+				},
+				{
+					"name": "mesh",
+					"type": "Node,TransformNode,AbstractMesh",
+					"links": [
+						175
+					]
+				},
+				{
+					"name": "point",
+					"type": "Vector3",
+					"links": null
+				}
+			],
+			"title": "Pick",
+			"properties": {
+				"fast_check": false,
+				"check_result": true,
+				"isInputNode": true
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 113,
+			"type": "basics/string",
+			"pos": {
+				"0": 627.37255859375,
+				"1": 1648.19775390625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 1,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "string",
+					"links": [
+						97
+					]
+				}
+			],
+			"properties": {
+				"value": "OBJECT ID",
+				"isMeshId": true
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 112,
+			"type": "logic/equals",
+			"pos": {
+				"0": 927.37255859375,
+				"1": 1568.19775390625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {},
+			"order": 3,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": null
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 176
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 97
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": null
+				}
+			],
+			"properties": {
+				"isOutputNode": true
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 183,
+			"type": "utils/get_property",
+			"pos": {
+				"0": 627.37255859375,
+				"1": 1528.19775390625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 2,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Object *",
+					"type": 0,
+					"link": 175
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "",
+					"links": [
+						176
+					]
+				}
+			],
+			"title": "name",
+			"properties": {
+				"path": "name"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		}
+	],
+	"links": [
+		[
+			97,
+			113,
+			0,
+			112,
+			2,
+			0
+		],
+		[
+			175,
+			182,
+			2,
+			183,
+			0,
+			0
+		],
+		[
+			176,
+			183,
+			0,
+			112,
+			1,
+			0
+		]
+	],
+	"groups": [
+		{
+			"title": "SELECT - OBJECT",
+			"bounding": [
+				332,
+				1467,
+				794,
+				274
+			],
+			"color": "#3f789e"
+		}
+	],
+	"config": {
+		"align_to_grid": true
+	},
+	"version": 0.4
+}

@@ -1,14 +1,11 @@
-const nearley = require('nearley')
-const grammar = require('./grammar')
-const util = require('util')
-const fs = require('fs')
-const writeFile = util.promisify(fs.writeFile)
+import * as nearley from './nearley'
+import * as grammar from './grammar'
+import { readFile, writeFile } from 'fs'
+import {  } from 'litegraph
 const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
-const { resolveHome } = require('./common')
 
 const DEBUG = true
 const DELAY = 200 //ms
-
 
 var IntervalTypes = {
 	RETURN: 0,
@@ -47,6 +44,41 @@ var timelinesManifest = []
 var outputDirectory = undefined
 var inputDirectory = undefined
 var nextTimelineStartTimeGlobal = 0
+
+export async function generateGraph(rootImprovScriptPath) {
+	let extension = rootImprovScriptPath.split('.').pop()
+	if (extension == "imp") {
+		const outputDir = rootImprovScriptPath.slice(0, rootImprovScriptPath.lastIndexOf('/'))
+		console.log(`parsing improv script to output directory: ${outputDir}`)
+		let parsedScript = await readScriptFileAndParse(rootImprovScriptPath, { litegraph: true, outputDir, firstRun: true }, undefined)
+		if (!parsedScript) {
+			console.error("parsing error.")
+		} else {
+			console.log('improv script parsed...')
+			if (!parsedScript) {
+				console.log('writing file...')
+				let fileName = rootImprovScriptPath.split('\\').pop().split('/').pop().split('.')[0]
+				const outputPath = `${outputDir}/${fileName}`
+				await writeFile(outputPath, parsedScript, () => { })
+			}
+		}
+	}
+}
+
+async function readScriptFileAndParse(scriptPath, outputDir, lastView, isFirstRun = false) {
+	return new Promise(res => {
+		readFile(scriptPath, { encoding: 'utf8' }, (err, rawText) => {
+			if (err) {
+				console.error(`error reading script (${scriptPath}): ${err}`)
+			}
+			let lines = rawText.split("\n")
+			console.log(`lines: ${lines}`)
+			let graph = await impToGraph(scriptPath, ops.outputDir, readScriptFileAndParse, lines, lastView, isFirstRun)
+			await writeFile(outputPath, graph, () => { })
+			res(graph)
+		})
+	})
+}
 
 class Timeline {
 	scriptName = ""
@@ -397,8 +429,6 @@ class Timeline {
 	}
 }
 
-module.exports.parseLines = parseLines
-
 let sceneJumpReturnFunctions = {}
 
 async function parseLines(
@@ -639,37 +669,39 @@ async function parseLines(
 	return mergedTimeline
 }
 
-module.exports.impToTimeline = impToTimeline
-
-async function impToTimeline(filePath, outputDir, readScriptFileAndParse, lines, lastTimeline, isFirstTimelineInManifest) {
+async function impToGraph(filePath, outputDir, readScriptFileAndParse, lines, lastTimeline, isFirstTimelineInManifest) {
 	if (!outputDirectory && !inputDirectory) {
 		inputDirectory = filePath.slice(0, filePath.lastIndexOf('/'))
 		inputDirectory = inputDirectory.slice(0, inputDirectory.lastIndexOf('/') + 1)
-		outputDirectory = resolveHome(outputDir)
+		outputDirectory = outputDir
 	}
-
+	console.log('creating timeline...')
 	let scriptName = filePath.slice(filePath.lastIndexOf('/') + 1, filePath.lastIndexOf('.'))
 	let nextTimeline = new Timeline(readScriptFileAndParse, null, scriptName)
 	let lastTimelineStartTimeLocal = lastTimeline ? lastTimeline.startTimeGlobal : 0
 	let lastTimelineDuration = lastTimeline ? lastTimeline.duration : 0
 	let lastInterval = { startTimeLocal: nextTimeline.startTimeGlobal - lastTimelineStartTimeLocal, duration: lastTimelineDuration }
+	console.log('parsing lines...')
 	let timeline = await parseLines(scriptName, lines, nextTimeline, lastInterval)
-
 	let timelinePath = `${outputDirectory}/${timeline.sceneId}.json`
-	timelineJson = JSON.stringify(timeline)
-	await writeFile(timelinePath, timelineJson)
-
-	if (isFirstTimelineInManifest) {
-		let lastTimelineInManifest = null
-		for (let timeline of timelinesManifest) {
-			timeline.startTimeGlobal = lastTimelineInManifest ? lastTimelineInManifest.startTimeGlobal + lastTimelineInManifest.duration : 0
-			lastTimelineInManifest = timeline
-		}
-		let manifest = JSON.stringify(timelinesManifest.map(t => ({ scriptName: t.scriptName, sceneId: t.sceneId, startTimeGlobal: t.startTimeGlobal, duration: t.duration })))
-		await writeFile(`${outputDirectory}/manifest.json`, manifest)
-	}
-
-	return timeline
+	let timelineJson = JSON.stringify(timeline)
+	console.log('writing timeline...')
+	return new Promise((res) => {
+		writeFile(timelinePath, timelineJson, { encoding: "utf8" }, () => {
+			if (isFirstTimelineInManifest) {
+				let lastTimelineInManifest = null
+				for (let timeline of timelinesManifest) {
+					timeline.startTimeGlobal = lastTimelineInManifest ? lastTimelineInManifest.startTimeGlobal + lastTimelineInManifest.duration : 0
+					lastTimelineInManifest = timeline
+				}
+				let manifest = JSON.stringify(timelinesManifest.map(t => ({ scriptName: t.scriptName, sceneId: t.sceneId, startTimeGlobal: t.startTimeGlobal, duration: t.duration })))
+				console.log('writing manifest...')
+				writeFile(`${outputDirectory}/manifest.json`, manifest, () => res(timeline))
+			}
+			console.log('returning timeline...')
+			res(timeline)
+		})
+	})
 }
 
 function isTabIncreased(stmt, prevStmt) {
@@ -681,9 +713,11 @@ function isTabDecreased(stmt, prevStmt) {
 }
 
 function parseLine(lineText) {
+	console.log(`generating parser...`)
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), {
 		keepHistory: false
 	})
+	console.log(`parsing line ${lineText}...`)
 	parser.feed(lineText)
 	//HACK: enforce rule precedence ambiguity - why doesn't nearly.js do this?
 	let results = {}
