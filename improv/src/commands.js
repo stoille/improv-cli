@@ -1,5 +1,6 @@
 const { jsonToXStateMachine, impToStream: impToXSStream } = require("./xsParser")
 const { impToTimeline } = require("./timelineParser")
+const { generateGraphDataObjects } = require("../../improv-plugin/src/scriptParser")
 const util = require('util')
 const fs = require('fs')
 
@@ -13,6 +14,9 @@ async function parseScript(filePath, text, ops, parent, lastShot) {
     return jsonToXStateMachine(JSON.stringify(stream))
   } else if (ops.timeline) {
     let timeline = await impToTimeline(filePath, ops.outputDir, readScriptFileAndParse, lines, lastShot, ops.firstRun)
+    return timeline
+  } else if(ops.babylonjs){
+    let timeline = await generateGraphDataObjects(filePath, ops.outputDir)
     return timeline
   }
   return null

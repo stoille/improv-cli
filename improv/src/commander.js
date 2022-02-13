@@ -14,9 +14,10 @@ program
 	.option('-x, --xs', 'export to XState format (JSON)')
 	//.option('-u, --unity', 'export to Unity (TODO)')
 	.option('-t, --timeline', 'export to timeline format (JSON)')
+	.option('-b, --babylonjs', 'export to babylon.js graph format (lGraph JSON)')
 	.option('-o, --output-dir <dir>', 'path to export to')
 	.action(async (scriptPath, cmd) => {
-		let parsedScript = await readScriptFileAndParse(scriptPath, { json: cmd.json, xs: cmd.xs, timeline: cmd.timeline, outputDir: cmd.outputDir, firstRun: true })
+		let parsedScript = await readScriptFileAndParse(scriptPath, { json: cmd.json, xs: cmd.xs, timeline: cmd.timeline, babylonjs: cmd.babylonjs, outputDir: cmd.outputDir, firstRun: true })
 
 		if (!parsedScript) {
 			console.error("Parse command requires output fomat to be defined. For help run: commander parse --help")

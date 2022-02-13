@@ -3,11 +3,96 @@
 	"last_link_id": 177,
 	"nodes": [
 		{
+			"id": 113,
+			"type": "basics/string",
+			"pos": {
+				"0": 627.37255859375,
+				"1": 1648.19775390625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 1,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "string",
+					"links": [
+						97
+					]
+				}
+			],
+			"properties": {
+				"value": "OBJECT ID"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 183,
+			"type": "utils/get_property",
+			"pos": {
+				"0": 627.37255859375,
+				"1": 1528.19775390625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 2,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Object *",
+					"type": 0,
+					"link": 175
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "",
+					"links": [
+						176
+					]
+				}
+			],
+			"title": "name",
+			"properties": {
+				"path": "name"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
 			"id": 182,
 			"type": "mesh/pick_mesh",
 			"pos": {
-				"0": 357.37188720703125,
-				"1": 1558.19775390625,
+				"0": 360,
+				"1": 1560,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -65,51 +150,10 @@
 					"links": null
 				}
 			],
-			"title": "Pick",
+			"title": "Input",
 			"properties": {
 				"fast_check": false,
-				"check_result": true,
-				"isInputNode": true
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 113,
-			"type": "basics/string",
-			"pos": {
-				"0": 627.37255859375,
-				"1": 1648.19775390625,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 1,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "",
-					"type": "string",
-					"links": [
-						97
-					]
-				}
-			],
-			"properties": {
-				"value": "OBJECT ID",
-				"isMeshId": true
+				"check_result": true
 			},
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
@@ -119,8 +163,8 @@
 			"id": 112,
 			"type": "logic/equals",
 			"pos": {
-				"0": 927.37255859375,
-				"1": 1568.19775390625,
+				"0": 930,
+				"1": 1570,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -171,55 +215,8 @@
 					"links": null
 				}
 			],
-			"properties": {
-				"isOutputNode": true
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 183,
-			"type": "utils/get_property",
-			"pos": {
-				"0": 627.37255859375,
-				"1": 1528.19775390625,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 2,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "Object *",
-					"type": 0,
-					"link": 175
-				}
-			],
-			"outputs": [
-				{
-					"name": "Value",
-					"type": "",
-					"links": [
-						176
-					]
-				}
-			],
-			"title": "name",
-			"properties": {
-				"path": "name"
-			},
+			"title": "Output",
+			"properties": {},
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2

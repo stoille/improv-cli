@@ -1,0 +1,918 @@
+{
+	"last_node_id": 199,
+	"last_link_id": 197,
+	"nodes": [
+		{
+			"id": 199,
+			"type": "logic/or",
+			"pos": {
+				"0": 1603.2396240234375,
+				"1": 608.228271484375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 46
+			},
+			"flags": {},
+			"order": 14,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 196
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 197
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": null
+				}
+			],
+			"title": "Output",
+			"properties": {},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 12,
+			"type": "animation/interpolation_animation",
+			"pos": {
+				"0": 1023.2396850585938,
+				"1": 488.228515625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 400,
+				"1": 234
+			},
+			"flags": {},
+			"order": 10,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 183
+				},
+				{
+					"name": "Node *",
+					"type": "Node",
+					"link": 32,
+					"linkedOutput": "Node"
+				},
+				{
+					"name": "From *",
+					"type": 0,
+					"link": 110
+				},
+				{
+					"name": "To *",
+					"type": 0,
+					"link": 111
+				},
+				{
+					"name": "Easing",
+					"type": "EasingFunction",
+					"link": 8
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": []
+				},
+				{
+					"name": "On Complete",
+					"type": -1,
+					"links": []
+				},
+				{
+					"name": "Node",
+					"type": "Node,Camera",
+					"links": []
+				}
+			],
+			"title": "Move Camera",
+			"properties": {
+				"name": "animation",
+				"target_property": "position",
+				"frames_per_second": 60,
+				"total_frame": 300,
+				"loop_mode": "ANIMATIONLOOPMODE_RELATIVE"
+			},
+			"color": "#151",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 187,
+			"type": "logic/equals",
+			"pos": {
+				"0": 1373.2396240234375,
+				"1": 788.228271484375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {},
+			"order": 13,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 195
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 188
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 191
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": [
+						197
+					]
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": null
+				}
+			],
+			"title": "Cond",
+			"properties": {},
+			"color": "#151",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 192,
+			"type": "logic/equals",
+			"pos": {
+				"0": 1051.468017578125,
+				"1": 788.228271484375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {},
+			"order": 12,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 184
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 185
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 186
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": [
+						195
+					]
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": null
+				}
+			],
+			"title": "Actions",
+			"properties": {},
+			"color": "#151",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 195,
+			"type": "basics/variable",
+			"pos": {
+				"0": 1051.468017578125,
+				"1": 928.228271484375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 245.1999969482422,
+				"1": 82
+			},
+			"flags": {},
+			"order": 8,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (boolean)",
+					"type": "boolean",
+					"link": 189
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "boolean",
+					"links": [
+						188
+					]
+				}
+			],
+			"properties": {
+				"type": "boolean",
+				"name": "TransitionCond",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 197,
+			"type": "events/timeout_event",
+			"pos": {
+				"0": 1201.468017578125,
+				"1": 348.228515625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 78
+			},
+			"flags": {},
+			"order": 11,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 193
+				},
+				{
+					"name": "Duration",
+					"type": "number",
+					"link": null
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": [
+						196
+					]
+				},
+				{
+					"name": "Id",
+					"type": "number",
+					"links": null
+				}
+			],
+			"title": "Duration",
+			"properties": {
+				"duration": 1000
+			},
+			"color": "#151",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 194,
+			"type": "basics/variable",
+			"pos": {
+				"0": 661.4685668945312,
+				"1": 848.228271484375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 245.1999969482422,
+				"1": 82
+			},
+			"flags": {},
+			"order": 9,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (boolean)",
+					"type": "boolean",
+					"link": 190
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "boolean",
+					"links": [
+						185
+					]
+				}
+			],
+			"properties": {
+				"type": "boolean",
+				"name": "IsActive",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 193,
+			"type": "basics/boolean",
+			"pos": {
+				"0": 421.4684143066406,
+				"1": 998.228271484375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 5,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": [
+						186,
+						189,
+						190,
+						191
+					]
+				}
+			],
+			"properties": {
+				"value": true
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 191,
+			"type": "events/tick_game_event",
+			"pos": {
+				"0": 331.4682922363281,
+				"1": 788.228271484375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 26
+			},
+			"flags": {},
+			"order": 6,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": [
+						184
+					]
+				}
+			],
+			"title": "Tick Event",
+			"properties": {},
+			"bgcolor": "#bb6767",
+			"boxcolor": "#666666",
+			"shape": 3
+		},
+		{
+			"id": 137,
+			"type": "basics/get_variable",
+			"pos": {
+				"0": 321.4682922363281,
+				"1": 428.228515625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 0,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "value",
+					"type": "",
+					"links": [
+						113
+					]
+				}
+			],
+			"title": "Get Variable",
+			"properties": {
+				"name": "FOV"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 10,
+			"type": "camera/camera",
+			"pos": {
+				"0": 320,
+				"1": 300,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 82
+			},
+			"flags": {
+				"collapsed": false
+			},
+			"order": 4,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "Camera",
+					"type": "Node,Camera",
+					"links": [
+						32,
+						106
+					]
+				}
+			],
+			"title": "MainCamera (Camera)",
+			"properties": {
+				"var_name": "shotCamera",
+				"name": "MainCamera"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 133,
+			"type": "basics/get_variable",
+			"pos": {
+				"0": 581.4219970703125,
+				"1": 484.289306640625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 3,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "value",
+					"type": "",
+					"links": [
+						110
+					]
+				}
+			],
+			"title": "Get Variable",
+			"properties": {
+				"name": "CameraFrom"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 134,
+			"type": "basics/get_variable",
+			"pos": {
+				"0": 591.4219970703125,
+				"1": 584.288818359375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 2,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "value",
+					"type": "",
+					"links": [
+						111
+					]
+				}
+			],
+			"title": "Get Variable",
+			"properties": {
+				"name": "CameraTo"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 15,
+			"type": "animation/easing_function",
+			"pos": {
+				"0": 590,
+				"1": 690,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 82
+			},
+			"flags": {},
+			"order": 1,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "Ref",
+					"type": "EasingFunction",
+					"links": [
+						8
+					]
+				}
+			],
+			"title": "Easing Function",
+			"properties": {
+				"easingFunction": "PowerEase",
+				"power": 0.5
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 126,
+			"type": "utils/set_property",
+			"pos": {
+				"0": 750,
+				"1": 300,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 98
+			},
+			"flags": {},
+			"order": 7,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": null
+				},
+				{
+					"name": "Object *",
+					"type": 0,
+					"link": 106
+				},
+				{
+					"name": "Value *",
+					"type": 0,
+					"link": 113
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": [
+						183,
+						193
+					]
+				}
+			],
+			"title": "Input",
+			"properties": {
+				"path": "fov"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		}
+	],
+	"links": [
+		[
+			8,
+			15,
+			0,
+			12,
+			4,
+			"EasingFunction"
+		],
+		[
+			32,
+			10,
+			0,
+			12,
+			1,
+			"Node"
+		],
+		[
+			106,
+			10,
+			0,
+			126,
+			1,
+			0
+		],
+		[
+			110,
+			133,
+			0,
+			12,
+			2,
+			0
+		],
+		[
+			111,
+			134,
+			0,
+			12,
+			3,
+			0
+		],
+		[
+			113,
+			137,
+			0,
+			126,
+			2,
+			0
+		],
+		[
+			183,
+			126,
+			0,
+			12,
+			0,
+			-1
+		],
+		[
+			184,
+			191,
+			0,
+			192,
+			0,
+			-1
+		],
+		[
+			185,
+			194,
+			0,
+			192,
+			1,
+			0
+		],
+		[
+			186,
+			193,
+			0,
+			192,
+			2,
+			0
+		],
+		[
+			188,
+			195,
+			0,
+			187,
+			1,
+			0
+		],
+		[
+			189,
+			193,
+			0,
+			195,
+			0,
+			"boolean"
+		],
+		[
+			190,
+			193,
+			0,
+			194,
+			0,
+			"boolean"
+		],
+		[
+			191,
+			193,
+			0,
+			187,
+			2,
+			0
+		],
+		[
+			193,
+			126,
+			0,
+			197,
+			0,
+			-1
+		],
+		[
+			195,
+			192,
+			0,
+			187,
+			0,
+			-1
+		],
+		[
+			196,
+			197,
+			0,
+			199,
+			0,
+			0
+		],
+		[
+			197,
+			187,
+			0,
+			199,
+			1,
+			0
+		]
+	],
+	"groups": [
+		{
+			"title": "SHOT",
+			"bounding": [
+				255,
+				216,
+				1504,
+				854
+			],
+			"color": "#3f669e"
+		}
+	],
+	"config": {
+		"align_to_grid": true
+	},
+	"version": 0.4
+}
