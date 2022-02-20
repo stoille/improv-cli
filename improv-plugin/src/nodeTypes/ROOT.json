@@ -1,5 +1,5 @@
 {
-	"last_node_id": 186,
+	"last_node_id": 188,
 	"last_link_id": 179,
 	"nodes": [
 		{
@@ -22,7 +22,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 39,
+			"order": 41,
 			"mode": 0,
 			"inputs": [
 				{
@@ -112,7 +112,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 29,
+			"order": 31,
 			"mode": 0,
 			"inputs": [
 				{
@@ -279,7 +279,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 30,
+			"order": 32,
 			"mode": 0,
 			"inputs": [
 				{
@@ -324,7 +324,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 31,
+			"order": 33,
 			"mode": 0,
 			"inputs": [
 				{
@@ -491,7 +491,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 32,
+			"order": 34,
 			"mode": 0,
 			"inputs": [
 				{
@@ -575,7 +575,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 33,
+			"order": 35,
 			"mode": 0,
 			"inputs": [
 				{
@@ -620,7 +620,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 41,
+			"order": 43,
 			"mode": 0,
 			"inputs": [
 				{
@@ -744,7 +744,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 35,
+			"order": 37,
 			"mode": 0,
 			"inputs": [
 				{
@@ -828,7 +828,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 37,
+			"order": 39,
 			"mode": 0,
 			"inputs": [
 				{
@@ -951,7 +951,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 38,
+			"order": 40,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1287,7 +1287,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 36,
+			"order": 38,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1377,7 +1377,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 42,
+			"order": 44,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1461,7 +1461,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 40,
+			"order": 42,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1545,7 +1545,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 43,
+			"order": 45,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1629,7 +1629,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 44,
+			"order": 46,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1674,7 +1674,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 45,
+			"order": 47,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1803,7 +1803,7 @@
 				"1": 78
 			},
 			"flags": {},
-			"order": 34,
+			"order": 36,
 			"mode": 3,
 			"inputs": [
 				{
@@ -1891,7 +1891,7 @@
 				"1": 66
 			},
 			"flags": {},
-			"order": 46,
+			"order": 48,
 			"mode": 3,
 			"inputs": [
 				{
@@ -2036,7 +2036,7 @@
 				"1": 66
 			},
 			"flags": {},
-			"order": 47,
+			"order": 49,
 			"mode": 3,
 			"inputs": [
 				{
@@ -2139,7 +2139,7 @@
 				"1": 78
 			},
 			"flags": {},
-			"order": 48,
+			"order": 50,
 			"mode": 3,
 			"inputs": [
 				{
@@ -2170,6 +2170,83 @@
 				"name": "IsFirstRun"
 			},
 			"color": "#151",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 187,
+			"type": "basics/variable",
+			"pos": {
+				"0": 640,
+				"1": 710,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 245.1999969482422,
+				"1": 82
+			},
+			"flags": {},
+			"order": 29,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (boolean)",
+					"type": "boolean",
+					"link": null
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "boolean",
+					"links": null
+				}
+			],
+			"properties": {
+				"name": "IsTransitioning",
+				"type": "boolean",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 188,
+			"type": "basics/variable",
+			"pos": {
+				"0": 660,
+				"1": 870,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 82
+			},
+			"flags": {},
+			"order": 30,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [],
+			"properties": {
+				"type": "number",
+				"name": "ActiveView"
+			},
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2

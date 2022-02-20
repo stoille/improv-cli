@@ -97,15 +97,15 @@ async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) 
 				inputDirectory = inputDirectory.slice(0, inputDirectory.lastIndexOf('/') + 1)
 			}
 			let scriptName = scriptPath.slice(scriptPath.lastIndexOf('/') + 1, scriptPath.lastIndexOf('.'))
-			let nextTimeline = new Timeline(readScriptFileAndParse, scriptName, scriptName)
+			let timeline = new Timeline(readScriptFileAndParse, scriptName, scriptName)
 			let lastViewStartTimeLocal = lastView ? lastView.startTimeGlobal : 0
 			let lastViewDuration = lastView ? lastView.duration : 0
-			let lastUnitInterval = { startTimeLocal: nextTimeline.startTimeGlobal - lastViewStartTimeLocal, duration: lastViewDuration }
-			let rootNode = findLast(nextTimeline._graph.nodes, n => n.title == 'Output')
+			let lastUnitInterval = { startTimeLocal: timeline.startTimeGlobal - lastViewStartTimeLocal, duration: lastViewDuration }
+			let graphOutputNode = findLast(timeline._graph.nodes, n => n.title == 'Output')
 			console.log('parsing lines...')
-			parseLines(scriptName, lines, nextTimeline, lastUnitInterval, rootNode)
+			parseLines(scriptName, lines, timeline, lastUnitInterval, graphOutputNode)
 				.then(timeline => {
-					let timelinePath = `${outputDirectory}/${timeline.sceneId}.json`
+					let timelinePath = `${outputDirectory}/${timeline.scriptName}.json`
 					timelineJson = JSON.stringify(timeline._graph)
 					writeFile(timelinePath, timelineJson)
 						.then(_ => {
@@ -148,6 +148,7 @@ class Timeline {
 	NextGroupId = 1
 	_graph = { nodes: [], links: [], last_link_id: -1, last_node_id: -1 }
 	_nodeHistory = []
+	_nextViewId = -1
 
 	constructor(readScriptFileAndParse, sceneId, scriptName) {
 		this.sceneId = sceneId
@@ -176,6 +177,10 @@ class Timeline {
 			nextTimelineStartTimeGlobal = timelineEndTimeGlobal
 		}
 		return i
+	}
+	generateViewId() {
+		this._nextViewId += 1
+		return this._nextViewId
 	}
 
 	getClip(type, idx) {
@@ -325,50 +330,87 @@ class Timeline {
 		return actionInterval
 	}
 
-	createNode(nodeType, attachNode) {
-		let newNode = {}
-		Object.assign(newNode, graphs[nodeType])
+	createNode(nodeType, graphOutputNode) {
+		//deep clone the new node object (don't maintain refereces)
+		let newNode = JSON.parse(JSON.stringify(graphs[nodeType]))
+
 		//for all nodes update: ids, positions, input ids, output ids
-		let linkIdOffset = this._graph.last_node_id > 0 ? this._graph.last_node_id : 0
+		let oldToNewNodeIds = {}
 		for (let node of newNode.nodes) {
-			node.id = this._graph.last_node_id + 1
-			this._graph.last_node_id = node.id
+			this._graph.last_node_id += 1
+			oldToNewNodeIds[node.id] = this._graph.last_node_id
+			node.id = this._graph.last_node_id
 
-			node.pos["0"] += attachNode ? attachNode.pos["0"] + 300 : 0
-			node.pos["1"] += attachNode ? attachNode.pos["1"] + 500 : 0
+			if (nodeType == NodeTypes.VIEW) {
+				node.pos["0"] += graphOutputNode ? graphOutputNode.pos["0"] : 0
+				node.pos["1"] += graphOutputNode ? graphOutputNode.pos["1"] - 380 : 0
+			} else if(nodeType == NodeTypes.ACTION){
+				node.pos["0"] += graphOutputNode ? graphOutputNode.pos["0"] -300 : 0
+				node.pos["1"] += graphOutputNode ? graphOutputNode.pos["1"] -600 : 0
+			}
+		}
 
+		//update all link ids
+		let oldToNewLinkIds = {}
+		const linkIdxOffset = this._graph.last_link_id + 1
+		for (let linkArray of newNode.links) {
+			this._graph.last_link_id += 1
+			oldToNewLinkIds[linkArray[0]] = this._graph.last_link_id
+			linkArray[0] = this._graph.last_link_id
+		}
+		for (let linkArray of newNode.links) {
+			let link = this.makeLink(linkArray)
+			linkArray[1] = oldToNewNodeIds[link.origin_id]
+			linkArray[3] = oldToNewNodeIds[link.target_id]
+		}
+
+		for (let node of newNode.nodes) {
 			for (let input of node.inputs) {
 				if (input.link !== null) {
-					input.link += this._graph.last_link_id
+					input.link = oldToNewLinkIds[input.link]
 				}
 			}
 			for (let output of node.outputs) {
 				for (let idx = 0; output.links && idx < output.links.length; ++idx) {
-					output.links[idx] += this._graph.last_link_id
+					output.links[idx] = oldToNewLinkIds[output.links[idx]]
 				}
 			}
 		}
-		//update all link ids
-		for (let links of newNode.links) {
-			for (let idx = 0; idx < links.length; ++idx) {
-				if (links[idx] !== undefined) {
-					links[idx] += linkIdOffset
-				}
-			}
-		}
-		//combine node / links arrays
-		this._graph.last_link_id += newNode.links.length + 1
-		let output = findLast(newNode.nodes, n => n.title == 'Input')
-		this._graph.nodes = [...this._graph.nodes, ...newNode.nodes]
+
 		//attach to the existing graph's last output
-		if (attachNode !== undefined) {
-			let newLink = [attachNode.id, output.id, 0, 0, 0, "boolean"]
-			this._graph.links = [...this._graph.links, ...newNode.links, newLink]
+		if (graphOutputNode !== undefined) {
+			let newIntputNode = findLast(newNode.nodes, n => n.title == 'Input')
+			this._graph.last_link_id += 1
+			let originSlot = 0
+			let targetSlot = 0
+			let newLink = [this._graph.last_link_id, graphOutputNode.id, originSlot, newIntputNode.id, targetSlot, -1]
+			newNode.links.push(newLink)
+			if (graphOutputNode.outputs[0].links == null) {
+				graphOutputNode.outputs[0].links = []
+			}
+			graphOutputNode.outputs[0].links.push(newLink[0])
+			newIntputNode.inputs[0].link = newLink[0]
 		}
+
+		//combine node / links arrays
+		this._graph.nodes = [...this._graph.nodes, ...newNode.nodes]
+		this._graph.links = [...this._graph.links, ...newNode.links]
+
 		return newNode
 	}
 
-	async ingestStmt(stmt, startTimeLocal, lastUnitInterval, lineText, lastViewNode) {
+	makeLink(linkArray) {
+		return {
+			id: linkArray[0],
+			origin_id: linkArray[1],
+			origin_slot: linkArray[2],
+			target_id: linkArray[3],
+			target_slot: linkArray[4],
+			type: linkArray[5]
+		}
+	}
+
+	async ingestStmt(stmt, startTimeLocal, lastUnitInterval, lineText, lastGraphOutputNode) {
 		let interval = null
 		let node = null
 		let graphOutput = this._graph.nodes.find(n => n.title == 'Output')
@@ -435,11 +477,10 @@ class Timeline {
 				}
 				console.log(interval)
 				interval = viewInterval
-				
-				node = this.createNode(NodeTypes.VIEW, lastViewNode)
-				this._graph.nodes.push(node)
-				let viewInput = node.nodes.find(n => n.title == 'Input')
-				this._graph.links.push([graphOutput.id, viewInput.id, 0, 0, 0, "boolean"])
+
+				node = this.createNode(NodeTypes.VIEW, lastGraphOutputNode)
+				let viewIdNode = findLast(this._graph.nodes, n => n.title == "ViewId")
+				viewIdNode.properties.value = this.generateViewId()
 				break
 			case 'action':
 				let isDefaultTime = line => !line.duration || line.duration === 0
@@ -460,11 +501,8 @@ class Timeline {
 						action.line = lineText
 					}
 				}
-				node = this.createNode(NodeTypes.ACTION, lastViewNode)
-				this._graph.nodes.push(node)
-				let actionInput = node.nodes.find(n => n.title == 'Input')
-				this._graph.links.push([graphOutput.id, actionInput.id, 0, 0, 0, "boolean"])
-				//TODO: add links
+				let lastActionNode = findLast(this._graph.nodes, n => n.title == "Actions")
+				node = this.createNode(NodeTypes.ACTION, lastActionNode)
 
 				interval = ({ startTimeLocal: startTimeLocal, duration: actionDuration })
 				break
@@ -523,7 +561,7 @@ async function parseLines(
 	lines,
 	timeline,
 	lastUnitInterval,
-	lastViewNode,
+	lastOutputNode,
 	lineCursor = 0,
 	prevStmt = undefined,
 	lastDefinedDuration = undefined,
@@ -589,7 +627,7 @@ async function parseLines(
 					prevStmt,
 					timelineCurrTrackId: timeline.CurrTrackId,
 					timelineCurrGroupId: timeline.CurrGroupId,
-					lastViewNode
+					lastViewNode: lastOutputNode
 				})
 			}
 			else if (isTabDecreased(stmt, prevStmt)) {
@@ -631,7 +669,7 @@ async function parseLines(
 				lastUnitInterval = env.lastUnitInterval
 				prevStmt = env.prevStmt
 				timeline.CurrGroupId = env.timelineCurrGroupId
-				lastViewNode = env.lastViewNode
+				lastOutputNode = env.lastViewNode
 			}
 			lintStmt(scriptName, stmt, prevStmt, line, lastLine, lineCursor)
 
@@ -718,7 +756,7 @@ async function parseLines(
 		}
 
 		//INGEST
-		let { interval, node } = await timeline.ingestStmt(stmt, startTimeLocal, lastUnitInterval, line, lastViewNode)
+		let { interval, node } = await timeline.ingestStmt(stmt, startTimeLocal, lastUnitInterval, line, lastOutputNode)
 
 		if (stmt.rule == "goto") {
 			nextIntervalStartTimeLocal = interval.startTimeLocal + interval.duration
@@ -730,13 +768,13 @@ async function parseLines(
 			actionView.track = interval.track
 			actionView.groupId = interval.parent
 			lastUnitInterval = actionInterval
-			lastViewNode = findLast(node.nodes, n => n.title == 'Output')
+			//lastOutputNode = findLast(node.nodes, n => n.title == 'Output')
 		}
 
 		if (stmt.rule == "view") {
 			nextIntervalStartTimeLocal = timeline.duration
 			lastUnitInterval = interval//timeline.views[timeline.views.length - 1]
-			lastViewNode = findLast(node.nodes, n => n.title == 'Output')
+			lastOutputNode = findLast(timeline._graph.nodes, n => n.title == 'Output')
 		}
 		if (stmt.rule !== "goto") {
 			prevStmt = stmt
@@ -761,7 +799,7 @@ async function parseLines(
 	}
 	//SORT BY TYPE
 	//mergedTimeline.sortIntervals()
-	return mergedTimeline
+	return timeline
 }
 
 

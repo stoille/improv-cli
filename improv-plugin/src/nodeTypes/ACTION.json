@@ -162,7 +162,7 @@
 					"links": null
 				}
 			],
-			"title": "Output",
+			"title": "ActionTimeout",
 			"properties": {
 				"duration": 5000
 			},
