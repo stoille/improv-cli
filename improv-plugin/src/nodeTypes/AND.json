@@ -1,0 +1,56 @@
+{
+	"last_node_id": 193,
+	"last_link_id": 188,
+	"nodes": [
+		{
+			"id": 193,
+			"type": "logic/and",
+			"pos": {
+				"0": 670,
+				"1": 1520,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 46
+			},
+			"flags": {},
+			"order": 0,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "a *",
+					"type": 0,
+					"link": null
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": null
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": null
+				}
+			],
+			"properties": {},
+			"color": "#ff2222"
+		}
+	],
+	"links": [],
+	"groups": [],
+	"config": {
+		"align_to_grid": true
+	},
+	"version": 0.4
+}

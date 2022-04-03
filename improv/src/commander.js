@@ -4,6 +4,7 @@ const fs = require('fs')
 const { resolveHome } = require('./common')
 
 const { readScriptFileAndParse } = require('./commands')
+const { parse } = require('path')
 
 program
 	.version('0.4.0')
@@ -21,17 +22,17 @@ program
 
 		if (!parsedScript) {
 			console.error("Parse command requires output fomat to be defined. For help run: commander parse --help")
-			//console.log(program.helpInformation())
 		} else {
-			//console.log(parsedScript)
-			if (!parsedScript._indices) {				
-				const writeFile = util.promisify(fs.writeFile)
-				let path = scriptPath.slice(0, scriptPath.lastIndexOf('.'))
-				let name = path.slice(path.lastIndexOf('/') + 1)
-				path = cmd.outputDir ? `${resolveHome(cmd.outputDir)}/${name}.json` : `${path}.json`
+			const writeFile = util.promisify(fs.writeFile)
+			let path = scriptPath.slice(0, scriptPath.lastIndexOf('.'))
+			let name = path.slice(path.lastIndexOf('/') + 1)
+			path = cmd.outputDir ? `${resolveHome(cmd.outputDir)}/${name}.json` : `${path}.json`
+			if (cmd.babylonjs) {
+				parsedScript = JSON.stringify(parsedScript._graph)
+			} else {
 				parsedScript = isString(parsedScript) ? parsedScript : JSON.stringify(parsedScript)
-				await writeFile(path, parsedScript)
 			}
+			await writeFile(path, parsedScript)
 		}
 		process.exit(0)
 	})

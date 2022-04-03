@@ -24,22 +24,22 @@ var ScriptTypes = {
 	JUMP: "JUMP",
 	GOTO: "GOTO"
 }
-var NodeTypes = {
-	ROOT: "ROOT",
-	VIEW: "VIEW",
-	ACTION: "ACTION",
-	SELECT: "SELECT",
-	NEAR: "NEAR"
-}
 
-var CondTypes = {
+const CondTypes = {
 	AND: "AND",
-	OR: "OR",
+	OR: "or",
 	SELECT: "SELECT",
 	TRUE: "TRUE",
 	FALSE: "FALSE",
 	INPUT: "INPUT",
 	NEAR: "NEAR"
+}
+
+const NodeTypes = {
+	...CondTypes,
+	ROOT: "ROOT",
+	VIEW: "VIEW",
+	ACTION: "ACTION"
 }
 
 var ViewModes = {
@@ -101,9 +101,9 @@ async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) 
 			let lastViewStartTimeLocal = lastView ? lastView.startTimeGlobal : 0
 			let lastViewDuration = lastView ? lastView.duration : 0
 			let lastUnitInterval = { startTimeLocal: timeline.startTimeGlobal - lastViewStartTimeLocal, duration: lastViewDuration }
-			let graphOutputNode = findLast(timeline._graph.nodes, n => n.title == 'Output')
+			let graphFromNode = findLast(timeline._graph.nodes, n => n.title == 'Output')
 			console.log('parsing lines...')
-			parseLines(scriptName, lines, timeline, lastUnitInterval, graphOutputNode)
+			parseLines(scriptName, lines, timeline, lastUnitInterval, graphFromNode)
 				.then(timeline => {
 					let timelinePath = `${outputDirectory}/${timeline.scriptName}.json`
 					timelineJson = JSON.stringify(timeline._graph)
@@ -157,7 +157,7 @@ class Timeline {
 		//function to read a new script
 		timelinesManifest.push(this)
 		this.startTimeGlobal = nextTimelineStartTimeGlobal
-		this._graph = this.createNode(NodeTypes.ROOT)
+		this._graph = this.createNodeGroup(NodeTypes.ROOT).node
 	}
 	_getIdx(type) {
 		if (!this._indices.hasOwnProperty(type)) {
@@ -265,7 +265,7 @@ class Timeline {
 			}
 		}
 		//ADD NORMAL JUMP INTERVAL IF NO DUPLICATES
-		let jumpNode = this._addInterval(startTimeLocal, duration, ScriptTypes.JUMP, this.jumps.length, groupId)
+		let jumpInterval = this._addInterval(startTimeLocal, duration, ScriptTypes.JUMP, this.jumps.length, groupId)
 		let condIdxs = []
 		if (condIdx >= 0) {
 			condIdxs.push(condIdx)
@@ -275,9 +275,9 @@ class Timeline {
 		if (DEBUG) {
 			let joinedConds = condIdxs.join('_')
 			joinedConds = (joinedConds.length > 0 ? '_condIdx_' : '') + joinedConds
-			jumpNode.line = `from_${startTimeLocal}_to_${toTimeLocal}${joinedConds}`
+			jumpInterval.line = `from_${startTimeLocal}_to_${toTimeLocal}${joinedConds}`
 		}
-		return jumpNode
+		return jumpInterval
 	}
 	_createConds(condExp) {
 		if (!condExp) {
@@ -330,223 +330,276 @@ class Timeline {
 		return actionInterval
 	}
 
-	createNode(nodeType, graphOutputNode) {
+	createConditionNodes(condExp, graphToNode, originSlot = 0, targetSlot = 0) {
+		if (!condExp) {
+			return null
+		}
+		if (condExp.result) {
+			condExp = condExp.result
+		}
+		let type = CondTypes[condExp.op.trim()]
+		let fullPath = condExp.rhs.root ? condExp.rhs.root.trim() + condExp.rhs.path.map(p => p.trim()) : undefined
+
+		//if logic node, call recurisively to get lhs/rhs links
+		if (type == CondTypes.AND || type == CondTypes.OR) {
+			//create AND/OR node
+			let nodeType = type == CondTypes.OR ? NodeTypes.OR : NodeTypes.AND
+			let logicNode = this.createNodeGroup(nodeType).node.nodes[0]
+			logicNode.pos["0"] = graphToNode.pos["0"]
+			logicNode.pos["1"] = graphToNode.pos["1"] - 100
+			//link lhs/rhs to AND/OR node inputs
+			let lhs = this.createConditionNodes(condExp.lhs, logicNode, 0, 0)
+			logicNode.inputs[0].link = lhs.properties.toLink
+			let rhs = condExp.rhs.root ? null : this.createConditionNodes(condExp.rhs, logicNode, 0, 1)
+			logicNode.inputs[1].link = rhs.properties.toLink
+			//link to graph output and return
+			return logicNode
+		}
+
+		//create node
+		let booleanNode = this.createNodeGroup(NodeTypes[type]).node
+		for (let n of booleanNode.nodes) {
+			n.pos["0"] += graphToNode.pos["0"]
+			n.pos["1"] += graphToNode.pos["1"] - 50
+		}
+		let booleanNodeOutputNode = findLast(booleanNode.nodes, n => n.title == "Output")
+		let linkType = graphToNode.type.includes('logic') ? 'boolean' : -1
+		booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, originSlot, graphToNode, targetSlot, -1)
+		//set subject's id value
+		let varNameNode = findLast(booleanNode.nodes, n => n.title == "VarName" || n.properties.value == "VarName")
+		if (varNameNode !== undefined) {
+			varNameNode.properties.value = fullPath
+		}
+		//link to graph output and return
+		return booleanNodeOutputNode
+	}
+
+	createNodeGroup(nodeType, graphFromNode, originSlot = 0, targetSlot = 0, linkType = -1) {
 		//deep clone the new node object (don't maintain refereces)
-		let newNode = JSON.parse(JSON.stringify(graphs[nodeType]))
+		let node = JSON.parse(JSON.stringify(graphs[nodeType.toUpperCase()]))
 
 		//for all nodes update: ids, positions, input ids, output ids
 		let oldToNewNodeIds = {}
-		for (let node of newNode.nodes) {
-			this._graph.last_node_id += 1
-			oldToNewNodeIds[node.id] = this._graph.last_node_id
-			node.id = this._graph.last_node_id
-
+		for (let n of node.nodes) {
 			if (nodeType == NodeTypes.VIEW) {
-				node.pos["0"] += graphOutputNode ? graphOutputNode.pos["0"] : 0
-				node.pos["1"] += graphOutputNode ? graphOutputNode.pos["1"] - 380 : 0
-			} else if(nodeType == NodeTypes.ACTION){
-				node.pos["0"] += graphOutputNode ? graphOutputNode.pos["0"] -300 : 0
-				node.pos["1"] += graphOutputNode ? graphOutputNode.pos["1"] -600 : 0
+				n.pos["0"] += graphFromNode ? graphFromNode.pos["0"] : 0
+				n.pos["1"] += graphFromNode ? graphFromNode.pos["1"] - 380 : 0
+			} else {
+				n.pos[0] += graphFromNode ? graphFromNode.pos["0"] - 400 : 0
+				n.pos[1] += graphFromNode ? graphFromNode.pos["1"] - 800 : 0
 			}
+			oldToNewNodeIds[n.id] = this._graph.nodes.length
+			n.id = this._graph.nodes.length
+			this._graph.nodes.push(n)
 		}
 
-		//update all link ids
+		//update all link ids.
+		// link format: [id,fromNodeId,fromSlotIdx,toNodeId,toSlotIdx,linkType (-1, 'boolean')]
 		let oldToNewLinkIds = {}
-		const linkIdxOffset = this._graph.last_link_id + 1
-		for (let linkArray of newNode.links) {
-			this._graph.last_link_id += 1
-			oldToNewLinkIds[linkArray[0]] = this._graph.last_link_id
-			linkArray[0] = this._graph.last_link_id
-		}
-		for (let linkArray of newNode.links) {
-			let link = this.makeLink(linkArray)
-			linkArray[1] = oldToNewNodeIds[link.origin_id]
-			linkArray[3] = oldToNewNodeIds[link.target_id]
+		for ( let idx = 0; idx < node.links.length; ++idx) {
+			let linkArray = node.links[idx]
+			oldToNewLinkIds[linkArray[0]] = this._graph.links.length
+			linkArray[0] = this._graph.links.length 
+			linkArray[1] = oldToNewNodeIds[linkArray[1]]
+			linkArray[3] = oldToNewNodeIds[linkArray[3]]
+			this._graph.links.push(linkArray)
 		}
 
-		for (let node of newNode.nodes) {
-			for (let input of node.inputs) {
+		for (let n of node.nodes) {
+			for (let input of n.inputs) {
 				if (input.link !== null) {
 					input.link = oldToNewLinkIds[input.link]
 				}
 			}
-			for (let output of node.outputs) {
+			for (let output of n.outputs) {
 				for (let idx = 0; output.links && idx < output.links.length; ++idx) {
 					output.links[idx] = oldToNewLinkIds[output.links[idx]]
 				}
 			}
 		}
 
-		//attach to the existing graph's last output
-		if (graphOutputNode !== undefined) {
-			let newIntputNode = findLast(newNode.nodes, n => n.title == 'Input')
-			this._graph.last_link_id += 1
-			let originSlot = 0
-			let targetSlot = 0
-			let newLink = [this._graph.last_link_id, graphOutputNode.id, originSlot, newIntputNode.id, targetSlot, -1]
-			newNode.links.push(newLink)
-			if (graphOutputNode.outputs[0].links == null) {
-				graphOutputNode.outputs[0].links = []
-			}
-			graphOutputNode.outputs[0].links.push(newLink[0])
-			newIntputNode.inputs[0].link = newLink[0]
-		}
-
 		//combine node / links arrays
-		this._graph.nodes = [...this._graph.nodes, ...newNode.nodes]
-		this._graph.links = [...this._graph.links, ...newNode.links]
+		this._graph.last_node_id = this._graph.nodes.length - 1
+		this._graph.last_link_id = this._graph.links.length - 1
 
-		return newNode
+		//attach to the existing graph's last output
+		let linkId = undefined
+		let toNode = findLast(node.nodes, n => n.title == 'Input')
+		if (graphFromNode !== undefined) {
+			//let outputNode = findLast(graphFromNode.nodes, n => n.title == 'Output')
+			let isLogicNode = node.nodes[0].type.includes('logic')
+			if (isLogicNode) {
+				toNode = node.nodes[0]
+			}
+			linkId = this.makeLink(graphFromNode, originSlot, toNode, targetSlot, linkType)
+		}		
+
+		return { node, linkId }
 	}
 
-	makeLink(linkArray) {
-		return {
-			id: linkArray[0],
-			origin_id: linkArray[1],
-			origin_slot: linkArray[2],
-			target_id: linkArray[3],
-			target_slot: linkArray[4],
-			type: linkArray[5]
+	makeLink(fromNode, originSlot,  toNode, targetSlot, linkType) {
+		let originNode = this._graph.nodes[fromNode.id] 
+		let targetNode = this._graph.nodes[toNode.id] 
+		let linkId = this._graph.last_link_id + 1		
+		this._graph.links.push([linkId, originNode.id, originSlot, targetNode.id, targetSlot, linkType])
+		this._graph.last_link_id = linkId
+
+		originSlot = (originSlot < originNode.outputs.length) ? originSlot : 0
+		if (originNode.outputs[originSlot].links == null) {
+			originNode.outputs[originSlot].links = []
 		}
+
+		originNode.outputs[originSlot].links.push(linkId)
+		targetNode.inputs[targetSlot].link = linkId
+		return linkId
 	}
 
 	async ingestStmt(stmt, startTimeLocal, lastUnitInterval, lineText, lastGraphOutputNode) {
 		let interval = null
 		let node = null
 		let graphOutput = this._graph.nodes.find(n => n.title == 'Output')
-		switch (stmt.rule) {
-			case 'comment':
-				throw `[${stmt}] Error: comments should be skipped and not processed`
-			case 'goto': //TODO: change lastUnitInterval instead of creating goto, then check trasitions uses same approach, then remove extra returns
-				if (!this.comments) {
-					this.comments = []
-				}
-				if (stmt.comment) {
-					this.comments.push(stmt.comment)
-				}
 
-				let scriptName = stmt.path.slice(stmt.path.lastIndexOf('/') + 1)
-				let impPath = `${inputDirectory}${stmt.path}/${scriptName}.imp`
+		if (stmt.rule == 'comment') {
+			throw `[${stmt}] Error: comments should be skipped and not processed`
+		} else if (stmt.rule == 'goto') { //TODO: change lastUnitInterval instead of creating goto, then check trasitions uses same approach, then remove extra returns
+			if (!this.comments) {
+				this.comments = []
+			}
+			if (stmt.comment) {
+				this.comments.push(stmt.comment)
+			}
 
-				var dur = Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration
-				let gotoInterval = this.addGoto(this.duration, null)
-				interval = gotoInterval
+			let scriptName = stmt.path.slice(stmt.path.lastIndexOf('/') + 1)
+			let impPath = `${inputDirectory}${stmt.path}/${scriptName}.imp`
 
-				let foundTimelineIdx = timelinesManifest.findIndex(t => t.sceneId === scriptName || t.scriptName === scriptName)
-				if (foundTimelineIdx < 0) {
-					let foundTimeline = await this._readScriptFileAndParse(impPath, lastUnitInterval)
-					foundTimelineIdx = timelinesManifest.length - 1
-					gotoInterval.line = `GOTO ${scriptName}`
-				}
-				let goto = this.gotos[gotoInterval.idx]
-				goto.timelineIndex = foundTimelineIdx
+			var dur = Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration
+			let gotoInterval = this.addGoto(this.duration, null)
+			interval = gotoInterval
 
-				if (DEBUG) {
-					gotoInterval.line = lineText
-				}
-				break
-			case 'view':
-				let viewInterval = this.addView(
-					startTimeLocal,
-					Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration,
-					stmt.viewType,
-					stmt.viewMovement,
-					stmt.viewSource ? stmt.viewSource : stmt.viewTarget,
-					stmt.viewTarget,
-					ViewModes.CONTINUE,
-					lastUnitInterval)
+			let foundTimelineIdx = timelinesManifest.findIndex(t => t.sceneId === scriptName || t.scriptName === scriptName)
+			if (foundTimelineIdx < 0) {
+				let foundTimeline = await this._readScriptFileAndParse(impPath, lastUnitInterval)
+				foundTimelineIdx = timelinesManifest.length - 1
+				gotoInterval.line = `GOTO ${scriptName}`
+			}
+			let goto = this.gotos[gotoInterval.idx]
+			goto.timelineIndex = foundTimelineIdx
 
-				if (stmt.markers) {
-					for (let marker of stmt.markers) {
-						let addedMarker = this.addMarker(marker, Math.round((viewInterval.startTimeLocal + (viewInterval.duration / 2))))
-						if (DEBUG) {
-							addedMarker.line = lineText
-						}
-					}
-				}
-				if (stmt.unmarkers) {
-					for (let unmarker of stmt.unmarkers) {
-						let addedUnmarker = this.addUnmarker(unmarker, Math.round((viewInterval.startTimeLocal + (viewInterval.duration / 2))))
-						if (DEBUG) {
-							addedUnmarker.line = lineText
-						}
-					}
-				}
-				if (DEBUG) {
-					viewInterval.line = lineText
-				}
-				console.log(interval)
-				interval = viewInterval
+			if (DEBUG) {
+				gotoInterval.line = lineText
+			}
 
-				node = this.createNode(NodeTypes.VIEW, lastGraphOutputNode)
-				let viewIdNode = findLast(this._graph.nodes, n => n.title == "ViewId")
-				viewIdNode.properties.value = this.generateViewId()
-				break
-			case 'action':
-				let isDefaultTime = line => !line.duration || line.duration === 0
-				let noNaN = n => !n ? 0 : n
-				let totalDurationOfTimedLines = stmt.lines.reduce((a, b) => noNaN(a.duration) + noNaN(b.duration), { duration: 0 })
-				let durationOfUntimedLines = lastUnitInterval.duration - totalDurationOfTimedLines
-				let defaultTime = durationOfUntimedLines === 0 ? lastUnitInterval.duration : Math.round(durationOfUntimedLines / stmt.lines.filter(a => isDefaultTime(a)).length)
+		} else if (stmt.rule == 'view') {
+			let viewInterval = this.addView(
+				startTimeLocal,
+				Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration,
+				stmt.viewType,
+				stmt.viewMovement,
+				stmt.viewSource ? stmt.viewSource : stmt.viewTarget,
+				stmt.viewTarget,
+				ViewModes.CONTINUE,
+				lastUnitInterval)
 
-				let actionDuration = 0
-				for (let line of stmt.lines) {
-					//set default time to last view length
-					if (isDefaultTime(line)) {
-						line.duration = defaultTime
-					}
-					let action = this.addAction(startTimeLocal + actionDuration, line.duration, line.speaker, line.text)
-					actionDuration += action.duration
+			if (stmt.markers) {
+				for (let marker of stmt.markers) {
+					let addedMarker = this.addMarker(marker, Math.round((viewInterval.startTimeLocal + (viewInterval.duration / 2))))
 					if (DEBUG) {
-						action.line = lineText
+						addedMarker.line = lineText
 					}
 				}
-				let lastActionNode = findLast(this._graph.nodes, n => n.title == "Actions")
-				node = this.createNode(NodeTypes.ACTION, lastActionNode)
-
-				interval = ({ startTimeLocal: startTimeLocal, duration: actionDuration })
-				break
-			case 'cond':
-				let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration
-				let toTimeLocal = this.duration
-				let jmp = this.addJump(
-					startTimeLocal,
-					Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration,
-					stmt,
-					toTimeLocal,
-					undefined,
-					JumpModes.CONDITION)
-				interval = jmp
-				if (DEBUG) {
-					jmp.line = lineText
-				}
-				break
-			case 'transition':
-				this.addTransition(stmt.transitionTime, stmt.transitionType, lastUnitInterval)
-
-				//when there's a condition present the unit will loop back on itself until the condition is met
-				if (stmt.cond) {
-					//OVERRIDE GROUP ID SO THAT THIS JUMP IS INCLUEDED ON ORIGINAL VIEW GROUP
-					let jump = this.addJump(
-						lastUnitInterval.startTimeLocal,
-						lastUnitInterval.duration,
-						stmt.cond.result,
-						this.duration,
-						this.CurrGroupId,
-						JumpModes.TRANSITION)
-					interval = jump
-
-					//make the unit loop on the condition
-					let loopJump = this.jumps[lastUnitInterval.skipInterval.idx]
-					loopJump.toTimeLocal = lastUnitInterval.startTimeLocal
-
+			}
+			if (stmt.unmarkers) {
+				for (let unmarker of stmt.unmarkers) {
+					let addedUnmarker = this.addUnmarker(unmarker, Math.round((viewInterval.startTimeLocal + (viewInterval.duration / 2))))
 					if (DEBUG) {
-						jump.line = lineText
+						addedUnmarker.line = lineText
 					}
-				} else {
-					interval = ({ startTimeLocal: lastUnitInterval.startTimeLocal, duration: lastUnitInterval.duration })
 				}
-				break
+			}
+			if (DEBUG) {
+				viewInterval.line = lineText
+			}
+			//console.log(interval)
+			interval = viewInterval
+
+			let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.VIEW, lastGraphOutputNode)
+			node = newNode
+			let viewIdNode = findLast(newNode.nodes, n => n.title == "ViewIdVal")
+			viewIdNode.properties.value = this.generateViewId()
+
+		} else if (stmt.rule == 'action') {
+			let isDefaultTime = line => !line.duration || line.duration === 0
+			let noNaN = n => !n ? 0 : n
+			let totalDurationOfTimedLines = stmt.lines.reduce((a, b) => noNaN(a.duration) + noNaN(b.duration), { duration: 0 })
+			let durationOfUntimedLines = lastUnitInterval.duration - totalDurationOfTimedLines
+			let defaultTime = durationOfUntimedLines === 0 ? lastUnitInterval.duration : Math.round(durationOfUntimedLines / stmt.lines.filter(a => isDefaultTime(a)).length)
+
+			let actionDuration = 0
+			for (let line of stmt.lines) {
+				//set default time to last view length
+				if (isDefaultTime(line)) {
+					line.duration = defaultTime
+				}
+				let action = this.addAction(startTimeLocal + actionDuration, line.duration, line.speaker, line.text)
+				actionDuration += action.duration
+				if (DEBUG) {
+					action.line = lineText
+				}
+			}
+			let lastTickNode = findLast(this._graph.nodes, n => n.title == "TickInput")
+			let { newNode, linkId } = this.createNodeGroup(NodeTypes.ACTION, lastTickNode)
+			node = newNode
+			interval = ({ startTimeLocal: startTimeLocal, duration: actionDuration })
+
+		} else if (stmt.rule == 'cond') {
+			let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration
+			let toTimeLocal = this.duration
+			let jmp = this.addJump(
+				startTimeLocal,
+				Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration,
+				stmt,
+				toTimeLocal,
+				undefined,
+				JumpModes.CONDITION)
+			interval = jmp
+			if (DEBUG) {
+				jmp.line = lineText
+			}
+
+			let toNode = JSON.parse(JSON.stringify(findLast(this._graph.nodes, n => n.title == "Cond")))
+			toNode.pos["1"] += 200
+			this._graph.nodes.push(toNode)
+			let fromNode = findLast(this._graph.nodes, n => n.title == "TickInput")
+			let booleanNode = this.createConditionNodes(stmt, toNode)
+			booleanNode.fromLink = this.makeLink(fromNode, 2, booleanNode, 0, 'boolean')
+			booleanNode.properties.toLink = this.makeLink(booleanNode, 0, toNode, 1, 'boolean')
+			node = booleanNode
+
+		} else if (stmt.rule == 'transition') {
+			this.addTransition(stmt.transitionTime, stmt.transitionType, lastUnitInterval)
+
+			//when there's a condition present the unit will loop back on `itself until the condition is met
+			if (stmt.cond) {
+				//OVERRIDE GROUP ID SO THAT THIS JUMP IS INCLUEDED ON ORIGINAL VIEW GROUP
+				let jump = this.addJump(
+					lastUnitInterval.startTimeLocal,
+					lastUnitInterval.duration,
+					stmt.cond.result,
+					this.duration,
+					this.CurrGroupId,
+					JumpModes.TRANSITION)
+				interval = jump
+
+				//make the unit loop on the condition
+				let loopJump = this.jumps[lastUnitInterval.skipInterval.idx]
+				loopJump.toTimeLocal = lastUnitInterval.startTimeLocal
+
+				if (DEBUG) {
+					jump.line = lineText
+				}
+			} else {
+				interval = ({ startTimeLocal: lastUnitInterval.startTimeLocal, duration: lastUnitInterval.duration })
+			}
 		}
 		++this.CurrTrackId
 

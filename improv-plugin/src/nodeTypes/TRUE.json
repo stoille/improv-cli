@@ -1,13 +1,13 @@
 {
-	"last_node_id": 183,
-	"last_link_id": 177,
+	"last_node_id": 192,
+	"last_link_id": 183,
 	"nodes": [
 		{
 			"id": 112,
 			"type": "logic/equals",
 			"pos": {
-				"0": 965,
-				"1": 1545,
+				"0": 930,
+				"1": 1570,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -22,23 +22,23 @@
 				"1": 66
 			},
 			"flags": {},
-			"order": 4,
+			"order": 3,
 			"mode": 3,
 			"inputs": [
 				{
 					"name": "",
 					"type": -1,
-					"link": 177
+					"link": 183
 				},
 				{
 					"name": "a *",
 					"type": 0,
-					"link": 102
+					"link": 179
 				},
 				{
 					"name": "b *",
 					"type": 0,
-					"link": 97
+					"link": 180
 				}
 			],
 			"outputs": [
@@ -66,11 +66,11 @@
 			"shape": 2
 		},
 		{
-			"id": 118,
+			"id": 187,
 			"type": "basics/get_variable",
 			"pos": {
-				"0": 695,
-				"1": 1505,
+				"0": 620,
+				"1": 1540,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -93,128 +93,24 @@
 					"name": "value",
 					"type": "",
 					"links": [
-						102
+						179
 					]
 				}
 			],
-			"title": "getVar_NewObjectId",
+			"title": "VarName",
 			"properties": {
-				"name": "NearObjectId"
+				"name": "None"
 			},
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2
 		},
 		{
-			"id": 183,
+			"id": 188,
 			"type": "basics/boolean",
 			"pos": {
-				"0": 460,
+				"0": 630,
 				"1": 1650,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 2,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "",
-					"type": "boolean",
-					"links": [
-						175,
-						176
-					]
-				}
-			],
-			"properties": {
-				"value": true
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 182,
-			"type": "logic/equals",
-			"pos": {
-				"0": 370,
-				"1": 1520,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 140,
-				"1": 66
-			},
-			"flags": {},
-			"order": 3,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": null
-				},
-				{
-					"name": "a *",
-					"type": 0,
-					"link": 175
-				},
-				{
-					"name": "b *",
-					"type": 0,
-					"link": 176
-				}
-			],
-			"outputs": [
-				{
-					"name": "Is Equal",
-					"type": -1,
-					"links": [
-						177
-					]
-				},
-				{
-					"name": "Not Equal",
-					"type": -1,
-					"links": null
-				},
-				{
-					"name": "Bool",
-					"type": "boolean",
-					"links": null
-				}
-			],
-			"title": "Input",
-			"properties": {},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 113,
-			"type": "basics/string",
-			"pos": {
-				"0": 700,
-				"1": 1640,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -235,16 +131,81 @@
 			"outputs": [
 				{
 					"name": "",
-					"type": "string",
+					"type": "boolean",
 					"links": [
-						97
+						180,
+						181,
+						182
 					]
 				}
 			],
-			"title": "FullPath",
 			"properties": {
-				"value": "VarName"
+				"value": true
 			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 192,
+			"type": "logic/equals",
+			"pos": {
+				"0": 430,
+				"1": 1570,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {},
+			"order": 2,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": null
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 181
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 182
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": [
+						183
+					]
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": null
+				}
+			],
+			"title": "Input",
+			"properties": {},
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2
@@ -252,40 +213,40 @@
 	],
 	"links": [
 		[
-			97,
-			113,
-			0,
-			112,
-			2,
-			0
-		],
-		[
-			102,
-			118,
+			179,
+			187,
 			0,
 			112,
 			1,
 			0
 		],
 		[
-			175,
-			183,
+			180,
+			188,
 			0,
-			182,
-			1,
-			0
-		],
-		[
-			176,
-			183,
-			0,
-			182,
+			112,
 			2,
 			0
 		],
 		[
-			177,
+			181,
+			188,
+			0,
+			192,
+			1,
+			0
+		],
+		[
 			182,
+			188,
+			0,
+			192,
+			2,
+			0
+		],
+		[
+			183,
+			192,
 			0,
 			112,
 			0,
@@ -294,12 +255,12 @@
 	],
 	"groups": [
 		{
-			"title": "NEAR - OBJECT",
+			"title": "TRUE - PATH",
 			"bounding": [
-				355,
-				1439,
-				768,
-				282
+				332,
+				1467,
+				794,
+				274
 			],
 			"color": "#3f789e"
 		}

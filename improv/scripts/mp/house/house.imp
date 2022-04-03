@@ -10,10 +10,10 @@ You stand in front of your house. Palm trees sway in the breeze.
 				INT - DINING AREA, HOUSE - NOON 
 				WS - PATIO DOOR, FRONT DOOR - EASE IN - 00:05
 				Elliot walks into the house. 
-				% ./scripts/mp/house/inside/inside
+				GOTO - ./scripts/mp/house/inside/inside
 
 	SELECT - WINDOW
 		MED - WINDOW - 00:05
 		You look inside and see a child's room.
 
-CUT: TRUE - LOOP_FOREVER
+CUT - TRUE - LOOP_FOREVER
