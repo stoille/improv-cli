@@ -362,36 +362,18 @@ class Timeline {
 
 		//create node
 		let booleanNode = this.createNodeGroup(NodeTypes[type]).node
+		let booleanNodeOutputNode = findLast(booleanNode.nodes, n => n.type.includes('logic'))
 		for (let n of booleanNode.nodes) {
 			n.pos["0"] += graphToNode.pos["0"]
 			n.pos["1"] += graphToNode.pos["1"] + 100
 		}
 		//set subject's id value
-		let varNameNode = findLast(booleanNode.nodes, n => n.title == "VarName" || n.properties.value == "VarName")
+		let varNameNode = findLast(booleanNode.nodes, n => n.title == "VarName")
+		varNameNode.title = fullPath
 		varNameNode.properties.value = fullPath
-		//TODO: create output variable 
-		let booleanVariableNode = this.createNodeGroup(NodeTypes.VARIABLE).node
-		let varNode = booleanVariableNode.nodes[0]
-		varNode.title = fullPath
-		varNode.properties.name = fullPath
 		
-		//TODO: update output variable
-		let booleanNodeOutputNode = findLast(booleanNode.nodes, n => n.type.includes('logic'))
-		let updateBooleanVariableNode = this.createNodeGroup(NodeTypes.UPDATE_VARIABLE).node
-		let updateVarNode = updateBooleanVariableNode.nodes[0]
-		updateVarNode.title = `(${fullPath})`
-		updateVarNode.properties.name = fullPath
-		this.makeLink(booleanNodeOutputNode, 0, updateVarNode, 0, "boolean")
-		booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, 2, updateVarNode, 1, "boolean")
-
-		//get variable and link to parent logic node
-		let getBooleanVariableNode = this.createNodeGroup(NodeTypes.GET_VARIABLE).node
-		let getBooleanVarNode = getBooleanVariableNode.nodes[0]
-		getBooleanVarNode.title = `${fullPath}`
-		getBooleanVarNode.properties.name = `${fullPath}`
-		getBooleanVarNode.properties.toLink = this.makeLink(getBooleanVarNode, 1, graphToNode, targetSlot, "boolean")
 		//let linkType = graphToNode.type.includes('logic') ? 'boolean' : -1
-		//booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, originSlot, graphToNode, targetSlot, "boolean")
+		booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, 2, graphToNode, targetSlot, "boolean")
 		
 		//link to graph output and return
 		return booleanNodeOutputNode
@@ -546,6 +528,10 @@ class Timeline {
 			interval = viewInterval
 
 			let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.VIEW, lastGraphOutputNode)
+			if(lastGraphOutputNode?.properties.isCondLink){
+				let inputNode = findLast(newNode.nodes, n => n.title == "Input")
+				lastGraphOutputNode.properties.toLink = this.makeLink(lastGraphOutputNode, 0, inputNode, 0, -1)
+			}
 			node = newNode
 			let viewIdNode = findLast(newNode.nodes, n => n.title == "ViewIdVal")
 			viewIdNode.properties.value = this.generateViewId()
@@ -590,11 +576,12 @@ class Timeline {
 			}
 
 			let toNode = findLast(this._graph.nodes, n => n.title == "Cond")
+			toNode.properties.isCondLink = true
 			//let fromNode = findLast(this._graph.nodes, n => n.title == "TickInput")
 			let booleanNode = this.createConditionNodes(stmt, toNode, 0, 2)
 			//booleanNode.fromLink = this.makeLink(fromNode, 2, booleanNode, 0, 'boolean')
 			//booleanNode.properties.toLink = this.makeLink(booleanNode, 0, toNode, 1, 'boolean')
-			node = booleanNode
+			node = toNode
 
 		} else if (stmt.rule == 'transition') {
 			this.addTransition(stmt.transitionTime, stmt.transitionType, lastUnitInterval)
@@ -849,6 +836,9 @@ async function parseLines(
 			nextIntervalStartTimeLocal = timeline.duration
 			lastUnitInterval = interval//timeline.views[timeline.views.length - 1]
 			lastOutputNode = findLast(timeline._graph.nodes, n => n.title == 'Output')
+		}
+		if(stmt.rule == "cond"){
+			lastOutputNode = node
 		}
 		if (stmt.rule !== "goto") {
 			prevStmt = stmt

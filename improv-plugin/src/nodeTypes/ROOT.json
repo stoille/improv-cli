@@ -1,6 +1,6 @@
 {
-	"last_node_id": 205,
-	"last_link_id": 201,
+	"last_node_id": 207,
+	"last_link_id": 205,
 	"nodes": [
 		{
 			"id": 177,
@@ -711,7 +711,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 23,
+			"order": 25,
 			"mode": 3,
 			"inputs": [
 				{
@@ -798,75 +798,6 @@
 			"shape": 2
 		},
 		{
-			"id": 55,
-			"type": "logic/equals",
-			"pos": {
-				"0": 896.5050048828125,
-				"1": 1524.299560546875,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 140,
-				"1": 66
-			},
-			"flags": {
-				"collapsed": true
-			},
-			"order": 22,
-			"mode": 3,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": 157
-				},
-				{
-					"name": "a *",
-					"type": 0,
-					"link": 183
-				},
-				{
-					"name": "b *",
-					"type": 0,
-					"link": 184
-				}
-			],
-			"outputs": [
-				{
-					"name": "Is Equal",
-					"type": -1,
-					"links": [
-						179,
-						191
-					]
-				},
-				{
-					"name": "Not Equal",
-					"type": -1,
-					"links": null
-				},
-				{
-					"name": "Bool",
-					"type": "boolean",
-					"links": []
-				}
-			],
-			"properties": {
-				"isInputNode": true
-			},
-			"color": "#115543",
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
 			"id": 160,
 			"type": "basics/log",
 			"pos": {
@@ -939,7 +870,7 @@
 			"flags": {
 				"collapsed": false
 			},
-			"order": 25,
+			"order": 27,
 			"mode": 3,
 			"inputs": [
 				{
@@ -1022,47 +953,6 @@
 			"shape": 2
 		},
 		{
-			"id": 159,
-			"type": "events/tick_game_event",
-			"pos": {
-				"0": 466.905517578125,
-				"1": 1475.299072265625,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 140,
-				"1": 26
-			},
-			"flags": {
-				"collapsed": false
-			},
-			"order": 14,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "",
-					"type": -1,
-					"links": [
-						154,
-						157
-					]
-				}
-			],
-			"title": "Tick Event",
-			"properties": {},
-			"bgcolor": "#842424",
-			"boxcolor": "#991caa",
-			"shape": 3
-		},
-		{
 			"id": 196,
 			"type": "basics/variable",
 			"pos": {
@@ -1084,7 +974,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 15,
+			"order": 14,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1110,11 +1000,67 @@
 			"shape": 2
 		},
 		{
-			"id": 204,
+			"id": 202,
+			"type": "data/pick_infos",
+			"pos": {
+				"0": 1090,
+				"1": 1700,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 152.8000030517578,
+				"1": 66
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 24,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Pick Infos *",
+					"type": "PickInfo",
+					"link": 195
+				}
+			],
+			"outputs": [
+				{
+					"name": "Ref",
+					"type": "PickInfo",
+					"links": null
+				},
+				{
+					"name": "Mesh",
+					"type": "mesh",
+					"links": [
+						200
+					]
+				},
+				{
+					"name": "Point",
+					"type": "Vector3",
+					"links": null
+				}
+			],
+			"title": "Pick Infos",
+			"properties": {},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 206,
 			"type": "basics/variable",
 			"pos": {
-				"0": 430,
-				"1": 1040,
+				"0": 480,
+				"1": 1050,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -1129,7 +1075,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 16,
+			"order": 15,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1145,20 +1091,242 @@
 					"links": null
 				}
 			],
-			"title": "Variable (pickMeshName)",
+			"title": "pickMeshName",
 			"properties": {
 				"name": "pickMeshName",
 				"type": "string",
 				"visibleInInspector": false
 			},
-			"bgcolor": "#503117"
+			"bgcolor": "#503117",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 203,
+			"type": "utils/get_property",
+			"pos": {
+				"0": 1240,
+				"1": 1700,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 78
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 26,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Object *",
+					"type": 0,
+					"link": 200,
+					"linkedOutput": "Object"
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "",
+					"links": [
+						203
+					]
+				},
+				{
+					"name": "Object",
+					"type": "mesh",
+					"links": []
+				}
+			],
+			"title": "Get Property",
+			"properties": {
+				"path": "name"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 205,
+			"type": "basics/update_variable",
+			"pos": {
+				"0": 1430,
+				"1": 1700,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 252,
+				"1": 78
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 28,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": null
+				},
+				{
+					"name": "Value *",
+					"type": 0,
+					"link": 203
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Value",
+					"type": "",
+					"links": null
+				}
+			],
+			"title": "Update Variable (pickMeshName)",
+			"properties": {
+				"name": "pickMeshName"
+			},
+			"bgcolor": "#503117",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 55,
+			"type": "logic/equals",
+			"pos": {
+				"0": 900,
+				"1": 1520,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {
+				"collapsed": false
+			},
+			"order": 23,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 205
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 183
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 184
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": [
+						179
+					]
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": []
+				}
+			],
+			"properties": {
+				"isInputNode": true
+			},
+			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 159,
+			"type": "events/tick_game_event",
+			"pos": {
+				"0": 466.905517578125,
+				"1": 1475.299072265625,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 26
+			},
+			"flags": {
+				"collapsed": false
+			},
+			"order": 16,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": [
+						154,
+						204,
+						205
+					]
+				}
+			],
+			"title": "Tick Event",
+			"properties": {},
+			"bgcolor": "#842424",
+			"boxcolor": "#991caa",
+			"shape": 3
 		},
 		{
 			"id": 195,
 			"type": "mesh/pick_mesh",
 			"pos": {
-				"0": 980,
-				"1": 1700,
+				"0": 920,
+				"1": 1690,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -1175,13 +1343,13 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 24,
+			"order": 22,
 			"mode": 3,
 			"inputs": [
 				{
 					"name": "",
 					"type": -1,
-					"link": 191
+					"link": 204
 				},
 				{
 					"name": "x",
@@ -1227,172 +1395,6 @@
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2
-		},
-		{
-			"id": 202,
-			"type": "data/pick_infos",
-			"pos": {
-				"0": 1090,
-				"1": 1700,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 152.8000030517578,
-				"1": 66
-			},
-			"flags": {
-				"collapsed": true
-			},
-			"order": 26,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "Pick Infos *",
-					"type": "PickInfo",
-					"link": 195
-				}
-			],
-			"outputs": [
-				{
-					"name": "Ref",
-					"type": "PickInfo",
-					"links": null
-				},
-				{
-					"name": "Mesh",
-					"type": "mesh",
-					"links": [
-						200
-					]
-				},
-				{
-					"name": "Point",
-					"type": "Vector3",
-					"links": null
-				}
-			],
-			"title": "Pick Infos",
-			"properties": {},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 203,
-			"type": "utils/get_property",
-			"pos": {
-				"0": 1240,
-				"1": 1700,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 78
-			},
-			"flags": {
-				"collapsed": true
-			},
-			"order": 27,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "Object *",
-					"type": 0,
-					"link": 200,
-					"linkedOutput": "Object"
-				}
-			],
-			"outputs": [
-				{
-					"name": "Value",
-					"type": "",
-					"links": null
-				},
-				{
-					"name": "Object",
-					"type": "mesh",
-					"links": [
-						201
-					]
-				}
-			],
-			"title": "Get Property",
-			"properties": {
-				"path": "name"
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 205,
-			"type": "basics/update_variable",
-			"pos": {
-				"0": 1430,
-				"1": 1700,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 252,
-				"1": 78
-			},
-			"flags": {
-				"collapsed": true
-			},
-			"order": 28,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": null
-				},
-				{
-					"name": "Value *",
-					"type": 0,
-					"link": 201
-				}
-			],
-			"outputs": [
-				{
-					"name": "",
-					"type": -1,
-					"links": null
-				},
-				{
-					"name": "Value",
-					"type": "",
-					"links": null
-				}
-			],
-			"title": "Update Variable (pickMeshName)",
-			"properties": {
-				"name": "pickMeshName"
-			},
-			"bgcolor": "#503117",
-			"boxcolor": "#666",
-			"shape": 2
 		}
 	],
 	"links": [
@@ -1425,14 +1427,6 @@
 			159,
 			0,
 			160,
-			0,
-			-1
-		],
-		[
-			157,
-			159,
-			0,
-			55,
 			0,
 			-1
 		],
@@ -1501,14 +1495,6 @@
 			0
 		],
 		[
-			191,
-			55,
-			0,
-			195,
-			0,
-			-1
-		],
-		[
 			195,
 			195,
 			1,
@@ -1525,12 +1511,28 @@
 			0
 		],
 		[
-			201,
 			203,
-			1,
+			203,
+			0,
 			205,
 			1,
 			0
+		],
+		[
+			204,
+			159,
+			0,
+			195,
+			0,
+			-1
+		],
+		[
+			205,
+			159,
+			0,
+			55,
+			0,
+			-1
 		]
 	],
 	"groups": [
