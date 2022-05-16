@@ -1,6 +1,6 @@
 {
 	"last_node_id": 230,
-	"last_link_id": 233,
+	"last_link_id": 234,
 	"nodes": [
 		{
 			"id": 10,
@@ -816,45 +816,6 @@
 			"shape": 2
 		},
 		{
-			"id": 228,
-			"type": "basics/boolean",
-			"pos": {
-				"0": 520,
-				"1": 960,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 10,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "",
-					"type": "boolean",
-					"links": [
-						228
-					]
-				}
-			],
-			"properties": {
-				"value": true
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
 			"id": 227,
 			"type": "logic/equals",
 			"pos": {
@@ -890,7 +851,7 @@
 				{
 					"name": "b *",
 					"type": 0,
-					"link": null
+					"link": 234
 				}
 			],
 			"outputs": [
@@ -912,7 +873,7 @@
 			],
 			"title": "Cond",
 			"properties": {},
-			"color": "#ff2222",
+			"color": "#151",
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2
@@ -1107,6 +1068,46 @@
 			"title": "Output",
 			"properties": {},
 			"color": "#151",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 228,
+			"type": "basics/boolean",
+			"pos": {
+				"0": 520,
+				"1": 960,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 10,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": [
+						228,
+						234
+					]
+				}
+			],
+			"properties": {
+				"value": true
+			},
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2
@@ -1312,6 +1313,14 @@
 			222,
 			0,
 			-1
+		],
+		[
+			234,
+			228,
+			0,
+			227,
+			2,
+			0
 		]
 	],
 	"groups": [

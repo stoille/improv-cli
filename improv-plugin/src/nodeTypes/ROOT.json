@@ -1,271 +1,13 @@
 {
-	"last_node_id": 193,
-	"last_link_id": 187,
+	"last_node_id": 205,
+	"last_link_id": 201,
 	"nodes": [
-		{
-			"id": 159,
-			"type": "events/tick_game_event",
-			"pos": {
-				"0": 507.88720703125,
-				"1": 1424.136962890625,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 140,
-				"1": 26
-			},
-			"flags": {},
-			"order": 0,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "",
-					"type": -1,
-					"links": [
-						154,
-						157
-					]
-				}
-			],
-			"title": "Tick Event",
-			"properties": {},
-			"bgcolor": "#842424",
-			"boxcolor": "#991caa",
-			"shape": 3
-		},
-		{
-			"id": 160,
-			"type": "basics/log",
-			"pos": {
-				"0": 740,
-				"1": 1370,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 78
-			},
-			"flags": {},
-			"order": 14,
-			"mode": 3,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": 154
-				},
-				{
-					"name": "Message",
-					"type": 0,
-					"link": null
-				}
-			],
-			"outputs": [
-				{
-					"name": "",
-					"type": -1,
-					"links": null
-				}
-			],
-			"properties": {
-				"message": "root running"
-			},
-			"color": "#151",
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 55,
-			"type": "logic/equals",
-			"pos": {
-				"0": 780,
-				"1": 1560,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 140,
-				"1": 66
-			},
-			"flags": {},
-			"order": 16,
-			"mode": 3,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": 157
-				},
-				{
-					"name": "a *",
-					"type": 0,
-					"link": 183
-				},
-				{
-					"name": "b *",
-					"type": 0,
-					"link": 184
-				}
-			],
-			"outputs": [
-				{
-					"name": "Is Equal",
-					"type": -1,
-					"links": [
-						179
-					]
-				},
-				{
-					"name": "Not Equal",
-					"type": -1,
-					"links": null
-				},
-				{
-					"name": "Bool",
-					"type": "boolean",
-					"links": []
-				}
-			],
-			"properties": {
-				"isInputNode": true
-			},
-			"color": "#151",
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 79,
-			"type": "basics/get_variable",
-			"pos": {
-				"0": 960,
-				"1": 1640,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 1,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "value",
-					"type": "",
-					"links": [
-						75
-					]
-				}
-			],
-			"title": "Get Variable",
-			"properties": {
-				"name": "IsFirstRun"
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 77,
-			"type": "logic/equals",
-			"pos": {
-				"0": 1250,
-				"1": 1560,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 140,
-				"1": 66
-			},
-			"flags": {},
-			"order": 20,
-			"mode": 3,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": 179
-				},
-				{
-					"name": "a *",
-					"type": 0,
-					"link": 75
-				},
-				{
-					"name": "b *",
-					"type": 0,
-					"link": 180
-				}
-			],
-			"outputs": [
-				{
-					"name": "Is Equal",
-					"type": -1,
-					"links": [
-						77
-					]
-				},
-				{
-					"name": "Not Equal",
-					"type": -1,
-					"links": []
-				},
-				{
-					"name": "Bool",
-					"type": "boolean",
-					"links": []
-				}
-			],
-			"properties": {},
-			"color": "#151",
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
 		{
 			"id": 177,
 			"type": "basics/string",
 			"pos": {
-				"0": 748.2134399414062,
-				"1": 565.64111328125,
+				"0": 750.5006713867188,
+				"1": 564.64111328125,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -280,7 +22,7 @@
 				"1": 58
 			},
 			"flags": {},
-			"order": 2,
+			"order": 0,
 			"mode": 0,
 			"inputs": [],
 			"outputs": [
@@ -303,8 +45,8 @@
 			"id": 169,
 			"type": "basics/variable",
 			"pos": {
-				"0": 1076.7489013671875,
-				"1": 545.64111328125,
+				"0": 1079.0361328125,
+				"1": 544.64111328125,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -319,7 +61,7 @@
 				"1": 82
 			},
 			"flags": {},
-			"order": 15,
+			"order": 17,
 			"mode": 0,
 			"inputs": [
 				{
@@ -348,8 +90,98 @@
 			"id": 165,
 			"type": "basics/variable",
 			"pos": {
-				"0": 1425.2847900390625,
-				"1": 555.64111328125,
+				"0": 1427.572021484375,
+				"1": 554.64111328125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 236.8000030517578,
+				"1": 82
+			},
+			"flags": {},
+			"order": 1,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (string)",
+					"type": "string",
+					"link": null
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "string",
+					"links": null
+				}
+			],
+			"properties": {
+				"type": "string",
+				"name": "LinkedScene_5",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 170,
+			"type": "basics/variable",
+			"pos": {
+				"0": 1106.10791015625,
+				"1": 706.105224609375,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 236.8000030517578,
+				"1": 82
+			},
+			"flags": {},
+			"order": 2,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (string)",
+					"type": "string",
+					"link": null
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "string",
+					"links": null
+				}
+			],
+			"properties": {
+				"type": "string",
+				"name": "LinkedScene_1",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 98,
+			"type": "basics/variable",
+			"pos": {
+				"0": 1086.10791015625,
+				"1": 837.5693359375,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -382,7 +214,7 @@
 			],
 			"properties": {
 				"type": "string",
-				"name": "LinkedScene_5",
+				"name": "LinkedScene_2",
 				"visibleInInspector": false
 			},
 			"bgcolor": "#353535",
@@ -390,11 +222,11 @@
 			"shape": 2
 		},
 		{
-			"id": 170,
+			"id": 163,
 			"type": "basics/variable",
 			"pos": {
-				"0": 1103.8206787109375,
-				"1": 707.105224609375,
+				"0": 1104.643798828125,
+				"1": 967.5693359375,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -427,7 +259,7 @@
 			],
 			"properties": {
 				"type": "string",
-				"name": "LinkedScene_1",
+				"name": "LinkedScene_3",
 				"visibleInInspector": false
 			},
 			"bgcolor": "#353535",
@@ -435,11 +267,11 @@
 			"shape": 2
 		},
 		{
-			"id": 98,
+			"id": 164,
 			"type": "basics/variable",
 			"pos": {
-				"0": 1083.8206787109375,
-				"1": 838.5693359375,
+				"0": 1099.641357421875,
+				"1": 1107.5693359375,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -472,96 +304,6 @@
 			],
 			"properties": {
 				"type": "string",
-				"name": "LinkedScene_2",
-				"visibleInInspector": false
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 163,
-			"type": "basics/variable",
-			"pos": {
-				"0": 1102.3565673828125,
-				"1": 968.5693359375,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 236.8000030517578,
-				"1": 82
-			},
-			"flags": {},
-			"order": 6,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "Default Value (string)",
-					"type": "string",
-					"link": null
-				}
-			],
-			"outputs": [
-				{
-					"name": "Value",
-					"type": "string",
-					"links": null
-				}
-			],
-			"properties": {
-				"type": "string",
-				"name": "LinkedScene_3",
-				"visibleInInspector": false
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 164,
-			"type": "basics/variable",
-			"pos": {
-				"0": 1097.3541259765625,
-				"1": 1108.5693359375,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 236.8000030517578,
-				"1": 82
-			},
-			"flags": {},
-			"order": 7,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "Default Value (string)",
-					"type": "string",
-					"link": null
-				}
-			],
-			"outputs": [
-				{
-					"name": "Value",
-					"type": "string",
-					"links": null
-				}
-			],
-			"properties": {
-				"type": "string",
 				"name": "LinkedScene_4",
 				"visibleInInspector": false
 			},
@@ -570,11 +312,566 @@
 			"shape": 2
 		},
 		{
-			"id": 74,
-			"type": "basics/update_variable",
+			"id": 190,
+			"type": "basics/number",
 			"pos": {
-				"0": 1530,
-				"1": 1560,
+				"0": 216.89183044433594,
+				"1": 873.2103881835938,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 6,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "number",
+					"links": [
+						182
+					]
+				}
+			],
+			"properties": {
+				"value": -1
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 191,
+			"type": "basics/variable",
+			"pos": {
+				"0": 473.89190673828125,
+				"1": 871.2103881835938,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 236.8000030517578,
+				"1": 82
+			},
+			"flags": {},
+			"order": 18,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (number)",
+					"type": "number",
+					"link": 182
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "number",
+					"links": null
+				}
+			],
+			"title": "ViewId",
+			"properties": {
+				"type": "number",
+				"name": "ViewId",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 62,
+			"type": "basics/variable",
+			"pos": {
+				"0": 432.2872009277344,
+				"1": 569,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 245.1999969482422,
+				"1": 82
+			},
+			"flags": {},
+			"order": 20,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (boolean)",
+					"type": "boolean",
+					"link": 187
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "boolean",
+					"links": null
+				}
+			],
+			"properties": {
+				"type": "boolean",
+				"name": "IsActive",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 72,
+			"type": "basics/boolean",
+			"pos": {
+				"0": 182.28720092773438,
+				"1": 719,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 7,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": [
+						62
+					]
+				}
+			],
+			"title": "firstRunInitVal",
+			"properties": {
+				"value": true
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 193,
+			"type": "basics/boolean",
+			"pos": {
+				"0": 172.28720092773438,
+				"1": 579,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 8,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": [
+						187
+					]
+				}
+			],
+			"title": "falseBool",
+			"properties": {
+				"value": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 63,
+			"type": "basics/get_variable",
+			"pos": {
+				"0": 687.6923217773438,
+				"1": 1511.975830078125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 9,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "value",
+					"type": "",
+					"links": [
+						183
+					]
+				}
+			],
+			"title": "IsActive",
+			"properties": {
+				"name": "IsActive"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 57,
+			"type": "basics/boolean",
+			"pos": {
+				"0": 707.6924438476562,
+				"1": 1581.975830078125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 10,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": [
+						184
+					]
+				}
+			],
+			"title": "TRUE",
+			"properties": {
+				"value": true
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 194,
+			"type": "basics/boolean",
+			"pos": {
+				"0": 1097.692626953125,
+				"1": 1571.975830078125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 11,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": [
+						188
+					]
+				}
+			],
+			"title": "TRUE",
+			"properties": {
+				"value": true
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 79,
+			"type": "basics/get_variable",
+			"pos": {
+				"0": 1097.692626953125,
+				"1": 1511.975830078125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 12,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "value",
+					"type": "",
+					"links": [
+						75
+					]
+				}
+			],
+			"title": "IsFirstRun",
+			"properties": {
+				"name": "IsFirstRun"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 77,
+			"type": "logic/equals",
+			"pos": {
+				"0": 1307.69189453125,
+				"1": 1511.975830078125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 23,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 179
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 75
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 188
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": [
+						77
+					]
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": []
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": []
+				}
+			],
+			"properties": {},
+			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 189,
+			"type": "basics/boolean",
+			"pos": {
+				"0": 1317.69189453125,
+				"1": 1581.975830078125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 13,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "boolean",
+					"links": [
+						181
+					]
+				}
+			],
+			"title": "TRUE",
+			"properties": {
+				"value": false
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 55,
+			"type": "logic/equals",
+			"pos": {
+				"0": 896.5050048828125,
+				"1": 1524.299560546875,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 22,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 157
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 183
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 184
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": [
+						179,
+						191
+					]
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": []
+				}
+			],
+			"properties": {
+				"isInputNode": true
+			},
+			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 160,
+			"type": "basics/log",
+			"pos": {
+				"0": 693.5048217773438,
+				"1": 1456.899658203125,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -588,8 +885,61 @@
 				"0": 210,
 				"1": 78
 			},
-			"flags": {},
+			"flags": {
+				"collapsed": true
+			},
 			"order": 21,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 154
+				},
+				{
+					"name": "Message",
+					"type": 0,
+					"link": null
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": null
+				}
+			],
+			"properties": {
+				"message": "root running"
+			},
+			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 74,
+			"type": "basics/update_variable",
+			"pos": {
+				"0": 1483.503173828125,
+				"1": 1486.899658203125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 78
+			},
+			"flags": {
+				"collapsed": false
+			},
+			"order": 25,
 			"mode": 3,
 			"inputs": [
 				{
@@ -619,211 +969,7 @@
 			"properties": {
 				"name": "IsFirstRun"
 			},
-			"color": "#151",
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 189,
-			"type": "basics/boolean",
-			"pos": {
-				"0": 1240,
-				"1": 1690,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 8,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "",
-					"type": "boolean",
-					"links": [
-						181
-					]
-				}
-			],
-			"properties": {
-				"value": false
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 63,
-			"type": "basics/get_variable",
-			"pos": {
-				"0": 490,
-				"1": 1580,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 9,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "value",
-					"type": "",
-					"links": [
-						183
-					]
-				}
-			],
-			"title": "Get Variable",
-			"properties": {
-				"name": "IsActive"
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 57,
-			"type": "basics/boolean",
-			"pos": {
-				"0": 490,
-				"1": 1690,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 10,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "",
-					"type": "boolean",
-					"links": [
-						180,
-						184
-					]
-				}
-			],
-			"properties": {
-				"value": true
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 190,
-			"type": "basics/number",
-			"pos": {
-				"0": 214.60462951660156,
-				"1": 874.2103881835938,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {},
-			"order": 11,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "",
-					"type": "number",
-					"links": [
-						182
-					]
-				}
-			],
-			"properties": {
-				"value": -1
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 191,
-			"type": "basics/variable",
-			"pos": {
-				"0": 471.6047058105469,
-				"1": 872.2103881835938,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 236.8000030517578,
-				"1": 82
-			},
-			"flags": {},
-			"order": 17,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "Default Value (number)",
-					"type": "number",
-					"link": 182
-				}
-			],
-			"outputs": [
-				{
-					"name": "Value",
-					"type": "number",
-					"links": null
-				}
-			],
-			"title": "ViewId",
-			"properties": {
-				"type": "number",
-				"name": "ViewId",
-				"visibleInInspector": false
-			},
+			"color": "#115543",
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2
@@ -832,8 +978,8 @@
 			"id": 66,
 			"type": "basics/variable",
 			"pos": {
-				"0": 441.6047058105469,
-				"1": 722.2103881835938,
+				"0": 442.2872009277344,
+				"1": 719,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -847,8 +993,10 @@
 				"0": 245.1999969482422,
 				"1": 82
 			},
-			"flags": {},
-			"order": 18,
+			"flags": {
+				"collapsed": false
+			},
+			"order": 19,
 			"mode": 0,
 			"inputs": [
 				{
@@ -874,11 +1022,11 @@
 			"shape": 2
 		},
 		{
-			"id": 72,
-			"type": "basics/boolean",
+			"id": 159,
+			"type": "events/tick_game_event",
 			"pos": {
-				"0": 181.60459899902344,
-				"1": 722.2103881835938,
+				"0": 466.905517578125,
+				"1": 1475.299072265625,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -889,35 +1037,37 @@
 				"9": 0
 			},
 			"size": {
-				"0": 210,
-				"1": 58
+				"0": 140,
+				"1": 26
 			},
-			"flags": {},
-			"order": 12,
+			"flags": {
+				"collapsed": false
+			},
+			"order": 14,
 			"mode": 0,
 			"inputs": [],
 			"outputs": [
 				{
 					"name": "",
-					"type": "boolean",
+					"type": -1,
 					"links": [
-						62
+						154,
+						157
 					]
 				}
 			],
-			"properties": {
-				"value": false
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
+			"title": "Tick Event",
+			"properties": {},
+			"bgcolor": "#842424",
+			"boxcolor": "#991caa",
+			"shape": 3
 		},
 		{
-			"id": 62,
+			"id": 196,
 			"type": "basics/variable",
 			"pos": {
-				"0": 430,
-				"1": 570,
+				"0": 676.4026489257812,
+				"1": 1655.8017578125,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -928,41 +1078,87 @@
 				"9": 0
 			},
 			"size": {
-				"0": 245.1999969482422,
+				"0": 287.20001220703125,
 				"1": 82
 			},
-			"flags": {},
-			"order": 19,
+			"flags": {
+				"collapsed": true
+			},
+			"order": 15,
 			"mode": 0,
 			"inputs": [
 				{
-					"name": "Default Value (boolean)",
-					"type": "boolean",
-					"link": 187
+					"name": "Default Value (AbstractMesh)",
+					"type": "AbstractMesh",
+					"link": null
 				}
 			],
 			"outputs": [
 				{
 					"name": "Value",
-					"type": "boolean",
+					"type": "AbstractMesh",
 					"links": null
 				}
 			],
+			"title": "Variable (pickedMesh)",
 			"properties": {
-				"type": "boolean",
-				"name": "IsActive",
-				"visibleInInspector": false
+				"name": "pickedMesh",
+				"type": "AbstractMesh"
 			},
-			"bgcolor": "#353535",
+			"bgcolor": "#503117",
 			"boxcolor": "#666",
 			"shape": 2
 		},
 		{
-			"id": 193,
-			"type": "basics/boolean",
+			"id": 204,
+			"type": "basics/variable",
 			"pos": {
-				"0": 170,
-				"1": 580,
+				"0": 430,
+				"1": 1040,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 236.8000030517578,
+				"1": 82
+			},
+			"flags": {},
+			"order": 16,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (string)",
+					"type": "string",
+					"link": null
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "string",
+					"links": null
+				}
+			],
+			"title": "Variable (pickMeshName)",
+			"properties": {
+				"name": "pickMeshName",
+				"type": "string",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#503117"
+		},
+		{
+			"id": 195,
+			"type": "mesh/pick_mesh",
+			"pos": {
+				"0": 980,
+				"1": 1700,
 				"2": 0,
 				"3": 0,
 				"4": 0,
@@ -974,26 +1170,227 @@
 			},
 			"size": {
 				"0": 210,
-				"1": 58
+				"1": 142
 			},
-			"flags": {},
-			"order": 13,
-			"mode": 0,
-			"inputs": [],
+			"flags": {
+				"collapsed": true
+			},
+			"order": 24,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 191
+				},
+				{
+					"name": "x",
+					"type": "number",
+					"link": null
+				},
+				{
+					"name": "y",
+					"type": "number",
+					"link": null
+				}
+			],
 			"outputs": [
 				{
 					"name": "",
-					"type": "boolean",
+					"type": -1,
+					"links": []
+				},
+				{
+					"name": "Pick Infos",
+					"type": "PickInfo",
 					"links": [
-						187
+						195
+					]
+				},
+				{
+					"name": "mesh",
+					"type": "Node,TransformNode,AbstractMesh",
+					"links": []
+				},
+				{
+					"name": "point",
+					"type": "Vector3",
+					"links": null
+				}
+			],
+			"title": "Pick",
+			"properties": {
+				"fast_check": false,
+				"check_result": true
+			},
+			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 202,
+			"type": "data/pick_infos",
+			"pos": {
+				"0": 1090,
+				"1": 1700,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 152.8000030517578,
+				"1": 66
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 26,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Pick Infos *",
+					"type": "PickInfo",
+					"link": 195
+				}
+			],
+			"outputs": [
+				{
+					"name": "Ref",
+					"type": "PickInfo",
+					"links": null
+				},
+				{
+					"name": "Mesh",
+					"type": "mesh",
+					"links": [
+						200
+					]
+				},
+				{
+					"name": "Point",
+					"type": "Vector3",
+					"links": null
+				}
+			],
+			"title": "Pick Infos",
+			"properties": {},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 203,
+			"type": "utils/get_property",
+			"pos": {
+				"0": 1240,
+				"1": 1700,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 78
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 27,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Object *",
+					"type": 0,
+					"link": 200,
+					"linkedOutput": "Object"
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "",
+					"links": null
+				},
+				{
+					"name": "Object",
+					"type": "mesh",
+					"links": [
+						201
 					]
 				}
 			],
-			"title": "falseBool",
+			"title": "Get Property",
 			"properties": {
-				"value": false
+				"path": "name"
 			},
 			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 205,
+			"type": "basics/update_variable",
+			"pos": {
+				"0": 1430,
+				"1": 1700,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 252,
+				"1": 78
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 28,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": null
+				},
+				{
+					"name": "Value *",
+					"type": 0,
+					"link": 201
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Value",
+					"type": "",
+					"links": null
+				}
+			],
+			"title": "Update Variable (pickMeshName)",
+			"properties": {
+				"name": "pickMeshName"
+			},
+			"bgcolor": "#503117",
 			"boxcolor": "#666",
 			"shape": 2
 		}
@@ -1056,14 +1453,6 @@
 			-1
 		],
 		[
-			180,
-			57,
-			0,
-			77,
-			2,
-			0
-		],
-		[
 			181,
 			189,
 			0,
@@ -1102,26 +1491,66 @@
 			62,
 			0,
 			"boolean"
+		],
+		[
+			188,
+			194,
+			0,
+			77,
+			2,
+			0
+		],
+		[
+			191,
+			55,
+			0,
+			195,
+			0,
+			-1
+		],
+		[
+			195,
+			195,
+			1,
+			202,
+			0,
+			"PickInfo"
+		],
+		[
+			200,
+			202,
+			1,
+			203,
+			0,
+			0
+		],
+		[
+			201,
+			203,
+			1,
+			205,
+			1,
+			0
 		]
 	],
 	"groups": [
 		{
 			"title": "Init",
 			"bounding": [
-				-655,
-				486,
-				2426,
-				768
+				93,
+				433,
+				1684,
+				826
 			],
 			"color": "#f2faff"
 		},
 		{
 			"title": "FirstRun Update Logic",
 			"bounding": [
-				427,
-				1280,
-				1349,
-				624
+				445,
+				1373,
+				1371,
+				370
 			],
 			"color": "#9e4a3f"
 		}

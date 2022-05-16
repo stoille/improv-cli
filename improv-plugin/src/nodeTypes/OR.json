@@ -4,7 +4,7 @@
 	"nodes": [
 		{
 			"id": 7,
-			"type": "logic/OR",
+			"type": "logic/or",
 			"pos": {
 				"0": 510,
 				"1": 280,

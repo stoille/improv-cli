@@ -1,0 +1,50 @@
+{
+	"last_node_id": 198,
+	"last_link_id": 188,
+	"nodes": [
+		{
+			"id": 198,
+			"type": "basics/get_variable",
+			"pos": {
+				"0": 700,
+				"1": 1540,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {},
+			"order": 0,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "value",
+					"type": "",
+					"links": null
+				}
+			],
+			"title": "VarName",
+			"properties": {
+				"name": "myVariable"
+			},
+			"bgcolor": "#503117",
+			"boxcolor": "#666",
+			"shape": 2
+		}
+	],
+	"links": [],
+	"groups": [],
+	"config": {
+		"align_to_grid": true
+	},
+	"version": 0.4
+}

@@ -56,11 +56,20 @@ scenePlacement -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") {% d => d[0].join('') %}
 sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
 
 #TODO: more robust conditional expression syntax
+#	expr ::= mulexpr { addop mulexpr }
+#	addop ::= "+" | "-"
+#	mulexpr ::= powexpr { mulop powexpr }
+#	mulop ::= "*" | "/"
+#	powexpr ::= "-" powexpr | "+" powexpr | atom [ "^" powexpr ]
+#	atom ::= ident [ "(" expr ")" ] | numeric | "(" expr ")"
+#	numeric ::= /[0-9]+(\.[0-9]*)?([eE][\+\-]?[0-9]+)?/
+#	ident ::= /[A-Za-z_][A-Za-z_0-9]*/
+
 condType -> ("INPUT"|"SELECT"|"TRUE"|"FALSE"|"NEAR") {% (d => d[0].join(''))%}
 
-cond -> cond (SEP ("AND" | "OR") SEP) cond {% ([lhs, op, rhs]) => { return rule('cond', {op:op[1][0], lhs,rhs}) } %}
-	| condType SEP path (SEP timeSpan):? (SEP timeSpan):? {% ([op, _, path, start, end]) => 
-			rule('cond', {op, rhs: path, start: start ? start[1] : 0, end: end ? end[1] : 0 }) %}
+cond -> _ "(" _ cond _ ")" _ {% d => { return d[3] } %}
+	| _ cond _ ("&&" | "||") _ cond _ {% ([_, lhs, __, op, ___, rhs]) => { return rule('cond', {op:op == '&&' ? 'AND' : 'OR', lhs,rhs}) } %}
+	| condType SEP path (SEP timeSpan):? (SEP timeSpan):? {% ([op, _, path, start, end]) => rule('cond', {op, rhs: path, start: start ? start[1] : 0, end: end ? end[1] : 0 }) %}
 
 viewType -> opName {% d => d[0] %} #-> ("BCU"|"CA"|"CU"|"CUSTOM"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
 path -> wordWS ("/" wordWS):* {% ([root, path]) => { return selector(root, path.map(p=>p[1])) } %}
@@ -171,8 +180,8 @@ sentence -> (wordWSC ("." | "?" | "!"):+):+ _ timeSpan:? {% ([text, _, timeSpan]
 marker -> opName ((_ "," _) opName):* {% d => [d[0], ...(d[1]?d[1].map(dd=>dd[1]):[])]  %}
 #unmarker -> SEP SEP opName ((_ "," _) opName):* {% d => [d[2], ...(d[3]?d[3].map(dd=>dd[1]):[])] %}
 word -> [a-zA-Z,']:+ {% d => d[0].join('').trim()  %}
-wordWS -> [a-zA-Z] [a-zA-Z'\]\[\(\)_ \.!?]:+ {% d => d[0] + d[1].join('').trim()  %}
-wordWSC -> [a-zA-Z] [a-zA-Z,'\]\[\(\)_ \.!?]:+ {% d => d[0] + d[1].join('').trim()  %}
+wordWS -> [a-zA-Z] [a-zA-Z'\]\[_ \.!?]:+ {% d => d[0] + d[1].join('').trim()  %}
+wordWSC -> [a-zA-Z] [a-zA-Z,'\]\[_ \.!?]:+ {% d => d[0] + d[1].join('').trim()  %}
 opName -> [a-zA-Z_]:+ {% d => d[0].join('')  %}
 varName-> [a-zA-Z'_ ]:+ {% d => d[0].join('').trim()  %}
 

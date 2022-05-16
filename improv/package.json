@@ -16,7 +16,7 @@
     "xstate": "^4.6.7"
   },
   "scripts": {
-    "generate-grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.js",
+    "generate-grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.js && cp ./src/grammar.ne ../improv-plugin/src/grammar.ne && cp ./src/grammar.js ../improv-plugin/src/grammar.js",
     "compileTest": "node ./src/commander.js parse --timeline ~/dev/MP/Assets/Scenes/mp/house/house.imp",
     "test": "cd test; tap ./driverTest.js"
   },

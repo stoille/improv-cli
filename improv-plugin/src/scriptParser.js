@@ -27,7 +27,7 @@ var ScriptTypes = {
 
 const CondTypes = {
 	AND: "AND",
-	OR: "or",
+	OR: "OR",
 	SELECT: "SELECT",
 	TRUE: "TRUE",
 	FALSE: "FALSE",
@@ -39,7 +39,10 @@ const NodeTypes = {
 	...CondTypes,
 	ROOT: "ROOT",
 	VIEW: "VIEW",
-	ACTION: "ACTION"
+	ACTION: "ACTION",
+	VARIABLE: "VARIABLE",
+	UPDATE_VARIABLE: "UPDATE_VARIABLE",
+	GET_VARIABLE: "GET_VARIABLE"
 }
 
 var ViewModes = {
@@ -105,7 +108,7 @@ async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) 
 			console.log('parsing lines...')
 			parseLines(scriptName, lines, timeline, lastUnitInterval, graphFromNode)
 				.then(timeline => {
-					let timelinePath = `${outputDirectory}/${timeline.scriptName}.json`
+					let timelinePath = `${outputDirectory}/${scriptName}.graph`
 					timelineJson = JSON.stringify(timeline._graph)
 					writeFile(timelinePath, timelineJson)
 						.then(_ => {
@@ -114,9 +117,9 @@ async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) 
 								timeline.startTimeGlobal = lastTimelineInManifest ? lastTimelineInManifest.startTimeGlobal + lastTimelineInManifest.duration : 0
 								lastTimelineInManifest = timeline
 							}
-							let manifest = JSON.stringify(timelinesManifest.map(t => ({ scriptName: t.scriptName, sceneId: t.sceneId, startTimeGlobal: t.startTimeGlobal, duration: t.duration })))
-							writeFile(`${outputDirectory}/manifest.json`, manifest)
-								.then(_ => res(timeline))
+							//let manifest = JSON.stringify(timelinesManifest.map(t => ({ scriptName: t.scriptName, sceneId: t.sceneId, startTimeGlobal: t.startTimeGlobal, duration: t.duration })))
+							//writeFile(`${outputDirectory}/manifest.json`, manifest)
+							//	.then(_ => res(timeline))
 
 							res(timeline)
 						})
@@ -343,8 +346,7 @@ class Timeline {
 		//if logic node, call recurisively to get lhs/rhs links
 		if (type == CondTypes.AND || type == CondTypes.OR) {
 			//create AND/OR node
-			let nodeType = type == CondTypes.OR ? NodeTypes.OR : NodeTypes.AND
-			let logicNode = this.createNodeGroup(nodeType).node.nodes[0]
+			let logicNode = this.createNodeGroup(type).node.nodes[0]
 			logicNode.pos["0"] = graphToNode.pos["0"]
 			logicNode.pos["1"] = graphToNode.pos["1"] - 100
 			//link lhs/rhs to AND/OR node inputs
@@ -353,6 +355,8 @@ class Timeline {
 			let rhs = condExp.rhs.root ? null : this.createConditionNodes(condExp.rhs, logicNode, 0, 1)
 			logicNode.inputs[1].link = rhs.properties.toLink
 			//link to graph output and return
+			logicNode.properties.toLink = this.makeLink(logicNode, originSlot, graphToNode, targetSlot, 'boolean')
+
 			return logicNode
 		}
 
@@ -360,23 +364,42 @@ class Timeline {
 		let booleanNode = this.createNodeGroup(NodeTypes[type]).node
 		for (let n of booleanNode.nodes) {
 			n.pos["0"] += graphToNode.pos["0"]
-			n.pos["1"] += graphToNode.pos["1"] - 50
+			n.pos["1"] += graphToNode.pos["1"] + 100
 		}
-		let booleanNodeOutputNode = findLast(booleanNode.nodes, n => n.title == "Output")
-		let linkType = graphToNode.type.includes('logic') ? 'boolean' : -1
-		booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, originSlot, graphToNode, targetSlot, -1)
 		//set subject's id value
 		let varNameNode = findLast(booleanNode.nodes, n => n.title == "VarName" || n.properties.value == "VarName")
-		if (varNameNode !== undefined) {
-			varNameNode.properties.value = fullPath
-		}
+		varNameNode.properties.value = fullPath
+		//TODO: create output variable 
+		let booleanVariableNode = this.createNodeGroup(NodeTypes.VARIABLE).node
+		let varNode = booleanVariableNode.nodes[0]
+		varNode.title = fullPath
+		varNode.properties.name = fullPath
+		
+		//TODO: update output variable
+		let booleanNodeOutputNode = findLast(booleanNode.nodes, n => n.type.includes('logic'))
+		let updateBooleanVariableNode = this.createNodeGroup(NodeTypes.UPDATE_VARIABLE).node
+		let updateVarNode = updateBooleanVariableNode.nodes[0]
+		updateVarNode.title = `(${fullPath})`
+		updateVarNode.properties.name = fullPath
+		this.makeLink(booleanNodeOutputNode, 0, updateVarNode, 0, "boolean")
+		booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, 2, updateVarNode, 1, "boolean")
+
+		//get variable and link to parent logic node
+		let getBooleanVariableNode = this.createNodeGroup(NodeTypes.GET_VARIABLE).node
+		let getBooleanVarNode = getBooleanVariableNode.nodes[0]
+		getBooleanVarNode.title = `${fullPath}`
+		getBooleanVarNode.properties.name = `${fullPath}`
+		getBooleanVarNode.properties.toLink = this.makeLink(getBooleanVarNode, 1, graphToNode, targetSlot, "boolean")
+		//let linkType = graphToNode.type.includes('logic') ? 'boolean' : -1
+		//booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, originSlot, graphToNode, targetSlot, "boolean")
+		
 		//link to graph output and return
 		return booleanNodeOutputNode
 	}
 
 	createNodeGroup(nodeType, graphFromNode, originSlot = 0, targetSlot = 0, linkType = -1) {
 		//deep clone the new node object (don't maintain refereces)
-		let node = JSON.parse(JSON.stringify(graphs[nodeType.toUpperCase()]))
+		let node = JSON.parse(JSON.stringify(graphs[nodeType]))
 
 		//for all nodes update: ids, positions, input ids, output ids
 		let oldToNewNodeIds = {}
@@ -566,13 +589,11 @@ class Timeline {
 				jmp.line = lineText
 			}
 
-			let toNode = JSON.parse(JSON.stringify(findLast(this._graph.nodes, n => n.title == "Cond")))
-			toNode.pos["1"] += 200
-			this._graph.nodes.push(toNode)
-			let fromNode = findLast(this._graph.nodes, n => n.title == "TickInput")
-			let booleanNode = this.createConditionNodes(stmt, toNode)
-			booleanNode.fromLink = this.makeLink(fromNode, 2, booleanNode, 0, 'boolean')
-			booleanNode.properties.toLink = this.makeLink(booleanNode, 0, toNode, 1, 'boolean')
+			let toNode = findLast(this._graph.nodes, n => n.title == "Cond")
+			//let fromNode = findLast(this._graph.nodes, n => n.title == "TickInput")
+			let booleanNode = this.createConditionNodes(stmt, toNode, 0, 2)
+			//booleanNode.fromLink = this.makeLink(fromNode, 2, booleanNode, 0, 'boolean')
+			//booleanNode.properties.toLink = this.makeLink(booleanNode, 0, toNode, 1, 'boolean')
 			node = booleanNode
 
 		} else if (stmt.rule == 'transition') {
