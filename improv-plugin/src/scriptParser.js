@@ -186,6 +186,10 @@ class Timeline {
 		return this._nextViewId
 	}
 
+	getLastViewId() {
+		return this._nextViewId
+	}
+
 	getClip(type, idx) {
 		switch (type) {
 			case ScriptTypes.MARKER: return this.markers[idx]
@@ -459,7 +463,7 @@ class Timeline {
 		return linkId
 	}
 
-	async ingestStmt(stmt, startTimeLocal, lastUnitInterval, lineText, lastViewOutputNode, lastCondOutputNode) {
+	async ingestStmt(stmt, startTimeLocal, lastUnitInterval, lineText, lastViewOutputNode, lastCondViewId) {
 		let interval = null
 		let node = null
 		let graphOutput = this._graph.nodes.find(n => n.title == 'Output')
@@ -531,6 +535,8 @@ class Timeline {
 			node = newNode
 			let viewIdNode = findLast(newNode.nodes, n => n.title == "ViewIdVal")
 			viewIdNode.properties.value = this.generateViewId()
+			let condViewIdNode = findLast(newNode.nodes, n => n.title == "CondViewIdVal")
+			condViewIdNode.properties.value = lastCondViewId
 
 		} else if (stmt.rule == 'action') {
 			let isDefaultTime = line => !line.duration || line.duration === 0
@@ -551,8 +557,8 @@ class Timeline {
 					action.line = lineText
 				}
 			}
-			let lastTickNode = findLast(this._graph.nodes, n => n.title == "TickInput")
-			let { newNode, linkId } = this.createNodeGroup(NodeTypes.ACTION, lastTickNode)
+			let lastInputNode = findLast(this._graph.nodes, n => n.title == "Input")
+			let { newNode, linkId } = this.createNodeGroup(NodeTypes.ACTION, lastInputNode)
 			node = newNode
 			interval = ({ startTimeLocal: startTimeLocal, duration: actionDuration })
 
@@ -574,10 +580,13 @@ class Timeline {
 			//connect the new boolean logic node group to the view's condition node
 			let toNode = findLast(this._graph.nodes, n => n.title == "Cond")
 			let booleanNode = this.createConditionNodes(stmt, toNode, 0, 2)
-			//find the last condition node and attach new conditional branch to it			
-			if(lastCondOutputNode !== undefined){
-				lastCondOutputNode.properties.toLink = this.makeLink(lastCondOutputNode, 0, toNode, 0, -1)
-			}
+			//find the last condition node and attach new conditional branch to it
+			let isFirstRunLinkNode = findLast(this._graph.nodes, n => n.title == "IsFirstRunLink")
+			let tickNode = findLast(this._graph.nodes, n => n.title == "TickInput")
+			this.makeLink(isFirstRunLinkNode, 1, tickNode, 0, -1)
+
+			let condViewIdNode = findLast(this._graph.nodes, n => n.title == "CondViewIdVal")
+			condViewIdNode.properties.value = lastCondViewId
 
 			node = toNode
 
@@ -621,7 +630,7 @@ async function parseLines(
 	timeline,
 	lastUnitInterval,
 	lastViewOutputNode,
-	lastCondOutputNode,
+	lastCondViewId,
 	lineCursor = 0,
 	prevStmt = undefined,
 	lastDefinedDuration = undefined,
@@ -677,6 +686,7 @@ async function parseLines(
 						JumpModes.TRANSITION)
 				}
 				nextIntervalStartTimeLocal = timeline.duration
+				lastCondViewId = timeline.getLastViewId()
 
 				envs.push({
 					timeline,
@@ -688,7 +698,7 @@ async function parseLines(
 					timelineCurrTrackId: timeline.CurrTrackId,
 					timelineCurrGroupId: timeline.CurrGroupId,
 					lastViewNode: lastViewOutputNode,
-					lastCondNode: lastCondOutputNode
+					lastCondViewId
 				})
 			}
 			else if (isTabDecreased(stmt, prevStmt)) {
@@ -731,7 +741,7 @@ async function parseLines(
 				prevStmt = env.prevStmt
 				timeline.CurrGroupId = env.timelineCurrGroupId
 				lastViewOutputNode = env.lastViewNode
-				lastCondOutputNode = env.lastCondNode
+				lastCondViewId = env.lastCondViewId
 			}
 			lintStmt(scriptName, stmt, prevStmt, line, lastLine, lineCursor)
 
@@ -818,7 +828,7 @@ async function parseLines(
 		}
 
 		//INGEST
-		let { interval, node } = await timeline.ingestStmt(stmt, startTimeLocal, lastUnitInterval, line, lastViewOutputNode, lastCondOutputNode)
+		let { interval, node } = await timeline.ingestStmt(stmt, startTimeLocal, lastUnitInterval, line, lastViewOutputNode, lastCondViewId)
 
 		if (stmt.rule == "goto") {
 			nextIntervalStartTimeLocal = interval.startTimeLocal + interval.duration
@@ -837,7 +847,7 @@ async function parseLines(
 			nextIntervalStartTimeLocal = timeline.duration
 			lastUnitInterval = interval//timeline.views[timeline.views.length - 1]
 			lastViewOutputNode = findLast(timeline._graph.nodes, n => n.title == 'Output')
-			lastCondOutputNode = findLast(timeline._graph.nodes, n => n.title == 'TickInput')
+			lastCondViewId = timeline.getLastViewId()
 		}
 
 		if(stmt.rule == "cond"){

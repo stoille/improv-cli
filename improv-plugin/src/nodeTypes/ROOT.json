@@ -648,114 +648,6 @@
 			"shape": 2
 		},
 		{
-			"id": 79,
-			"type": "basics/get_variable",
-			"pos": {
-				"0": 1097.692626953125,
-				"1": 1511.975830078125,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 58
-			},
-			"flags": {
-				"collapsed": true
-			},
-			"order": 12,
-			"mode": 0,
-			"inputs": [],
-			"outputs": [
-				{
-					"name": "value",
-					"type": "",
-					"links": [
-						75
-					]
-				}
-			],
-			"title": "IsFirstRun",
-			"properties": {
-				"name": "IsFirstRun"
-			},
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
-			"id": 77,
-			"type": "logic/equals",
-			"pos": {
-				"0": 1307.69189453125,
-				"1": 1511.975830078125,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 140,
-				"1": 66
-			},
-			"flags": {
-				"collapsed": true
-			},
-			"order": 25,
-			"mode": 3,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": 179
-				},
-				{
-					"name": "a *",
-					"type": 0,
-					"link": 75
-				},
-				{
-					"name": "b *",
-					"type": 0,
-					"link": 188
-				}
-			],
-			"outputs": [
-				{
-					"name": "Is Equal",
-					"type": -1,
-					"links": [
-						77
-					]
-				},
-				{
-					"name": "Not Equal",
-					"type": -1,
-					"links": []
-				},
-				{
-					"name": "Bool",
-					"type": "boolean",
-					"links": []
-				}
-			],
-			"properties": {},
-			"color": "#115543",
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
 			"id": 189,
 			"type": "basics/boolean",
 			"pos": {
@@ -849,63 +741,6 @@
 			"shape": 2
 		},
 		{
-			"id": 74,
-			"type": "basics/update_variable",
-			"pos": {
-				"0": 1483.503173828125,
-				"1": 1486.899658203125,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 210,
-				"1": 78
-			},
-			"flags": {
-				"collapsed": false
-			},
-			"order": 27,
-			"mode": 3,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": 77
-				},
-				{
-					"name": "Value *",
-					"type": 0,
-					"link": 181
-				}
-			],
-			"outputs": [
-				{
-					"name": "",
-					"type": -1,
-					"links": []
-				},
-				{
-					"name": "Value",
-					"type": "",
-					"links": []
-				}
-			],
-			"title": "Output",
-			"properties": {
-				"name": "IsFirstRun"
-			},
-			"color": "#115543",
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
 			"id": 66,
 			"type": "basics/variable",
 			"pos": {
@@ -992,8 +827,8 @@
 			],
 			"title": "Variable (pickedMesh)",
 			"properties": {
-				"name": "pickedMesh",
-				"type": "AbstractMesh"
+				"type": "AbstractMesh",
+				"name": "pickedMesh"
 			},
 			"bgcolor": "#503117",
 			"boxcolor": "#666",
@@ -1093,8 +928,8 @@
 			],
 			"title": "pickMeshName",
 			"properties": {
-				"name": "pickMeshName",
 				"type": "string",
+				"name": "pickMeshName",
 				"visibleInInspector": false
 			},
 			"bgcolor": "#503117",
@@ -1212,74 +1047,6 @@
 			"shape": 2
 		},
 		{
-			"id": 55,
-			"type": "logic/equals",
-			"pos": {
-				"0": 900,
-				"1": 1520,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 140,
-				"1": 66
-			},
-			"flags": {
-				"collapsed": false
-			},
-			"order": 23,
-			"mode": 3,
-			"inputs": [
-				{
-					"name": "",
-					"type": -1,
-					"link": 205
-				},
-				{
-					"name": "a *",
-					"type": 0,
-					"link": 183
-				},
-				{
-					"name": "b *",
-					"type": 0,
-					"link": 184
-				}
-			],
-			"outputs": [
-				{
-					"name": "Is Equal",
-					"type": -1,
-					"links": [
-						179
-					]
-				},
-				{
-					"name": "Not Equal",
-					"type": -1,
-					"links": null
-				},
-				{
-					"name": "Bool",
-					"type": "boolean",
-					"links": []
-				}
-			],
-			"properties": {
-				"isInputNode": true
-			},
-			"color": "#115543",
-			"bgcolor": "#353535",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
 			"id": 159,
 			"type": "events/tick_game_event",
 			"pos": {
@@ -1390,6 +1157,240 @@
 			"properties": {
 				"fast_check": false,
 				"check_result": true
+			},
+			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 74,
+			"type": "basics/update_variable",
+			"pos": {
+				"0": 1483.503173828125,
+				"1": 1486.899658203125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 78
+			},
+			"flags": {
+				"collapsed": false
+			},
+			"order": 27,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 77
+				},
+				{
+					"name": "Value *",
+					"type": 0,
+					"link": 181
+				}
+			],
+			"outputs": [
+				{
+					"name": "",
+					"type": -1,
+					"links": []
+				},
+				{
+					"name": "Value",
+					"type": "",
+					"links": []
+				}
+			],
+			"title": "Output",
+			"properties": {
+				"name": "IsFirstRun"
+			},
+			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 79,
+			"type": "basics/get_variable",
+			"pos": {
+				"0": 1097.692626953125,
+				"1": 1511.975830078125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 210,
+				"1": 58
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 12,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "value",
+					"type": "",
+					"links": [
+						75
+					]
+				}
+			],
+			"title": "IsFirstRun",
+			"properties": {
+				"name": "IsFirstRun"
+			},
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 77,
+			"type": "logic/equals",
+			"pos": {
+				"0": 1307.69189453125,
+				"1": 1511.975830078125,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {
+				"collapsed": true
+			},
+			"order": 25,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 179
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 75
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 188
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": [
+						77
+					]
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": []
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": []
+				}
+			],
+			"properties": {},
+			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 55,
+			"type": "logic/equals",
+			"pos": {
+				"0": 900,
+				"1": 1520,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 66
+			},
+			"flags": {
+				"collapsed": false
+			},
+			"order": 23,
+			"mode": 3,
+			"inputs": [
+				{
+					"name": "",
+					"type": -1,
+					"link": 205
+				},
+				{
+					"name": "a *",
+					"type": 0,
+					"link": 183
+				},
+				{
+					"name": "b *",
+					"type": 0,
+					"link": 184
+				}
+			],
+			"outputs": [
+				{
+					"name": "Is Equal",
+					"type": -1,
+					"links": [
+						179
+					]
+				},
+				{
+					"name": "Not Equal",
+					"type": -1,
+					"links": null
+				},
+				{
+					"name": "Bool",
+					"type": "boolean",
+					"links": []
+				}
+			],
+			"title": "IsFirstRunLink",
+			"properties": {
+				"isInputNode": true
 			},
 			"color": "#115543",
 			"bgcolor": "#353535",
