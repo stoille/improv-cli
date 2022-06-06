@@ -375,10 +375,10 @@ class Timeline {
 		let varNameNode = findLast(booleanNode.nodes, n => n.title == "VarName")
 		varNameNode.title = fullPath
 		varNameNode.properties.value = fullPath
-		
+
 		//let linkType = graphToNode.type.includes('logic') ? 'boolean' : -1
 		booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, 2, graphToNode, targetSlot, "boolean")
-		
+
 		//link to graph output and return
 		return booleanNodeOutputNode
 	}
@@ -405,10 +405,10 @@ class Timeline {
 		//update all link ids.
 		// link format: [id,fromNodeId,fromSlotIdx,toNodeId,toSlotIdx,linkType (-1, 'boolean')]
 		let oldToNewLinkIds = {}
-		for ( let idx = 0; idx < node.links.length; ++idx) {
+		for (let idx = 0; idx < node.links.length; ++idx) {
 			let linkArray = node.links[idx]
 			oldToNewLinkIds[linkArray[0]] = this._graph.links.length
-			linkArray[0] = this._graph.links.length 
+			linkArray[0] = this._graph.links.length
 			linkArray[1] = oldToNewNodeIds[linkArray[1]]
 			linkArray[3] = oldToNewNodeIds[linkArray[3]]
 			this._graph.links.push(linkArray)
@@ -441,15 +441,15 @@ class Timeline {
 				toNode = node.nodes[0]
 			}
 			linkId = this.makeLink(graphFromNode, originSlot, toNode, targetSlot, linkType)
-		}		
+		}
 
 		return { node, linkId }
 	}
 
-	makeLink(fromNode, originSlot,  toNode, targetSlot, linkType) {
-		let originNode = this._graph.nodes[fromNode.id] 
-		let targetNode = this._graph.nodes[toNode.id] 
-		let linkId = this._graph.last_link_id + 1		
+	makeLink(fromNode, originSlot, toNode, targetSlot, linkType) {
+		let originNode = this._graph.nodes[fromNode.id]
+		let targetNode = this._graph.nodes[toNode.id]
+		let linkId = this._graph.last_link_id + 1
 		this._graph.links.push([linkId, originNode.id, originSlot, targetNode.id, targetSlot, linkType])
 		this._graph.last_link_id = linkId
 
@@ -533,10 +533,16 @@ class Timeline {
 
 			let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.VIEW, lastViewOutputNode)
 			node = newNode
+			// create the view id for this view
+			let viewId = this.generateViewId()
 			let viewIdNode = findLast(newNode.nodes, n => n.title == "ViewIdVal")
-			viewIdNode.properties.value = this.generateViewId()
+			viewIdNode.properties.value = viewId
+			// set the view id for this view's condition branch
 			let condViewIdNode = findLast(newNode.nodes, n => n.title == "CondViewIdVal")
 			condViewIdNode.properties.value = lastCondViewId
+			// rename the camera so that we can reference multiple cameras
+			let mainCameraNode = findLast(newNode.nodes, n => n.type == "camera/camera")
+			mainCameraNode.properties.var_name = `camera_${viewId}`
 
 		} else if (stmt.rule == 'action') {
 			let isDefaultTime = line => !line.duration || line.duration === 0
@@ -558,7 +564,10 @@ class Timeline {
 				}
 			}
 			let lastInputNode = findLast(this._graph.nodes, n => n.title == "Input")
-			let { newNode, linkId } = this.createNodeGroup(NodeTypes.ACTION, lastInputNode)
+			let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.ACTION, lastInputNode)
+			// rename the animation so that we can reference multiple animations
+			let animationNode = findLast(newNode.nodes, n => n.type == "animation/animation_group")
+			animationNode.properties.var_name = `animationGroup_${this.getLastViewId()}`
 			node = newNode
 			interval = ({ startTimeLocal: startTimeLocal, duration: actionDuration })
 
@@ -850,10 +859,10 @@ async function parseLines(
 			lastCondViewId = timeline.getLastViewId()
 		}
 
-		if(stmt.rule == "cond"){
+		if (stmt.rule == "cond") {
 			lastViewOutputNode = node
 		}
-		
+
 		if (stmt.rule !== "goto") {
 			prevStmt = stmt
 			lastLine = line

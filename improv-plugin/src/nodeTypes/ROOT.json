@@ -1,6 +1,6 @@
 {
-	"last_node_id": 207,
-	"last_link_id": 205,
+	"last_node_id": 209,
+	"last_link_id": 207,
 	"nodes": [
 		{
 			"id": 177,
@@ -669,7 +669,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 13,
+			"order": 12,
 			"mode": 0,
 			"inputs": [],
 			"outputs": [
@@ -809,7 +809,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 14,
+			"order": 13,
 			"mode": 0,
 			"inputs": [
 				{
@@ -856,7 +856,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 24,
+			"order": 26,
 			"mode": 0,
 			"inputs": [
 				{
@@ -891,52 +891,6 @@
 			"shape": 2
 		},
 		{
-			"id": 206,
-			"type": "basics/variable",
-			"pos": {
-				"0": 480,
-				"1": 1050,
-				"2": 0,
-				"3": 0,
-				"4": 0,
-				"5": 0,
-				"6": 0,
-				"7": 0,
-				"8": 0,
-				"9": 0
-			},
-			"size": {
-				"0": 236.8000030517578,
-				"1": 82
-			},
-			"flags": {},
-			"order": 15,
-			"mode": 0,
-			"inputs": [
-				{
-					"name": "Default Value (string)",
-					"type": "string",
-					"link": null
-				}
-			],
-			"outputs": [
-				{
-					"name": "Value",
-					"type": "string",
-					"links": null
-				}
-			],
-			"title": "pickMeshName",
-			"properties": {
-				"type": "string",
-				"name": "pickMeshName",
-				"visibleInInspector": false
-			},
-			"bgcolor": "#503117",
-			"boxcolor": "#666",
-			"shape": 2
-		},
-		{
 			"id": 203,
 			"type": "utils/get_property",
 			"pos": {
@@ -958,7 +912,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 26,
+			"order": 28,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1012,7 +966,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 28,
+			"order": 30,
 			"mode": 0,
 			"inputs": [
 				{
@@ -1068,7 +1022,7 @@
 			"flags": {
 				"collapsed": false
 			},
-			"order": 16,
+			"order": 14,
 			"mode": 0,
 			"inputs": [],
 			"outputs": [
@@ -1185,7 +1139,7 @@
 			"flags": {
 				"collapsed": false
 			},
-			"order": 27,
+			"order": 29,
 			"mode": 3,
 			"inputs": [
 				{
@@ -1242,7 +1196,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 12,
+			"order": 15,
 			"mode": 0,
 			"inputs": [],
 			"outputs": [
@@ -1284,7 +1238,7 @@
 			"flags": {
 				"collapsed": true
 			},
-			"order": 25,
+			"order": 27,
 			"mode": 3,
 			"inputs": [
 				{
@@ -1393,6 +1347,136 @@
 				"isInputNode": true
 			},
 			"color": "#115543",
+			"bgcolor": "#353535",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 206,
+			"type": "basics/variable",
+			"pos": {
+				"0": 490,
+				"1": 1030,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 236.8000030517578,
+				"1": 82
+			},
+			"flags": {},
+			"order": 24,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (string)",
+					"type": "string",
+					"link": 206
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "string",
+					"links": null
+				}
+			],
+			"title": "pickMeshName",
+			"properties": {
+				"type": "string",
+				"name": "pickMeshName",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#503117",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 208,
+			"type": "basics/variable",
+			"pos": {
+				"0": 490,
+				"1": 1150,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 236.8000030517578,
+				"1": 82
+			},
+			"flags": {},
+			"order": 25,
+			"mode": 0,
+			"inputs": [
+				{
+					"name": "Default Value (string)",
+					"type": "string",
+					"link": 207
+				}
+			],
+			"outputs": [
+				{
+					"name": "Value",
+					"type": "string",
+					"links": null
+				}
+			],
+			"title": "Variable (GotoPath)",
+			"properties": {
+				"name": "GotoPath",
+				"type": "string",
+				"visibleInInspector": false
+			},
+			"bgcolor": "#503117",
+			"boxcolor": "#666",
+			"shape": 2
+		},
+		{
+			"id": 209,
+			"type": "basics/null",
+			"pos": {
+				"0": 220,
+				"1": 1100,
+				"2": 0,
+				"3": 0,
+				"4": 0,
+				"5": 0,
+				"6": 0,
+				"7": 0,
+				"8": 0,
+				"9": 0
+			},
+			"size": {
+				"0": 140,
+				"1": 26
+			},
+			"flags": {},
+			"order": 16,
+			"mode": 0,
+			"inputs": [],
+			"outputs": [
+				{
+					"name": "",
+					"type": "",
+					"links": [
+						206,
+						207
+					]
+				}
+			],
+			"properties": {},
 			"bgcolor": "#353535",
 			"boxcolor": "#666",
 			"shape": 2
@@ -1534,6 +1618,22 @@
 			55,
 			0,
 			-1
+		],
+		[
+			206,
+			209,
+			0,
+			206,
+			0,
+			"string"
+		],
+		[
+			207,
+			209,
+			0,
+			208,
+			0,
+			"string"
 		]
 	],
 	"groups": [
