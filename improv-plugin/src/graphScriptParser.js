@@ -59,10 +59,19 @@ var JumpModes = {
 
 var graphs = {};
 
+//HACK: node types should be defined as new types that extends GraphNode from renderer/editor/graph/node.ts
+async function InitializeGraphTemplates() {
+	if (Object.keys(graphs).length === 0) {
+		for (let nodeType in NodeTypes) {
+			const path = '../improv-plugin/src/templates/graphNodeTypes/'
+			let rawText = await readFile(`${path}${nodeType}.json`, 'utf8')
+			graphs[nodeType] = JSON.parse(rawText)
+		}
+	}
+}
+
 var inputDirectory = undefined
 var nextTimelineStartTimeGlobal = 0
-
-let nodeTemplateText = await readFile('./templates/babylon-node-template.ts', { encoding: 'utf8' }, (err, rawText) => rawText)
 
 async function generateGraphDataObjects(rootImprovScriptPath, outputDir) {
 	let extension = rootImprovScriptPath.split('.').pop()
@@ -78,17 +87,14 @@ async function generateGraphDataObjects(rootImprovScriptPath, outputDir) {
 module.exports.generateGraphDataObjects = generateGraphDataObjects
 
 async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) {
-
-	let babylonSrc = nodeTemplateText.replace('NodeScriptName', scriptName)
-	babylonSrc = babylonSrc.replace('SceneClassName', `$_{scriptName}`)
-
+	await InitializeGraphTemplates();
 	return new Promise(res => {
 		readFile(scriptPath, { encoding: 'utf8' }, (err, rawText) => {
 			if (err) {
 				console.error(`error reading script (${scriptPath}): ${err}`)
 			}
 			let lines = rawText.split("\n")
-			console.log('generating scripts...')
+			console.log('creating graph...')
 			if (!inputDirectory) {
 				inputDirectory = scriptPath.slice(0, scriptPath.lastIndexOf('/'))
 				inputDirectory = inputDirectory.slice(0, inputDirectory.lastIndexOf('/') + 1)
@@ -100,29 +106,23 @@ async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) 
 			let lastUnitInterval = { startTimeLocal: timeline.startTimeGlobal - lastViewStartTimeLocal, duration: lastViewDuration }
 			let graphFromNode = findLast(timeline._graph.nodes, n => n.title == 'Output')
 			console.log('parsing lines...')
-			parseLines(scriptName, lines, timeline, lastUnitInterval, graphFromNode, babylonSrc)
+			parseLines(scriptName, lines, timeline, lastUnitInterval, graphFromNode)
 				.then(timeline => {
-					//GRAPH
-					/*
 					let timelinePath = `${outputDirectory}/${scriptName}.graph`
 					timelineJson = JSON.stringify(timeline._graph)
-					await writeFile(timelinePath, timelineJson)
-						.
-					let lastTimelineInManifest = null
-					for (let timeline of timelinesManifest) {
-						timeline.startTimeGlobal = lastTimelineInManifest ? lastTimelineInManifest.startTimeGlobal + lastTimelineInManifest.duration : 0
-						lastTimelineInManifest = timeline
-					}*/
-					//let manifest = JSON.stringify(timelinesManifest.map(t => ({ scriptName: t.scriptName, sceneId: t.sceneId, startTimeGlobal: t.startTimeGlobal, duration: t.duration })))
-					//writeFile(`${outputDirectory}/manifest.json`, manifest)
-					//	.then(_ => res(timeline))
-					//BABYLON SRC
-					babylonSrc = babylonSrc.replace('"@REPLACE WITH SCENE LOGIC@"', timeline._babylonLogicSrc)
-					babylonSrc = babylonSrc.replace('"@REPLACE WITH VARIABLE LIST@"', timeline._babylonSceneObjects)
-					timelinePath = `${outputDirectory}/${scriptName}.ts`
-					timelineJson = JSON.stringify(timeline._babylonLogicSrc)
-					await writeFile(timelinePath, timelineJson)
-					return timeline
+					writeFile(timelinePath, timelineJson)
+						.then(_ => {
+							let lastTimelineInManifest = null
+							for (let timeline of timelinesManifest) {
+								timeline.startTimeGlobal = lastTimelineInManifest ? lastTimelineInManifest.startTimeGlobal + lastTimelineInManifest.duration : 0
+								lastTimelineInManifest = timeline
+							}
+							//let manifest = JSON.stringify(timelinesManifest.map(t => ({ scriptName: t.scriptName, sceneId: t.sceneId, startTimeGlobal: t.startTimeGlobal, duration: t.duration })))
+							//writeFile(`${outputDirectory}/manifest.json`, manifest)
+							//	.then(_ => res(timeline))
+
+							res(timeline)
+						})
 				})
 		})
 	})
@@ -149,15 +149,9 @@ class Timeline {
 	CurrTrackId = 0
 	CurrGroupId = 0
 	NextGroupId = 1
-	//BABYLON 
-	// graph generation support
 	_graph = { nodes: [], links: [], last_link_id: -1, last_node_id: -1 }
 	_nodeHistory = []
 	_nextViewId = -1
-	// code generation support
-	_babylonLogicSrc = '/** IMPROV AUTO GENERATED **/'
-	_babylonSceneObjects = '/** IMPROV AUTO GENERATED **/'
-	_babylonSceneObjects = {}
 
 	constructor(readScriptFileAndParse, sceneId, scriptName) {
 		this.sceneId = sceneId
@@ -308,7 +302,6 @@ class Timeline {
 		this.conds.push(cond)
 		return this.conds.length - 1
 	}
-
 	addView(startTimeLocal, duration, viewType, movementType, viewSource, viewTarget, mode, parentView) {
 		let viewInterval = this._addInterval(startTimeLocal, duration, ScriptTypes.VIEW, this.views.length)
 
@@ -321,14 +314,6 @@ class Timeline {
 			viewSource,
 			viewTarget
 		})
-
-		if (viewSource && this._babylonSceneObjects.hasOwnProperty(viewSource) === false) {
-			this._babylonSceneObjects += `\n${viewSource}  :  AbstractMesh`
-		}
-
-		if (viewTarget && this._babylonSceneObjects.hasOwnProperty(viewSource) === false) {
-			this._babylonSceneObjects += `\n${viewTarget}  :  AbstractMesh`
-		}
 
 		switch (mode) {
 			case ViewModes.LOOP:
@@ -349,7 +334,6 @@ class Timeline {
 	addAction(startTimeLocal, duration, speaker, text) {
 		let actionInterval = this._addInterval(startTimeLocal, duration, ScriptTypes.ACTION, this.actions.length)
 		this.actions.push({ id: this._getIdx(ScriptTypes.ACTION), speaker, text })
-
 		return actionInterval
 	}
 
@@ -372,22 +356,14 @@ class Timeline {
 			//link lhs/rhs to AND/OR node inputs
 			let lhs = this.createConditionNodes(condExp.lhs, logicNode, 0, 0)
 			logicNode.inputs[0].link = lhs.properties.toLink
-
-			//BABYLON
-			this._babylonLogicSrc += ` ${type === CondTypes.AND ? '&&' : '|| '} `
-
 			let rhs = condExp.rhs.root ? null : this.createConditionNodes(condExp.rhs, logicNode, 0, 1)
 			logicNode.inputs[1].link = rhs.properties.toLink
 			//link to graph output and return
 			logicNode.properties.toLink = this.makeLink(logicNode, originSlot, graphToNode, targetSlot, 'boolean')
 
-			//BABYLON
-			this._babylonLogicSrc += `){`
-
 			return logicNode
 		}
 
-		//GRAPH
 		//create node
 		let booleanNode = this.createNodeGroup(NodeTypes[type]).node
 		let booleanNodeOutputNode = findLast(booleanNode.nodes, n => n.type.includes('logic'))
@@ -402,12 +378,6 @@ class Timeline {
 
 		//let linkType = graphToNode.type.includes('logic') ? 'boolean' : -1
 		booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, 2, graphToNode, targetSlot, "boolean")
-
-		//BABYLON
-		if (viewTarget && this._babylonSceneObjects.hasOwnProperty(viewSource) === false) {
-			this._babylonSceneObjects += `\n${fullPath}  :  AbstractMesh`
-		}
-		this._babylonLogicSrc += `pickMeshName === ${fullPath}`
 
 		//link to graph output and return
 		return booleanNodeOutputNode
@@ -528,10 +498,6 @@ class Timeline {
 				gotoInterval.line = lineText
 			}
 
-			//BABYLON CODE
-			this._babylonLogicSrc += `
-			gotoScript(${scriptName})`
-
 		} else if (stmt.rule == 'view') {
 			let viewInterval = this.addView(
 				startTimeLocal,
@@ -565,7 +531,6 @@ class Timeline {
 			//console.log(interval)
 			interval = viewInterval
 
-			//GRAPH
 			let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.VIEW, lastViewOutputNode)
 			node = newNode
 			// create the view id for this view
@@ -579,19 +544,6 @@ class Timeline {
 			let mainCameraNode = findLast(newNode.nodes, n => n.type == "camera/camera")
 			mainCameraNode.properties.var_name = `camera_${viewId}`
 
-			// BABYLON CODE
-			this.CurrGroupId._babylonLogicSrc += `
-			playView(
-				${stmt.viewType},
-				${viewInterval.duration},
-				${cameraFOV},
-				${cameraFrom},
-				${cameraTo},
-				${cameraLoopMode},
-				${cameraEasing},
-				${nextView},
-			  )`
-
 		} else if (stmt.rule == 'action') {
 			let isDefaultTime = line => !line.duration || line.duration === 0
 			let noNaN = n => !n ? 0 : n
@@ -599,7 +551,6 @@ class Timeline {
 			let durationOfUntimedLines = lastUnitInterval.duration - totalDurationOfTimedLines
 			let defaultTime = durationOfUntimedLines === 0 ? lastUnitInterval.duration : Math.round(durationOfUntimedLines / stmt.lines.filter(a => isDefaultTime(a)).length)
 
-			//TIMELINE
 			let actionDuration = 0
 			for (let line of stmt.lines) {
 				//set default time to last view length
@@ -612,29 +563,15 @@ class Timeline {
 					action.line = lineText
 				}
 			}
-			//GRAPH
 			let lastInputNode = findLast(this._graph.nodes, n => n.title == "Input")
 			let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.ACTION, lastInputNode)
 			// rename the animation so that we can reference multiple animations
 			let animationNode = findLast(newNode.nodes, n => n.type == "animation/animation_group")
 			animationNode.properties.var_name = `animationGroup_${this.getLastViewId()}`
-
-			//BABYLON CODE
-			this._babylonLogicSrc += `
-			playAction(
-				group_${this.CurrGroupId}_track_${this.CurrTrackId}_animationGroup_${action.id},
-				${false},
-				() => {
-					//on animation end
-				}
-			  )`
-
-			//timeline interval
 			node = newNode
 			interval = ({ startTimeLocal: startTimeLocal, duration: actionDuration })
 
 		} else if (stmt.rule == 'cond') {
-			//TIMELINE
 			let duration = Number.isInteger(stmt.duration) ? stmt.duration : lastUnitInterval.duration
 			let toTimeLocal = this.duration
 			let jmp = this.addJump(
@@ -648,10 +585,7 @@ class Timeline {
 			if (DEBUG) {
 				jmp.line = lineText
 			}
-			//BABYLON CODE
-			this._babylonLogicSrc += `
-				if(`
-			//GRAPH
+
 			//connect the new boolean logic node group to the view's condition node
 			let toNode = findLast(this._graph.nodes, n => n.title == "Cond")
 			let booleanNode = this.createConditionNodes(stmt, toNode, 0, 2)
@@ -662,9 +596,6 @@ class Timeline {
 
 			let condViewIdNode = findLast(this._graph.nodes, n => n.title == "CondViewIdVal")
 			condViewIdNode.properties.value = lastCondViewId
-
-			//BABYLON CODE
-			this._babylonLogicSrc += `){`
 
 			node = toNode
 
@@ -696,15 +627,6 @@ class Timeline {
 		}
 		++this.CurrTrackId
 
-		// BABYLON CODE
-		this.CurrGroupId._babylonLogicSrc += `
-		playTransition(
-			${stmt.transitionType},
-			${stmt.transitionTime},
-			${this._nextViewId - 1},
-			${this._nextViewId},
-		  )`
-
 		return { interval, node }
 	}
 }
@@ -717,7 +639,6 @@ async function parseLines(
 	timeline,
 	lastUnitInterval,
 	lastViewOutputNode,
-	babylonSrc,
 	lastCondViewId,
 	lineCursor = 0,
 	prevStmt = undefined,
@@ -822,10 +743,6 @@ async function parseLines(
 						jump.toTimeLocal = startTimeLocal
 					}
 				}
-
-				//BABYLON CODE
-				this._babylonLogicSrc += `
-					}`
 
 				timeline = env.timeline
 				lastDefinedDuration = env.lastDefinedDuration

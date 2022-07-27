@@ -5,6 +5,7 @@ import { Editor, Tools } from 'babylonjs-editor'
 
 import { LGraph, LiteGraph } from 'litegraph.js'
 import { generateGraphDataObjects } from './scriptParser'
+import { generateGraphDataObjects } from './graphScriptParser'
 
 export interface IToolbarProps {
   /**
