@@ -6,6 +6,7 @@
 */
 const nearley = require('nearley')
 const grammar = require('./grammar')
+var os = require("os");
 const fs = require('fs')
 const util = require('util')
 const readFile = util.promisify(fs.readFile)
@@ -62,9 +63,11 @@ var graphs = {};
 var inputDirectory = undefined
 var nextTimelineStartTimeGlobal = 0
 
-let nodeTemplateText = await readFile('./templates/babylon-node-template.ts', { encoding: 'utf8' }, (err, rawText) => rawText)
+let nodeTemplateText = ''
 
 async function generateGraphDataObjects(rootImprovScriptPath, outputDir) {
+	var appRoot = process.env.PWD;
+	nodeTemplateText = await readFile(`${appRoot}/../improv-plugin/src/templates/babylon-node-template.ts`, { encoding: 'utf8' })
 	let extension = rootImprovScriptPath.split('.').pop()
 	if (extension !== "imp") {
 		console.error("File extension not supported. Improv script required.")
@@ -79,8 +82,8 @@ module.exports.generateGraphDataObjects = generateGraphDataObjects
 
 async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) {
 
-	let babylonSrc = nodeTemplateText.replace('NodeScriptName', scriptName)
-	babylonSrc = babylonSrc.replace('SceneClassName', `$_{scriptName}`)
+	const scriptName = scriptPath.slice(scriptPath.lastIndexOf('/') + 1, scriptPath.lastIndexOf('.'))
+	let babylonSrc = nodeTemplateText.replace(new RegExp('SceneClassName', 'g'), scriptName)
 
 	return new Promise(res => {
 		readFile(scriptPath, { encoding: 'utf8' }, (err, rawText) => {
@@ -93,7 +96,7 @@ async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) 
 				inputDirectory = scriptPath.slice(0, scriptPath.lastIndexOf('/'))
 				inputDirectory = inputDirectory.slice(0, inputDirectory.lastIndexOf('/') + 1)
 			}
-			let scriptName = scriptPath.slice(scriptPath.lastIndexOf('/') + 1, scriptPath.lastIndexOf('.'))
+
 			let timeline = new Timeline(readScriptFileAndParse, scriptName, scriptName)
 			let lastViewStartTimeLocal = lastView ? lastView.startTimeGlobal : 0
 			let lastViewDuration = lastView ? lastView.duration : 0
@@ -117,12 +120,13 @@ async function readScriptFileAndParse(scriptPath, lastView, isFirstRun = false) 
 					//writeFile(`${outputDirectory}/manifest.json`, manifest)
 					//	.then(_ => res(timeline))
 					//BABYLON SRC
-					babylonSrc = babylonSrc.replace('"@REPLACE WITH SCENE LOGIC@"', timeline._babylonLogicSrc)
-					babylonSrc = babylonSrc.replace('"@REPLACE WITH VARIABLE LIST@"', timeline._babylonSceneObjects)
-					timelinePath = `${outputDirectory}/${scriptName}.ts`
-					timelineJson = JSON.stringify(timeline._babylonLogicSrc)
-					await writeFile(timelinePath, timelineJson)
-					return timeline
+					babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCENE LOGIC@'`, timeline._babylonLogicSrc)
+					babylonSrc = babylonSrc.replace(`'@REPLACE WITH VARIABLE LIST@'`, timeline._babylonSceneObjectsSrc)
+					//write scene loading list
+					babylonSrc = babylonSrc.replace(`'@REPLACE WITH LOAD MESH LIST@'`, `this.${Object.keys(timeline._babylonSceneObjects).join(", this.")}`)
+					timelinePath = `${outputDirectory}/${scriptName}.gen.ts`
+					writeFile(timelinePath, babylonSrc)
+						.then(_ => res(timeline))
 				})
 		})
 	})
@@ -156,7 +160,7 @@ class Timeline {
 	_nextViewId = -1
 	// code generation support
 	_babylonLogicSrc = '/** IMPROV AUTO GENERATED **/'
-	_babylonSceneObjects = '/** IMPROV AUTO GENERATED **/'
+	_babylonSceneObjectsSrc = '/** IMPROV AUTO GENERATED **/'
 	_babylonSceneObjects = {}
 
 	constructor(readScriptFileAndParse, sceneId, scriptName) {
@@ -166,7 +170,7 @@ class Timeline {
 		//function to read a new script
 		timelinesManifest.push(this)
 		this.startTimeGlobal = nextTimelineStartTimeGlobal
-		this._graph = this.createNodeGroup(NodeTypes.ROOT).node
+		//this._graph = this.createNodeGroup(NodeTypes.ROOT).node
 	}
 	_getIdx(type) {
 		if (!this._indices.hasOwnProperty(type)) {
@@ -322,14 +326,6 @@ class Timeline {
 			viewTarget
 		})
 
-		if (viewSource && this._babylonSceneObjects.hasOwnProperty(viewSource) === false) {
-			this._babylonSceneObjects += `\n${viewSource}  :  AbstractMesh`
-		}
-
-		if (viewTarget && this._babylonSceneObjects.hasOwnProperty(viewSource) === false) {
-			this._babylonSceneObjects += `\n${viewTarget}  :  AbstractMesh`
-		}
-
 		switch (mode) {
 			case ViewModes.LOOP:
 				this.addJump(startTimeLocal, duration, null, startTimeLocal, this.CurrGroupId, JumpModes.IMMEDIATE)
@@ -366,51 +362,64 @@ class Timeline {
 		//if logic node, call recurisively to get lhs/rhs links
 		if (type == CondTypes.AND || type == CondTypes.OR) {
 			//create AND/OR node
+			/*
 			let logicNode = this.createNodeGroup(type).node.nodes[0]
 			logicNode.pos["0"] = graphToNode.pos["0"]
 			logicNode.pos["1"] = graphToNode.pos["1"] - 100
+			*/
 			//link lhs/rhs to AND/OR node inputs
-			let lhs = this.createConditionNodes(condExp.lhs, logicNode, 0, 0)
-			logicNode.inputs[0].link = lhs.properties.toLink
+			let lhs = this.createConditionNodes(condExp.lhs, null, 0, 0)
+			//logicNode.inputs[0].link = lhs.properties.toLink
 
 			//BABYLON
-			this._babylonLogicSrc += ` ${type === CondTypes.AND ? '&&' : '|| '} `
+			this._babylonLogicSrc += ` ${type === CondTypes.AND ? '&&' : '||'}`
 
-			let rhs = condExp.rhs.root ? null : this.createConditionNodes(condExp.rhs, logicNode, 0, 1)
-			logicNode.inputs[1].link = rhs.properties.toLink
+			let rhs = condExp.rhs.root ? null : this.createConditionNodes(condExp.rhs, null, 0, 1)
+			//logicNode.inputs[1].link = rhs.properties.toLink
 			//link to graph output and return
-			logicNode.properties.toLink = this.makeLink(logicNode, originSlot, graphToNode, targetSlot, 'boolean')
+			//logicNode.properties.toLink = this.makeLink(logicNode, originSlot, graphToNode, targetSlot, 'boolean')
 
 			//BABYLON
 			this._babylonLogicSrc += `){`
 
-			return logicNode
+			//return logicNode
+			return condExp
 		}
-
-		//GRAPH
-		//create node
-		let booleanNode = this.createNodeGroup(NodeTypes[type]).node
-		let booleanNodeOutputNode = findLast(booleanNode.nodes, n => n.type.includes('logic'))
-		for (let n of booleanNode.nodes) {
-			n.pos["0"] += graphToNode.pos["0"]
-			n.pos["1"] += graphToNode.pos["1"] + 100
-		}
-		//set subject's id value
-		let varNameNode = findLast(booleanNode.nodes, n => n.title == "VarName")
-		varNameNode.title = fullPath
-		varNameNode.properties.value = fullPath
-
-		//let linkType = graphToNode.type.includes('logic') ? 'boolean' : -1
-		booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, 2, graphToNode, targetSlot, "boolean")
-
+		/*
+				//GRAPH
+				//create node
+				let booleanNode = this.createNodeGroup(NodeTypes[type]).node
+				let booleanNodeOutputNode = findLast(booleanNode.nodes, n => n.type.includes('logic'))
+				for (let n of booleanNode.nodes) {
+					n.pos["0"] += graphToNode.pos["0"]
+					n.pos["1"] += graphToNode.pos["1"] + 100
+				}
+				//set subject's id value
+				let varNameNode = findLast(booleanNode.nodes, n => n.title == "VarName")
+				varNameNode.title = fullPath
+				varNameNode.properties.value = fullPath
+		
+				//let linkType = graphToNode.type.includes('logic') ? 'boolean' : -1
+				booleanNodeOutputNode.properties.toLink = this.makeLink(booleanNodeOutputNode, 2, graphToNode, targetSlot, "boolean")
+		*/
 		//BABYLON
-		if (viewTarget && this._babylonSceneObjects.hasOwnProperty(viewSource) === false) {
-			this._babylonSceneObjects += `\n${fullPath}  :  AbstractMesh`
-		}
-		this._babylonLogicSrc += `pickMeshName === ${fullPath}`
+		this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(fullPath)
+		this._babylonLogicSrc += `pickMeshName === '${fullPath}'`
 
 		//link to graph output and return
-		return booleanNodeOutputNode
+		//return booleanNodeOutputNode
+		return condExp
+	}
+
+	generateSceneObjectVariable(name) {
+		let str = ''
+		if (this._babylonSceneObjects.hasOwnProperty(name) === false) {
+			this._babylonSceneObjects[name] = true
+			str += `
+			@visibleInInspector("string", "${name}", "assets/root/${name}.glb")
+			${os.EOL}${name}  :  string`
+		}
+		return str
 	}
 
 	createNodeGroup(nodeType, graphFromNode, originSlot = 0, targetSlot = 0, linkType = -1) {
@@ -529,8 +538,7 @@ class Timeline {
 			}
 
 			//BABYLON CODE
-			this._babylonLogicSrc += `
-			gotoScript(${scriptName})`
+			this._babylonLogicSrc += `this.gotoScript(${scriptName})${os.EOL}`
 
 		} else if (stmt.rule == 'view') {
 			let viewInterval = this.addView(
@@ -566,6 +574,7 @@ class Timeline {
 			interval = viewInterval
 
 			//GRAPH
+			/*
 			let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.VIEW, lastViewOutputNode)
 			node = newNode
 			// create the view id for this view
@@ -578,19 +587,38 @@ class Timeline {
 			// rename the camera so that we can reference multiple cameras
 			let mainCameraNode = findLast(newNode.nodes, n => n.type == "camera/camera")
 			mainCameraNode.properties.var_name = `camera_${viewId}`
-
+*/
 			// BABYLON CODE
-			this.CurrGroupId._babylonLogicSrc += `
-			playView(
-				${stmt.viewType},
-				${viewInterval.duration},
-				${cameraFOV},
-				${cameraFrom},
-				${cameraTo},
+			let viewSourceFullPath = null
+			let viewTargetFullPath = null
+			if (stmt.viewSource) {
+				viewSourceFullPath = (stmt.viewSource.root.trim() + stmt.viewSource.path.map(p => p.trim())).replace(' ', '_')
+				this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(viewSourceFullPath)
+
+			}
+
+			if (stmt.viewTarget) {
+				viewTargetFullPath = (stmt.viewTarget.root.trim() + stmt.viewTarget.path.map(p => p.trim())).replace(' ', '_')
+				this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(viewTargetFullPath)
+			}
+			/*
+			viewType: number,
+			viewDuration: number,
+			cameraMovementType: string,
+			cameraFOV: number,
+			cameraFromMeshName: string,
+			cameraLookAtName: string,
+			cameraLoopMode: number,
+			onDone: any,
+			*/
+			//TODO: calculate fov and cameraTo
+			const cameraFOV = 50.0
+			this._babylonLogicSrc += `${os.EOL}this.playView("${stmt.viewType}",${viewInterval.duration},'${stmt.viewMovement}',${cameraFOV},'${viewSourceFullPath}','${viewTargetFullPath}',0,null)`
+			/* TODO:
 				${cameraLoopMode},
 				${cameraEasing},
 				${nextView},
-			  )`
+				*/
 
 		} else if (stmt.rule == 'action') {
 			let isDefaultTime = line => !line.duration || line.duration === 0
@@ -613,24 +641,23 @@ class Timeline {
 				}
 			}
 			//GRAPH
+			/*
 			let lastInputNode = findLast(this._graph.nodes, n => n.title == "Input")
-			let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.ACTION, lastInputNode)
+			//let { node: newNode, linkId } = this.createNodeGroup(NodeTypes.ACTION, lastInputNode)
 			// rename the animation so that we can reference multiple animations
 			let animationNode = findLast(newNode.nodes, n => n.type == "animation/animation_group")
 			animationNode.properties.var_name = `animationGroup_${this.getLastViewId()}`
-
+*/
 			//BABYLON CODE
-			this._babylonLogicSrc += `
-			playAction(
-				group_${this.CurrGroupId}_track_${this.CurrTrackId}_animationGroup_${action.id},
-				${false},
-				() => {
-					//on animation end
-				}
-			  )`
+			/*
+				actionName: string,
+				isLooping: boolean = false,
+				nextActionName: string = ''
+			*/
+			this._babylonLogicSrc += `${os.EOL}this.playAction('group_${this.CurrGroupId}_track_${this.CurrTrackId}_animationGroup_${this.actions.length}',${false},() => {})`
 
 			//timeline interval
-			node = newNode
+			//node = newNode
 			interval = ({ startTimeLocal: startTimeLocal, duration: actionDuration })
 
 		} else if (stmt.rule == 'cond') {
@@ -649,9 +676,9 @@ class Timeline {
 				jmp.line = lineText
 			}
 			//BABYLON CODE
-			this._babylonLogicSrc += `
-				if(`
+			this._babylonLogicSrc += `${os.EOL}if(`
 			//GRAPH
+			/*
 			//connect the new boolean logic node group to the view's condition node
 			let toNode = findLast(this._graph.nodes, n => n.title == "Cond")
 			let booleanNode = this.createConditionNodes(stmt, toNode, 0, 2)
@@ -662,11 +689,16 @@ class Timeline {
 
 			let condViewIdNode = findLast(this._graph.nodes, n => n.title == "CondViewIdVal")
 			condViewIdNode.properties.value = lastCondViewId
-
-			//BABYLON CODE
-			this._babylonLogicSrc += `){`
-
 			node = toNode
+*/
+			//BABYLON CODE
+			//recursively parse expressions
+			this.createConditionNodes(stmt, null, 0, 2)
+			let isParenthesisCloseNeeded = this._babylonLogicSrc[this._babylonLogicSrc.length - 1] !== '{'
+			if (isParenthesisCloseNeeded) {
+				this._babylonLogicSrc += `){${os.EOL}`
+			}
+
 
 		} else if (stmt.rule == 'transition') {
 			this.addTransition(stmt.transitionTime, stmt.transitionType, lastUnitInterval)
@@ -693,17 +725,11 @@ class Timeline {
 			} else {
 				interval = ({ startTimeLocal: lastUnitInterval.startTimeLocal, duration: lastUnitInterval.duration })
 			}
+
+			// BABYLON CODE
+			this._babylonLogicSrc += `${os.EOL}this.playTransition(${stmt.transitionType},${stmt.transitionTime},${this._nextViewId - 1},${this._nextViewId})`
 		}
 		++this.CurrTrackId
-
-		// BABYLON CODE
-		this.CurrGroupId._babylonLogicSrc += `
-		playTransition(
-			${stmt.transitionType},
-			${stmt.transitionTime},
-			${this._nextViewId - 1},
-			${this._nextViewId},
-		  )`
 
 		return { interval, node }
 	}
@@ -758,38 +784,7 @@ async function parseLines(
 
 			line = line.trim()
 
-			if (isTabIncreased(stmt, prevStmt) && stmt.rule == 'cond') {
-
-				lastUnitInterval.originalDuration = lastUnitInterval.originalDuration ? lastUnitInterval.originalDuration : lastUnitInterval.duration
-
-				if (!lastUnitInterval.skipInterval) {
-					let env = envs[envs.length - 1]
-					let toTimeLocal = env ? env.lastUnitInterval.startTimeLocal : lastUnitInterval.startTimeLocal
-					lastUnitInterval.skipInterval = timeline.addJump(
-						nextIntervalStartTimeLocal,
-						DELAY,
-						null,
-						toTimeLocal,
-						timeline.CurrGroupId,
-						JumpModes.TRANSITION)
-				}
-				nextIntervalStartTimeLocal = timeline.duration
-				lastCondViewId = timeline.getLastViewId()
-
-				envs.push({
-					timeline,
-					nextIntervalStartTimeLocal,
-					lastDefinedDuration,
-					lastUnitInterval,
-					stmt,
-					prevStmt,
-					timelineCurrTrackId: timeline.CurrTrackId,
-					timelineCurrGroupId: timeline.CurrGroupId,
-					lastViewNode: lastViewOutputNode,
-					lastCondViewId
-				})
-			}
-			else if (isTabDecreased(stmt, prevStmt)) {
+			if (isTabDecreased(stmt, prevStmt)) {
 				let startTimeLocal = -1
 				let currViewEnd = lastUnitInterval.startTimeLocal + lastUnitInterval.duration
 				let returnJumpTimes = [currViewEnd]
@@ -798,12 +793,15 @@ async function parseLines(
 				//don't pop the parent scope since it does't get reintroduced on consecutive conditions
 				let env = envs[envs.length - 1]
 
+				//BABYLON CODE
 				while (depth >= stmt.depth) {
-					if (stmt.rule == 'cond') {
-						env = envs.length == 1 || depth - 1 <= stmt.depth ? envs[envs.length - 1] : envs.pop()
-						returnJumpTimes.push(env.lastUnitInterval.startTimeLocal + env.lastUnitInterval.duration)
+					if (isOdd(depth)) {
+						timeline._babylonLogicSrc += `${os.EOL}
+								//${env.line}
+								}${os.EOL}`
+						env = envs.pop()
 					}
-					depth -= 1
+					--depth
 				}
 				startTimeLocal = env.lastUnitInterval.startTimeLocal + env.lastUnitInterval.duration
 				if (startTimeLocal < 0) {
@@ -823,10 +821,6 @@ async function parseLines(
 					}
 				}
 
-				//BABYLON CODE
-				this._babylonLogicSrc += `
-					}`
-
 				timeline = env.timeline
 				lastDefinedDuration = env.lastDefinedDuration
 				lastUnitInterval = env.lastUnitInterval
@@ -835,6 +829,39 @@ async function parseLines(
 				lastViewOutputNode = env.lastViewNode
 				lastCondViewId = env.lastCondViewId
 			}
+			if (stmt.rule == 'cond') {
+
+				lastUnitInterval.originalDuration = lastUnitInterval.originalDuration ? lastUnitInterval.originalDuration : lastUnitInterval.duration
+
+				if (!lastUnitInterval.skipInterval) {
+					let env = envs[envs.length - 1]
+					let toTimeLocal = env ? env.lastUnitInterval.startTimeLocal : lastUnitInterval.startTimeLocal
+					lastUnitInterval.skipInterval = timeline.addJump(
+						nextIntervalStartTimeLocal,
+						DELAY,
+						null,
+						toTimeLocal,
+						timeline.CurrGroupId,
+						JumpModes.TRANSITION)
+				}
+				nextIntervalStartTimeLocal = timeline.duration
+				lastCondViewId = timeline.getLastViewId()
+
+				envs.push({
+					timeline,
+					line,
+					nextIntervalStartTimeLocal,
+					lastDefinedDuration,
+					lastUnitInterval,
+					stmt,
+					prevStmt,
+					timelineCurrTrackId: timeline.CurrTrackId,
+					timelineCurrGroupId: timeline.CurrGroupId,
+					lastViewNode: lastViewOutputNode,
+					lastCondViewId
+				})
+			}
+
 			lintStmt(scriptName, stmt, prevStmt, line, lastLine, lineCursor)
 
 			if (stmt.duration) {
@@ -959,6 +986,16 @@ async function parseLines(
 		}
 		*/
 	}
+
+	//BABYLON CODE
+	while (envs.length > 0) {
+		let env = envs[envs.length - 1]
+		timeline._babylonLogicSrc += `${os.EOL}
+		//${env.line}
+		}${os.EOL}`
+		envs.pop()
+	}
+
 	let mergedTimeline = timelinesManifest.find(t => t.scriptName == originalTimeline.scriptName)
 	let returnToParentScope = mergedTimeline.addReturn(nextIntervalStartTimeLocal, mergedTimeline.scriptName)
 
@@ -1030,7 +1067,7 @@ function parseLine(lineText) {
 }
 
 function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
-	let lines = `\n${lineCursor - 1}:${lastLine}\n>>${lineCursor}:${line}`
+	let lines = `${os.EOL}${lineCursor - 1}:${lastLine}${os.EOL}>>${lineCursor}:${line}`
 
 	if (prevStmt === null) {
 		if (stmt.depth > 0) {
@@ -1138,7 +1175,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 
 	if (isTabIncreased(stmt, prevStmt)) {
 		if (stmt.depth - prevStmt.depth > 1) {
-			throw `[${filePath}] Error: statement depth greater than parent${lines}`
+			//throw `[${filePath}] Error: statement depth greater than parent${lines}`
 		}
 		if (stmt.rule !== 'cond' && prevStmt.rule !== 'cond') {
 			throw `[${filePath}] Error: statement depth increase may only come before or after a condition${lines}`
@@ -1147,7 +1184,6 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 	if (isTabDecreased(stmt, prevStmt)) {
 		if (prevStmt.rule === 'action' || prevStmt.rule === 'cond') {
 			let depth = prevStmt.depth - stmt.depth
-			let isOdd = n => n % 2
 			if (stmt.rule === 'cond') {
 				if (!isOdd(depth)) {
 					throw `[${filePath}] Error: statement depth decreased and does not align with a parent action's conditions${lines}`
@@ -1160,6 +1196,8 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 		}
 	}
 }
+
+function isOdd(n) { return n % 2 }
 
 function findLast(items, predicate) {
 	for (var i = items.length - 1; i >= 0; i--) {

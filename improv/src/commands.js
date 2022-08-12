@@ -1,6 +1,6 @@
 const { jsonToXStateMachine, impToStream: impToXSStream } = require("./xsParser")
 const { impToTimeline } = require("./timelineParser")
-const { generateGraphDataObjects } = require("../../improv-plugin/src/scriptParser")
+const { generateGraphDataObjects } = require('../../improv-plugin/src/scriptParser')
 const util = require('util')
 const fs = require('fs')
 

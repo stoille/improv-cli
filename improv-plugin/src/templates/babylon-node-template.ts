@@ -1,16 +1,17 @@
-import { ImprovScene } from './improv-scene'
+import { ImprovScene } from '../../src/improv/improv-scene'
 import { Node } from '@babylonjs/core/node'
-import { Scene } from '@babylonjs/core'
+import { Scene, SceneLoader } from '@babylonjs/core'
+import { visibleInInspector, VisiblityPropertyType } from './decorators'
 
-class SceneClassName extends ImprovScene {
+class scene_SceneClassName extends ImprovScene {
   constructor(babylonMainScene: Scene, improvSceneName: string) {
     super(babylonMainScene, improvSceneName)
   }
 
   runSceneLogic(): void {
-    const pick = this._scene.pick(
-      this._scene.pointerX,
-      this._scene.pointerY,
+    const pick = this._babylonMainScene.pick(
+      this._babylonMainScene.pointerX,
+      this._babylonMainScene.pointerY,
       undefined,
       false,
     )
@@ -22,26 +23,8 @@ class SceneClassName extends ImprovScene {
   }
 }
 
-/**
- * This represents a script that is attached to a node in the editor.
- * Available nodes are:
- *      - Meshes
- *      - Lights
- *      - Cameas
- *      - Transform nodes
- *
- * You can extend the desired class according to the node type.
- * Example:
- *      export default class MyMesh extends Mesh {
- *          public onUpdate(): void {
- *              this.rotation.y += 0.04;
- *          }
- *      }
- * The function "onInitialize" is called immediately after the constructor is called.
- * The functions "onStart" and "onUpdate" are called automatically.
- */
-export default class NodeScriptName extends Node {
-  _improvScene: SceneClassName
+export default class SceneClassName extends Node {
+  _improvScene: scene_SceneClassName
 
   //game objects that the scene logic acts on
   '@REPLACE WITH VARIABLE LIST@'
@@ -58,9 +41,9 @@ export default class NodeScriptName extends Node {
    * This function is called immediatly after the constructor has been called.
    */
   public onInitialize(): void {
-    this._improvScene = new SceneClassName(this._scene, 'NodeScriptName', [
-      'NodeScriptName',
-    ])
+    this._improvScene = new scene_SceneClassName(this._scene, 'SceneClassName')
+	//load all meshses
+	SceneLoader.ImportMeshAsync(['@REPLACE WITH LOAD MESH LIST@'], "assets/root/", "root.babylon");
   }
 
   /**
