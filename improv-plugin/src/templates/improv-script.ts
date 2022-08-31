@@ -1,5 +1,6 @@
 import {
 	AssetContainer,
+	AssetsManager,
 	Camera,
 	Scene,
 	SceneLoader,
@@ -13,89 +14,108 @@ import {
 	FollowCamera,
   } from '@babylonjs/core'
   
-  enum ViewStatus {
+  export enum ViewStatus {
 	UNPLAYED,
 	PLAYING,
 	BACKGROUND,
 	DONE,
   }
   
-  export class ImprovScene {
-	// babylon scene to add to and remove assetContainers
+  interface AssetContainerRef {
+	count: number
+	container: AssetContainer
+  }
+  
+  export class ImprovScript {
+	static readonly AssetLocation: string = 'https://models.babylonjs.com/'
+  
+	// babylon main scene to add to and remove assetContainers
 	_babylonMainScene: Scene
   
 	_camera: Camera
   
-	// babylon scene's assets
-	public BabylonSceneAssetContainer: AssetContainer
+	//babylon's assets loader
+	public static AssetsManager: AssetsManager
+	// the names of scenes referenced by this script that will be loaded
+	private _referencedScenes: string[]
+	// the names of objects referenced by this script that will be loaded
+	private _objectNamesToLoad: string[]
   
-	// this scene's name
-	private _improvSceneName: string
-	// all loaded scees
-	public static readonly AllScenes: { [sceneName: string]: ImprovScene } = {}
+	// this script's name
+	private _name: string
+	// all loaded scripts
+	public static readonly LoadedScripts: {
+	  [sceneName: string]: ImprovScript
+	} = {}
+	// all loaded scenes
+	public static readonly LoadedAssetContainers: {
+	  [sceneName: string]: AssetContainerRef
+	} = {}
 	// all states
 	public static readonly AllMarkers: { [markerName: string]: boolean } = {}
   
-	static readonly MAX_LINKED_SCENES: number = 6
-	private _linkedSceneNames: string[]
 	IsActive: boolean
   
-	public constructor(babylonMainScene: Scene, improvSceneName: string) {
-	  this._babylonMainScene = babylonMainScene
-	  this._camera = babylonMainScene.getCameraByName('MainCamera')
-	  this._improvSceneName = improvSceneName
-	  ImprovScene.AllScenes[improvSceneName] = this
+	public constructor(
+	  mainScene: Scene,
+	  scriptName: string,
+	  sceneNamesToLoad: string[],
+	  objectNamesToLoad: string[],
+	) {
+	  this._name = scriptName
+	  ImprovScript.LoadedScripts[this._name] = this
+	  this._babylonMainScene = mainScene
+	  this._camera = mainScene.getCameraByName('MainCamera')
+	  this._referencedScenes = sceneNamesToLoad
+	  this._objectNamesToLoad = objectNamesToLoad
+	  if (!ImprovScript.AssetsManager) {
+		ImprovScript.AssetsManager = new AssetsManager(mainScene)
+	  }
 	}
   
 	protected gotoScript(scriptName: string): void {
 	  // reset goto path since the scene is loading
-	  let newScene = ImprovScene.AllScenes[scriptName]
-	  newScene.loadSceneAssets().then(() => {
-		this.IsActive = false
-  
-		// find scenes to unload
-		let activeScenes = [this._improvSceneName, ...this._linkedSceneNames]
-  
-		// find scenes to deactivate and and unload
-		for (let sceneName in ImprovScene.AllScenes) {
-		  let sceneToUnload = ImprovScene.AllScenes[sceneName]
-		  if (activeScenes.indexOf(sceneToUnload._improvSceneName) === -1) {
-			sceneToUnload.unload()
-		  }
-		}
-	  })
+	  let newScript = ImprovScript.LoadedScripts[scriptName]
+	  newScript.loadSceneAssets()
+	  newScript.IsActive = true
+	  this.IsActive = false
+	  this.decreaseRefsAndUnloadIfNeeded()
 	}
   
-	private async loadSceneAssets(
-	  loadDepth: number = 1,
-	  loadLinkedScenes: boolean = true,
-	): Promise<AssetContainer> {
-	  // load asset container
-	  let container = await SceneLoader.LoadAssetContainerAsync(
-		'./',
-		this._improvSceneName,
-		this._babylonMainScene,
-	  )
-	  // add all asset to existing scene
-	  container.addAllToScene()
-  
-	  // LinkedScenes
-	  this.BabylonSceneAssetContainer = container
-  
-	  // load linked scenes
-	  if (loadLinkedScenes) {
-		for (let sceneName of this._linkedSceneNames) {
-		  let linkedScene = ImprovScene.AllScenes[sceneName]
-		  linkedScene.loadSceneAssets(loadDepth - 1, false)
+	private decreaseRefsAndUnloadIfNeeded() {
+	  for (let sceneNameToUnload of this._referencedScenes) {
+		let assetRef = ImprovScript.LoadedAssetContainers[sceneNameToUnload]
+		assetRef.count -= 1
+		//TODO: more granular control over unloading individual unreferenced objects
+		if (assetRef.count <= 0) {
+		  assetRef.container.removeAllFromScene()
 		}
 	  }
-  
-	  return container
 	}
   
-	private unload() {
-	  this.IsActive = false
-	  this.BabylonSceneAssetContainer.dispose()
+	private loadSceneAssets() {
+	  for (let sceneName of this._referencedScenes) {
+		if (ImprovScript.LoadedAssetContainers.hasOwnProperty(sceneName)) {
+		  ImprovScript.LoadedAssetContainers[sceneName].count += 1
+		} else {
+		  let task = ImprovScript.AssetsManager.addContainerTask(
+			`${sceneName} task`,
+			'',
+			ImprovScript.AssetLocation,
+			`${sceneName}.glb`,
+		  )
+		  task.onSuccess = (task) => {
+			const container = task.loadedContainer
+			ImprovScript.LoadedAssetContainers[sceneName] = {
+			  count: 1,
+			  container,
+			}
+			container.addToScene(
+			  (entity) => this._objectNamesToLoad.findIndex(entity.name) > -1,
+			)
+		  }
+		}
+	  }
 	}
   
 	protected isSelected(subjectName: string): boolean {
@@ -117,14 +137,14 @@ import {
 	  cameraFOV: number,
 	  cameraFromName: string,
 	  cameraLookAtName: string,
-	  cameraLoopMode: number,
-	  onDone: () => void
+	  onUpdate: () => void,
+	  nextPlayView: any,
+	  cameraLooping: boolean = false,
 	): ViewStatus {
-	  let status = this._viewStatuses[viewType]
+	  let viewId = getViewId(viewType, cameraFromName, cameraLookAtName)
+	  let status = this._viewStatuses[viewId]
 	  if (status !== ViewStatus.PLAYING) {
-		status = ViewStatus.PLAYING
-		let viewId = getViewId(viewType,cameraFromName,cameraLookAtName)
-		this._viewStatuses[viewId] = status
+		this._viewStatuses[viewId] = ViewStatus.PLAYING
 		this._camera.fov = cameraFOV
 		const fps = 60
 		const totalFrame = viewDuration / fps
@@ -154,9 +174,9 @@ import {
 		// This attaches the camera to the canvas
 		camera.attachControl(true)
   
-		//TODO: Movement
-		/*
-		let cameraTo = cameraMovementType === 'ZOOM' : cameraFrom 
+		//TODO: Movement based on cameraMovementType
+		let cameraTo = cameraFrom //zoom: this._babylonMainScene.getTransformNodeByName(cameraLookAtName).position
+		let cameraEasing = 1.0 //TODO: movement based on movemenet type
 		let anim = Animation.CreateAndStartAnimation(
 		  'animation', // name
 		  this._camera, // node
@@ -165,17 +185,18 @@ import {
 		  totalFrame, // total frame
 		  cameraFrom, // from
 		  cameraTo, // to
-		  cameraLoopMode, // loop mode
+		  cameraLooping ? 0 : 1, // loop mode
 		  new PowerEase(cameraEasing), // easing function
 		  () => {
 			// on complete
-			this._viewStatuses[viewType] = ViewStatus.DONE
-			onDone()
+			this._viewStatuses[viewId] = ViewStatus.DONE
+			nextPlayView()
 		  },
 		)
-		*/
-		return status
+	  } else if (status == ViewStatus.PLAYING) {
+		onUpdate()
 	  }
+	  return status
 	}
   
 	protected playTransition(
@@ -197,7 +218,7 @@ import {
 	protected playAction(
 	  actionName: string,
 	  isLooping: boolean = false,
-	  onDone: () => void
+	  onDone: () => void,
 	): Nullable<AnimationGroup> {
 	  let animationGroup: Nullable<AnimationGroup> = this._babylonMainScene.getAnimationGroupByName(
 		actionName,
@@ -217,18 +238,21 @@ import {
 	}
   
 	setMarker(markerName: string) {
-	  ImprovScene.AllMarkers[markerName] = true
+	  ImprovScript.AllMarkers[markerName] = true
 	}
   
 	unsetMarker(markerName: string) {
-	  ImprovScene.AllMarkers[markerName] = false
+	  ImprovScript.AllMarkers[markerName] = false
 	}
   
 	// for scene logic
 	runSceneLogic(): void {}
   }
-  function getViewId(viewType: string, cameraFromName: string, cameraLookAtName: string) {
+  function getViewId(
+	viewType: string,
+	cameraFromName: string,
+	cameraLookAtName: string,
+  ) {
 	return `${viewType}_${cameraFromName}_${cameraLookAtName}`
   }
-  
   

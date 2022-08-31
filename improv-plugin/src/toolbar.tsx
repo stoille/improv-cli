@@ -24,7 +24,7 @@ export class Toolbar extends React.Component<IToolbarProps> {
         <MenuItem
           text="Generate Improv Scenes..."
           icon="wrench"
-          onClick={() => this._handleGenerateImprovScenes()}
+          onClick={() => this._handleGenerateImprovScripts()}
         />
         <MenuDivider />
       </Menu>
@@ -34,7 +34,7 @@ export class Toolbar extends React.Component<IToolbarProps> {
   /**
    * Called on the user wants to show the editor's version.
    */
-  private async _handleGenerateImprovScenes(): Promise<void> {
+  private async _handleGenerateImprovScripts(): Promise<void> {
     //Alert.Show("Editor Version", `The version of the editor is: ${this.props.editor._packageJson.version}`);
     console.log('Generating improv scenes...')
     let file = await Tools.ShowOpenFileDialog('Select Improv Manifest')

@@ -1,11 +1,11 @@
-import { ImprovScene } from '../../src/improv/improv-scene'
+import { ImprovScript, ViewStatus } from '../../src/improv/improv-script'
 import { Node } from '@babylonjs/core/node'
-import { Scene, SceneLoader } from '@babylonjs/core'
+import { AssetsManager, Scene, SceneLoader } from '@babylonjs/core'
 import { visibleInInspector, VisiblityPropertyType } from './decorators'
 
-class scene_SceneClassName extends ImprovScene {
-  constructor(babylonMainScene: Scene, improvSceneName: string) {
-    super(babylonMainScene, improvSceneName)
+class scene_SceneClassName extends ImprovScript {
+  constructor(babylonMainScene: Scene, scriptName: string, sceneNamesToLoad: string[], objectNamesToLoad: string[]) {
+    super(babylonMainScene, scriptName, sceneNamesToLoad, objectNamesToLoad)
   }
 
   runSceneLogic(): void {
@@ -25,7 +25,6 @@ class scene_SceneClassName extends ImprovScene {
 
 export default class SceneClassName extends Node {
   _improvScene: scene_SceneClassName
-
   //game objects that the scene logic acts on
   '@REPLACE WITH VARIABLE LIST@'
 
@@ -41,9 +40,7 @@ export default class SceneClassName extends Node {
    * This function is called immediatly after the constructor has been called.
    */
   public onInitialize(): void {
-    this._improvScene = new scene_SceneClassName(this._scene, 'SceneClassName')
-	//load all meshses
-	SceneLoader.ImportMeshAsync(['@REPLACE WITH LOAD MESH LIST@'], "assets/root/", "root.babylon");
+    this._improvScene = new scene_SceneClassName(this._scene, 'SceneClassName', ['@REPLACE WITH SCENE LIST@'], ['@REPLACE WITH LOAD MESH LIST@'])
   }
 
   /**

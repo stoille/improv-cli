@@ -1,31 +1,28 @@
 const { jsonToXStateMachine, impToStream: impToXSStream } = require("./xsParser")
 const { impToTimeline } = require("./timelineParser")
-const { generateGraphDataObjects } = require('../../improv-plugin/src/scriptParser')
+const { generateBabylonScriptParser } = require('../../improv-plugin/src/scriptParser')
 const util = require('util')
 const fs = require('fs')
+var os = require("os");
 
-async function parseScript(filePath, text, ops, parent, lastShot) {
-  let lines = text.split('\n')
+async function parseScript(scriptPath, ops, parent, lastView) {
+  const readFile = util.promisify(fs.readFile)
+  let rawText = await readFile(scriptPath, 'utf8')
+  
+  let lines = rawText.split(os.EOL)
   if (ops.json) {
-    let stream = await impToXSStream(filePath, readScriptFileAndParse, lines, parent)
+    let stream = await impToXSStream(scriptPath, readScriptFileAndParse, lines, parent)
     return JSON.stringify(stream)
   } else if (ops.xs) {
-    let stream = await impToXSStream(filePath, readScriptFileAndParse, lines, parent)
+    let stream = await impToXSStream(scriptPath, readScriptFileAndParse, lines, parent)
     return jsonToXStateMachine(JSON.stringify(stream))
   } else if (ops.timeline) {
-    let timeline = await impToTimeline(filePath, ops.outputDir, readScriptFileAndParse, lines, lastShot, ops.firstRun)
+    let timeline = await impToTimeline(scriptPath, ops.outputDir, readScriptFileAndParse, lines, lastView, ops.firstRun)
     return timeline
   } else if(ops.babylonjs){
-    let timeline = await generateGraphDataObjects(filePath, ops.outputDir)
-    return timeline
+    let babylonScriptParser = await generateBabylonScriptParser(scriptPath, ops.outputDir)
+    return babylonScriptParser
   }
   return null
 }
 module.exports.parseScript = parseScript
-
-async function readScriptFileAndParse(scriptPath, ops, parent, lastView) {
-  const readFile = util.promisify(fs.readFile)
-  let rawText = await readFile(scriptPath, 'utf8')
-  return parseScript(scriptPath, rawText, ops, parent, lastView)
-}
-module.exports.readScriptFileAndParse = readScriptFileAndParse

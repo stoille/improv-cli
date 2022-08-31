@@ -3,7 +3,7 @@ const util = require('util')
 const fs = require('fs')
 const { resolveHome } = require('./common')
 
-const { readScriptFileAndParse } = require('./commands')
+const { parseScript } = require('./commands')
 const { parse } = require('path')
 
 program
@@ -18,7 +18,7 @@ program
 	.option('-b, --babylonjs', 'export to babylon.js graph format (lGraph JSON)')
 	.option('-o, --output-dir <dir>', 'path to export to')
 	.action(async (scriptPath, cmd) => {
-		let parsedScript = await readScriptFileAndParse(scriptPath, { json: cmd.json, xs: cmd.xs, timeline: cmd.timeline, babylonjs: cmd.babylonjs, outputDir: cmd.outputDir, firstRun: true })
+		let parsedScript = await parseScript(scriptPath, { json: cmd.json, xs: cmd.xs, timeline: cmd.timeline, babylonjs: cmd.babylonjs, outputDir: cmd.outputDir, firstRun: true })
 
 		if (!parsedScript) {
 			console.error("Parse command requires output fomat to be defined. For help run: commander parse --help")
@@ -27,11 +27,7 @@ program
 			let path = scriptPath.slice(0, scriptPath.lastIndexOf('.'))
 			let name = path.slice(path.lastIndexOf('/') + 1)
 			path = cmd.outputDir ? `${resolveHome(cmd.outputDir)}/${name}.json` : `${path}.json`
-			if (cmd.babylonjs) {
-				parsedScript = JSON.stringify(parsedScript._graph)
-			} else {
-				parsedScript = isString(parsedScript) ? parsedScript : JSON.stringify(parsedScript)
-			}
+			parsedScript = isString(parsedScript) ? parsedScript : JSON.stringify(parsedScript)
 			await writeFile(path, parsedScript)
 		}
 		process.exit(0)
