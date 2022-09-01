@@ -11,7 +11,7 @@ const fs = require('fs')
 const util = require('util')
 const readFile = util.promisify(fs.readFile)
 const writeFile = util.promisify(fs.writeFile)
-const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null
+const isEmptyOrSpaces = l => !l || l === null || l.match(/^ *\t*$/) !== null || l == ''
 
 const DEBUG = true
 const DELAY = 200
@@ -118,7 +118,7 @@ class ScriptParser {
 	addCond(stmt) {
 		let lineCursor = this.lineCursor
 		return `if(${this.getConds(stmt)}){
-			${this.parseUntil(stmt, currStmt => currStmt.rule == 'cond' && currStmt.depth == stmt.depth)}
+			${this.parseUntil(currStmt => currStmt.rule == 'cond' && currStmt.depth == stmt.depth)}
 			//closing if scope: ${this.lines[lineCursor - 1]}
 		}`
 	}
@@ -179,8 +179,8 @@ class ScriptParser {
 		//TODO: calculate fov and cameraTo from viewType
 		const cameraFOV = 50.0
 		let lineCursor = this.lineCursor
-		let actions = this.parseUntil(stmt, (currStmt) => currStmt.depth < stmt.depth || (currStmt.rule == 'view' && stmt.depth == currViewStmt.depth))
-		let next = this.parseUntil(stmt, (currStmt) => isTabDecreased(currStmt, stmt) || (currStmt.rule == 'view' && stmt.depth == currViewStmt.depth))
+		let actions = this.parseUntil((currStmt) => isTabDecreased(currStmt, stmt) || (currStmt.rule == 'view' && stmt.depth == currViewStmt.depth))
+		let next = this.parseUntil((currStmt) => isTabDecreased(currStmt, stmt) || (currStmt.rule == 'view' && stmt.depth == currViewStmt.depth))
 		//stop parsing actions when EOF, tab decreases, or a new view starts
 		//stop parsing next view when EOF or tab decreases
 		return `this.playView("${stmt.viewType}",${stmt.duration},'${stmt.viewMovement}',${cameraFOV},'${viewSourceFullPath}','${viewTargetFullPath}',
@@ -222,7 +222,7 @@ class ScriptParser {
 				console.log('generating scripts...')
 
 				console.log('parsing lines...')
-				let logicSrc = this.parseUntil(null, _ => this.lineCursor >= this.lines.length)
+				let logicSrc = this.parseUntil(_ => this.lineCursor >= this.lines.length)
 
 				let babylonSrc = nodeTemplateText.replace(`'@REPLACE WITH SCENE LOGIC@'`, logicSrc)
 				babylonSrc = babylonSrc.replace(new RegExp('SceneClassName', 'g'), this.defaultSceneId)
@@ -253,7 +253,32 @@ class ScriptParser {
 		})
 	}
 
-	parseUntil(prevStmt, isScopeEnd = _ => false) {
+	findPrevStmt() {
+		let stmt = null
+		for (var cursor = this.lineCursor - 1; cursor >= 0; cursor--) {
+			var lineText = this.lines[cursor];
+
+			if (isEmptyOrSpaces(lineText)) {
+				continue
+			}
+
+			stmt = parseLine(lineText)
+
+			if (stmt == undefined) {
+				throw `line parsed to undefined statement: ${lineText}`
+			}
+
+			if (!stmt || stmt.rule === 'comment') {
+				stmt = null
+				continue
+			}
+			
+			return stmt
+		}
+		return null
+	}
+
+	parseUntil(isScopeEnd = _ => false) {
 		//the parsed code to return as a string
 		let parsedScript = ''
 
@@ -262,7 +287,8 @@ class ScriptParser {
 		// advance lines until next unit at tab level
 		// make unit recursively
 		while (true) {
-			let lineText = this.lines[this.lineCursor]
+			const prevStmt = this.lineCursor == 0 ? null : this.findPrevStmt()
+			const lineText = this.lines[this.lineCursor].trim()
 			this.lineCursor += 1
 
 			if (this.lineCursor > this.lines.length) {
@@ -292,8 +318,6 @@ class ScriptParser {
 				if (isScopeEnd(stmt)) {
 					break
 				}
-
-				lineText = lineText.trim()
 
 				parsedScript += `${os.EOL}//${lineText}${os.EOL}`
 
