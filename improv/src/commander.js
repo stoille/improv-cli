@@ -8,7 +8,7 @@ const { parse } = require('path')
 
 program
 	.version('0.4.0')
-	.description('improv compiler')
+	.description('Interactive Media Production Environment (improv) compiler')
 	.command('parse <scriptPath>')
 	.description('parses an improv (.imp) script file')
 	.option('-j, --json', 'export to JSON (raw)')

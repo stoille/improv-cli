@@ -1,6 +1,6 @@
 const { jsonToXStateMachine, impToStream: impToXSStream } = require("./xsParser")
 const { impToTimeline } = require("./timelineParser")
-const { generateBabylonScriptParser } = require('../../improv-plugin/src/scriptParser')
+const { generateBabylonSource } = require('../../improv-plugin/src/scriptParser')
 const util = require('util')
 const fs = require('fs')
 var os = require("os");
@@ -20,7 +20,7 @@ async function parseScript(scriptPath, ops, parent, lastView) {
     let timeline = await impToTimeline(scriptPath, ops.outputDir, readScriptFileAndParse, lines, lastView, ops.firstRun)
     return timeline
   } else if(ops.babylonjs){
-    let babylonScriptParser = await generateBabylonScriptParser(scriptPath, ops.outputDir)
+    let babylonScriptParser = await generateBabylonSource(scriptPath, ops.outputDir)
     return babylonScriptParser
   }
   return null

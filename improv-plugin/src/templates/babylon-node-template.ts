@@ -2,8 +2,11 @@ import { ImprovScript, ViewStatus } from '../../src/improv/improv-script'
 import { Node } from '@babylonjs/core/node'
 import { AssetsManager, Scene, SceneLoader } from '@babylonjs/core'
 import { visibleInInspector, VisiblityPropertyType } from './decorators'
+import {
+	'@REPLACE WITH GOTO REFERENCES'
+} from './goto-scripts'
 
-class scene_SceneClassName extends ImprovScript {
+export class scene_SceneClassName extends ImprovScript {
   constructor(babylonMainScene: Scene, scriptName: string, sceneNamesToLoad: string[], objectNamesToLoad: string[]) {
     super(babylonMainScene, scriptName, sceneNamesToLoad, objectNamesToLoad)
   }

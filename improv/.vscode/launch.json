@@ -56,7 +56,7 @@
         "parse",
         "--babylonjs",
         //"--output-dir=~/dev/MP/Assets/Resources/Scenes",
-        "--output-dir=/Users/mlacay/dev/mp-test/assets/root",
+        "--output-dir=/Users/mlacay/dev/mp-test/src/scenes",
         //"/Volumes/sol/sol/improv/scripts/mp/house/house.imp",
         "/Users/mlacay/dev/MP-unity/Assets/Scenes/mp/house/house.imp",
         //"compileTest",
