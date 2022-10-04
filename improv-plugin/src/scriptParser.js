@@ -24,7 +24,7 @@ var ScriptTypes = {
 	UNMARKER: "UNMARKER",
 	ACTION: "ACTION",
 	JUMP: "JUMP",
-	GOTO: "GOTO"
+	PLAY: "PLAY"
 }
 
 const CondTypes = {
@@ -61,21 +61,24 @@ var JumpModes = {
 
 
 var nodeTemplateText = ''
+const SCENE_DIR = 'improv-scenes'
 async function generateBabylonSource(rootImprovScriptPath, outputDir) {
-	if(!ScriptParser.OutputPath){
-		ScriptParser.OutputPath = `${outputDir}/improv-scenes`
+	if (!ScriptParser.OutputPath) {
+		ScriptParser.OutputPath = `${outputDir}/${SCENE_DIR}`
 	}
 	return new Promise(res => {
 		fs.mkdir(ScriptParser.OutputPath, { recursive: true }, (err) => {
 			generateBabylonScriptParser(rootImprovScriptPath)
 				.then(generated => {
-					const rootIndexPath = `${ScriptParser.OutputPath}/index.ts`
-					const rootImports = `${Array.from(ScriptParser.AllGotos.values()).map(path => `
-						import ${path} from './${path}/${path}'
-						export * from ${path}`)
+					const rootIndexPath = `${ScriptParser.OutputPath}/improv.ts`
+					const rootImports = `${Array.from(ScriptParser.AllScripts.values()).map(path => `
+						import ${path} from './${path}.gen'
+						export {${path}}`)
 						.join(os.EOL)}`
-					writeFile(rootIndexPath, rootImports, () => {
-						res(generated)
+					readFile(`${process.env.PWD}/../improv-plugin/src/templates/improv.ts`, { encoding: 'utf8' }).then(improvSrc => {
+						writeFile(rootIndexPath, `${rootImports}${os.EOL}${improvSrc}`, () => {
+							res(generated)
+						})
 					})
 				})
 		})
@@ -83,8 +86,11 @@ async function generateBabylonSource(rootImprovScriptPath, outputDir) {
 }
 module.exports.generateBabylonSource = generateBabylonSource
 
-
 async function generateBabylonScriptParser(rootImprovScriptPath, defaultSceneId = undefined, defaultViewId = undefined) {
+	//returned cached parser
+	if (ScriptParser.cachedParsers.hasOwnProperty(rootImprovScriptPath)) {
+		return ScriptParser.cachedParsers[rootImprovScriptPath]
+	}
 	var appRoot = process.env.PWD;
 	nodeTemplateText = await readFile(`${appRoot}/../improv-plugin/src/templates/babylon-node-template.ts`, { encoding: 'utf8' })
 	let extension = rootImprovScriptPath.split('.').pop()
@@ -94,9 +100,9 @@ async function generateBabylonScriptParser(rootImprovScriptPath, defaultSceneId 
 	console.log(`parsing improv script...`)
 	let parser = new ScriptParser(rootImprovScriptPath, defaultSceneId, defaultViewId)
 	await parser.readScriptFileAndParse()
-
-	console.log('improv script parsed...')
-	return null//scriptsManifest.map(parser => parser._graph)
+	//cache parser
+	ScriptParser.cachedParsers[rootImprovScriptPath] = parser
+	return parser
 }
 
 class ScriptParser {
@@ -105,20 +111,28 @@ class ScriptParser {
 	scriptPathDir = undefined
 	defaultSceneId = undefined
 	scenesToLoad = []
-	lastViewId = undefined
+	currView = undefined
 	lastDefinedDuration = 0
 	lines = ''
 	lineCursor = 0
 	viewStmts = []
-	gotos = new Set()
+	scripts = new Set()
+	views = []
+	actions = []
+	transitions = []
+	viewStack = []
+	static transitionStack = []
+	static cachedParsers = {}
 	// code generation support
 	_parserOutput = ''
 	_babylonSceneObjectsSrc = '/** IMPROV AUTO GENERATED **/'
 	_babylonSceneObjects = {}
 
-	// all gotos
-	static AllGotos = new Set()
+	// all scripts
+	static AllScripts = new Set()
 	static OutputPath = undefined
+	static NextViewId = 0
+	static NextActionId = 0
 
 	constructor(scriptPath, defaultSceneId = undefined, defaultViewId = undefined) {
 		this.scriptPath = scriptPath
@@ -128,19 +142,19 @@ class ScriptParser {
 		this.lastViewId = defaultViewId
 	}
 	addMarker(stmt) {
-		return `this.addMarker(${stmt.marker})`
+		return `improv.addMarker(${stmt.marker})`
 	}
 	removeUnmarker(stmt) {
-		return `this.removeMarker(${stmt.marker})`
+		return `improv.removeMarker(${stmt.marker})`
 	}
-	addGoto(stmt) {
-		this.gotos.add(stmt.path)
-		return `${stmt.path}.runSceneLogic()${os.EOL}`
+	addPlay(stmt) {
+		this.scripts.add(stmt.path)
+		return `this._${stmt.path}.playScript()${os.EOL}`
 	}
-	addCond(stmt) {
+	async addCond(stmt) {
 		let lineCursor = this.lineCursor
 		return `if(${this.getConds(stmt)}){
-			${this.parseUntil(currStmt => currStmt.depth <= stmt.depth)}
+			${await this.parseUntil(currStmt => currStmt.depth <= stmt.depth)}
 			//closing if scope: ${this.lines[lineCursor - 1]}
 		}`
 	}
@@ -161,8 +175,17 @@ class ScriptParser {
 		}
 		//BABYLON
 		this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(fullPath)
-		return `pickMeshName === '${fullPath}'`
+		if (condExp.op == 'SELECT') {
+			let objectIndex = Object.keys(this._babylonSceneObjects).indexOf(fullPath)
+			return `improv.isSelected(this.objectMeshes[${objectIndex}])`
+		}
+		else if (condExp.op == 'FALSE') {
+			return `!improv.AllMarkers['${fullPath}']`
+		} else {
+			return `improv.AllMarkers['${fullPath}']`
+		}
 	}
+
 
 	addScene(stmt) {
 		const sceneId = `${stmt.sceneName}_${stmt.scenePlacement}`
@@ -173,7 +196,7 @@ class ScriptParser {
 		return null
 	}
 
-	addView(stmt, currViewStmt) {
+	async addView(stmt) {
 
 		this.viewStmts.push(stmt)
 
@@ -188,39 +211,73 @@ class ScriptParser {
 			viewTargetFullPath = (stmt.viewTarget.root.trim() + stmt.viewTarget.path.map(p => p.trim())).replace(' ', '_')
 			this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(viewTargetFullPath)
 		}
-		/*
-		viewType: number,
-		viewDuration: number,
-		cameraMovementType: string,
-		cameraFOV: number,
-		cameraFromMeshName: string,
-		cameraLookAtName: string,
-		cameraLoopMode: number,
-		onDone: any,
-		*/
+
 		//TODO: calculate fov and cameraTo from viewType
 		const cameraFOV = 50.0
+
+		if (this.currView !== undefined) {
+			this.viewStack.push(this.currView)
+		}
+		//create new current view
+		this.currView = { id: ScriptParser.NextViewId, type: stmt.viewType, duration: stmt.duration, cameraMovementType: stmt.viewMovement ? stmt.viewMovement : null, cameraFOV, cameraFromId: viewSourceFullPath, cameraLookAtId: viewTargetFullPath, cameraLooping: false }
+		this.views.push(this.currView)
+
 		let lineCursor = this.lineCursor
-		let actions = this.parseUntil((currStmt) => isTabDecreased(currStmt, stmt) || currStmt.rule == 'view' && stmt.depth == currStmt.depth)
-		let next = this.parseUntil((currStmt) => isTabDecreased(currStmt, stmt))
 		//stop parsing actions when EOF, tab decreases, or a new view starts
+		let actions = await this.parseUntil((currStmt) => isTabDecreased(currStmt, stmt) || currStmt.rule == 'view' && stmt.depth == currStmt.depth)
 		//stop parsing next view when EOF or tab decreases
-		return `this.playView("${stmt.viewType}",${stmt.duration},"${stmt.viewMovement}",${cameraFOV},"${viewSourceFullPath}","${viewTargetFullPath}",
-			() => { ${actions}
-			//closing playView actions scope: ${this.lines[lineCursor - 1]}
-			}, 
-			${next ? next : '() => ViewStatus.DONE'}
-			//closing playView next scope: ${this.lines[lineCursor - 1]}
-			)`
-	}
-	addTransition(stmt, currViewStmt, prevViewStmt) {
-		// BABYLON CODE
-		return `this.playTransition(${stmt.transitionType},${stmt.transitionTime},${prevViewStmt.results},${currViewStmt.result})`
-	}
-	addAction(stmt, prevStmt, currViewStmt) {
-		return `this.playAction("group_${stmt.lines[0].text.slice(0, 10).replace(' ', '_')}",${false},() => {})`
+		let next = await this.parseUntil((currStmt) => isTabDecreased(currStmt, stmt))
+
+		// handle transitions here so they write to the actions of the view initating the transition
+		let transition = await ((ScriptParser.transitionStack.length > 0) ? this.addTransition(ScriptParser.transitionStack.pop()) : this.addTransition())
+
+		ScriptParser.NextViewId += 1
+
+		return `improv.playView(this.views[${this.views.length - 1}],
+					() => { ${actions}
+					//closing playView actions scope: ${this.lines[lineCursor - 1]}
+					}, 
+					${transition},
+					${next ? next : '() => improv.ViewStatus.DONE'}
+					//closing playView next scope: ${this.lines[lineCursor - 1]}
+					)`
 	}
 
+	async addTransition(stmt, shouldQueue = false) {
+		// if stmt is a transition, queue it up to be added upon the next view
+		//save the script parser so that we can add the transitio to it since it will be the one initiating the transition
+		let path = stmt ? (stmt.path ? stmt.path[2].root : undefined) : undefined
+		let transition = {
+			type: stmt ? stmt.transitionType : "CUT",
+			duration: stmt ? stmt.duration : 0,
+			fromViewId: this.currView.id,
+			toViewId: stmt ? (stmt.toViewId !== undefined ? stmt.toViewId : -1) : ScriptParser.NextViewId,
+			path
+		}
+
+		this.transitions.push(transition)
+
+		if (path) {
+			let fullPath = `${this.scriptPathDir}${path}/${path}.imp`
+			let parser = await generateBabylonScriptParser(fullPath, this.defaultSceneId, transition.fromViewId)
+			this.transitions[this.transitions.length - 1].toViewId = parser.views[0].id
+			return `improv.playTransition(this.transitions[${this.transitions.length - 1}])`
+		}
+
+		let isLastLine = this.lines.length == this.lineCursor
+		if (shouldQueue) {
+			ScriptParser.transitionStack.push(stmt)
+			return ''
+		} else {//if (isLastLine || path) {
+			return `() => improv.playTransition(this.transitions[${this.transitions.length - 1}])`
+		}
+	}
+
+	addAction(stmt) {
+		this.actions.push({ id: ScriptParser.NextActionId, lines: stmt.lines, looping: false })
+		ScriptParser.NextActionId += 1
+		return `improv.playAction(this.actions[${this.actions.length - 1}],() => {})`
+	}
 
 	generateSceneObjectVariable(name) {
 		let str = ''
@@ -247,37 +304,44 @@ class ScriptParser {
 
 				console.log('parsing lines...')
 				let logicSrc = this.parseUntil(_ => this.lineCursor >= this.lines.length)
+					.then(logicSrc => {
+						let babylonSrc = nodeTemplateText.replace(`'@REPLACE WITH SCENE LOGIC@'`, logicSrc)
+						babylonSrc = babylonSrc.replace(new RegExp('SceneClassName', 'g'), this.scriptName)
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH VARIABLE LIST@'`, this._babylonSceneObjectsSrc)
+						//write scene loading list
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCENE LIST@'`, `'${Object.values(this.scenesToLoad).map(s => `${s.sceneName}_${s.scenePlacement}'`).join(',')}`)
+						//write scene object list
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH LOAD MESH LIST@'`, `this.${Object.keys(this._babylonSceneObjects).join(', this.')}`)
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCRIPT REFERENCES@'`, Array.from(this.scripts.values()).map(e => `${e}`).join(','))
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCRIPT INSTANCES@'`, Array.from(this.scripts.values()).map(e => `@fromScene("${e}")
+					private _${e}: ${e}`))
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH VIEW LIST@'`, this.views.map(v => JSON.stringify(v)))
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH ACTION LIST@'`, this.actions.map(a => JSON.stringify(a)))
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH TRANSITION LIST@'`, this.transitions.map(t => JSON.stringify({ type: t.type, duration: t.duration, fromViewId: t.fromViewId, toViewId: t.toViewId })))
 
-				let babylonSrc = nodeTemplateText.replace(`'@REPLACE WITH SCENE LOGIC@'`, logicSrc)
-				babylonSrc = babylonSrc.replace(new RegExp('SceneClassName', 'g'), this.defaultSceneId)
-				babylonSrc = babylonSrc.replace(`'@REPLACE WITH VARIABLE LIST@'`, this._babylonSceneObjectsSrc)
-				//write scene loading list
-				babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCENE LIST@'`, `'${Object.values(this.scenesToLoad).map(s => `${s.sceneName}_${s.scenePlacement}'`).join(',')}`)
-				//write scene object list
-				babylonSrc = babylonSrc.replace(`'@REPLACE WITH LOAD MESH LIST@'`, `this.${Object.keys(this._babylonSceneObjects).join(', this.')}`)
-				babylonSrc = babylonSrc.replace(`'@REPLACE WITH GOTO REFERENCES'`, [...Array.from(this.gotos.values()).join(',')])
-				//cache parsed script
-				//write source output
-
-				let scriptPath = `${ScriptParser.OutputPath}/${this.scriptName}.gen.ts`
-				writeFile(scriptPath, babylonSrc)
-					.then(_ => {
-						//track parsed scripts to avoid doubling up on parsing scripts referenced by gotos
-						ScriptParser.parsedScripts[this.scriptName] = true
-						//parse and write gotos
-						let gotoPromises = []
-						for (let gotoScriptName of this.gotos) {
-							if (!ScriptParser.AllGotos.has(gotoScriptName)) {
-								ScriptParser.AllGotos.add(gotoScriptName)
-								let gotoScriptPath = `${this.scriptPathDir}${gotoScriptName}/${gotoScriptName}.imp`
-								gotoPromises.push(generateBabylonSource(gotoScriptPath, ScriptParser.OutputPath))
-							}
-						}
-						Promise.all(gotoPromises)
+						//write source output
+						let scriptPath = `${ScriptParser.OutputPath}/${this.scriptName}.gen.ts`
+						writeFile(scriptPath, babylonSrc)
 							.then(_ => {
-								res(babylonSrc)
+								//track parsed scripts to avoid doubling up on parsing scripts referenced by plays
+								ScriptParser.parsedScripts[this.scriptName] = true
+								//parse and write plays
+								let playPromises = []
+								for (let playScriptName of this.scripts) {
+									if (!ScriptParser.AllScripts.has(playScriptName)) {
+										ScriptParser.AllScripts.add(playScriptName)
+										let playScriptPath = `${this.scriptPathDir}${playScriptName}/${playScriptName}.imp`
+										playPromises.push(generateBabylonSource(playScriptPath, ScriptParser.OutputPath))
+									}
+								}
+								Promise.all(playPromises)
+									.then(_ => {
+										res(babylonSrc)
+									})
 							})
 					})
+
+
 			})
 		})
 	}
@@ -310,10 +374,9 @@ class ScriptParser {
 		return null
 	}
 
-	parseUntil(isScopeEnd = _ => false) {
+	async parseUntil(isScopeEnd = _ => false) {
 		//the parsed code to return as a string
 		let parsedScript = ''
-
 		//post-processing loop for grammar rules that are context-sensitive/non-contracting (e.g. unit and activeObject Declarations)
 		//for each line
 		// advance lines until next unit at tab level
@@ -351,6 +414,12 @@ class ScriptParser {
 					continue
 				}
 
+				if (isTabDecreased(stmt, prevStmt)) {
+					while (this.viewStack.length > 0 && this.viewStack[this.viewStack.length - 1].depth > stmt.depth) {
+						this.currView = this.viewStack.pop()
+					}
+				}
+
 				//if the scope ended break and return
 				if (isScopeEnd(stmt)) {
 					this.lineCursor -= 1
@@ -368,18 +437,15 @@ class ScriptParser {
 				}
 
 			} catch (error) {
-				console.error(`${scriptName} - ${error.message}`)
+				console.error(`${this.scriptName} - ${error}`)
 				process.exit(1)
 			}
 
-			let currViewStmt = this.viewStmts.length > 0 ? this.viewStmts[this.viewStmts.length - 1] : null
-			let prevViewStmt = this.viewStmts.length > 1 ? this.viewStmts[this.viewStmts.length - 2] : null
-
-			parsedScript += (stmt.rule == 'view') ? this.addView(stmt, currViewStmt)
-				: (stmt.rule == 'action') ? this.addAction(stmt, prevStmt, currViewStmt)
-					: (stmt.rule == 'cond') ? this.addCond(stmt)
-						: (stmt.rule == 'transition') ? this.addTransition(stmt, currViewStmt, prevViewStmt)
-							: (stmt.rule == 'goto') ? this.addGoto(stmt)
+			parsedScript += (stmt.rule == 'transition') ? await this.addTransition(stmt, true)
+				: (stmt.rule == 'view') ? await this.addView(stmt)
+					: (stmt.rule == 'action') ? this.addAction(stmt)
+						: (stmt.rule == 'cond') ? await this.addCond(stmt)
+							: (stmt.rule == 'play') ? this.addPlay(stmt)
 								: ''
 
 			//scene headers do not generate code
@@ -414,7 +480,7 @@ function parseLine(lineText) {
 
 	let addRule = (r, ruleOverride) => ({ rule: ruleOverride ? ruleOverride : r.rule, depth: r.depth, ...r.result })
 	if (results.comment) return addRule(results.comment)
-	if (results.goto) return addRule(results.goto)
+	if (results.play) return addRule(results.play)
 	if (results.transition) return addRule(results.transition)
 	if (results.sceneHeading) return addRule(results.sceneHeading)
 	if (results.cond) return addRule(results.cond)
@@ -462,21 +528,26 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 				case 'cond':
 					break
 				case 'comment':
-				case 'goto':
+				case 'play':
 				case 'action':
-					if (prevStmt.depth !== stmt.depth) {
-						throw `[${filePath}] Error: transitions must have the same depth as the action before them${lines}`
+					if (stmt.depth > prevStmt.depth) {
+						throw `[${filePath}] Error: transitions must either have the same depth as the statement before them or its parent scope.${lines}`
 					}
 					break
+				case 'transition':
+					let path = prevStmt.path ? prevStmt.path[2].root : undefined
+					if (path) {
+						break
+					}
 				default:
-					throw `[${filePath}] Error: transition must follow an action.${lines}`
+					throw `[${filePath}] Error: transition must follow an action, condition, play statement, or transition with a path.${lines}`
 			}
 			break
 		case 'sceneHeading':
 			if (prevStmt) {
 				switch (prevStmt.rule) {
 					case 'comment':
-					case 'goto':
+					case 'play':
 					case 'action':
 					case 'transition':
 					case 'view':
@@ -499,7 +570,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 			if (prevStmt) {
 				switch (prevStmt.rule) {
 					case 'comment':
-					case 'goto':
+					case 'play':
 					case 'action':
 					case 'transition':
 					case 'sceneHeading':
@@ -519,7 +590,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 		case 'action':
 			switch (prevStmt.rule) {
 				case 'comment':
-				case 'goto':
+				case 'play':
 				case 'action':
 				case 'view':
 					break
@@ -536,10 +607,11 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 		case 'cond':
 			switch (prevStmt.rule) {
 				case 'comment':
-				case 'goto':
+				case 'play':
 					break
 				case 'action':
 				case 'view':
+				case 'transition':
 					if (prevStmt.depth === stmt.depth) {
 						throw `[${filePath}] Error: conditions must always be indented under the action or view that preceeds them${lines}`
 					}
@@ -547,7 +619,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 				case 'cond':
 					break
 				default:
-					throw `[${filePath}] Error: conditions must follow an action, view heading, or a previous condition${lines}`
+					throw `[${filePath}] Error: conditions must follow an action, view heading, transition, play statement, or a previous condition${lines}`
 					break
 			}
 			break
@@ -562,7 +634,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 		}
 	}
 	if (isTabDecreased(stmt, prevStmt)) {
-		if (prevStmt.rule === 'action' || prevStmt.rule === 'cond' || prevStmt.rule === 'goto') {
+		if (prevStmt.rule === 'action' || prevStmt.rule === 'cond' || prevStmt.rule === 'play' || prevStmt.rule == 'transition') {
 			let depth = prevStmt.depth - stmt.depth
 			if (stmt.rule === 'cond') {
 				if (!isOdd(depth)) {
@@ -572,7 +644,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 				throw `[${filePath}] Error: statement depth decreased and does not align with a parent unit's action${lines}`
 			}
 		} else {
-			throw `[${filePath}] Error: statement depth decreased but previous statement was not an action${lines}`
+			throw `[${filePath}] Error: statement depth decreased but previous statement was not an action, transition, or play statement${lines}`
 		}
 	}
 }

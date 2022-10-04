@@ -1,33 +1,34 @@
-import { ImprovScript, ViewStatus } from '../../src/improv/improv-script'
+import { improv } from './improv'
 import { Node } from '@babylonjs/core/node'
-import { AssetsManager, Scene, SceneLoader } from '@babylonjs/core'
-import { visibleInInspector, VisiblityPropertyType } from './decorators'
+import { AssetsManager, Mesh, Scene, SceneLoader } from '@babylonjs/core'
+import { visibleInInspector, VisiblityPropertyType, fromScene } from '../decorators'
 import {
-	'@REPLACE WITH GOTO REFERENCES'
-} from './goto-scripts'
+	'@REPLACE WITH SCRIPT REFERENCES@'
+} from './improv'
 
-export class scene_SceneClassName extends ImprovScript {
-  constructor(babylonMainScene: Scene, scriptName: string, sceneNamesToLoad: string[], objectNamesToLoad: string[]) {
-    super(babylonMainScene, scriptName, sceneNamesToLoad, objectNamesToLoad)
-  }
+export default class SceneClassName extends Node implements improv.IEntity {
+  	// the names of scenes referenced by this script that will be loaded
+	_referencedScenes: string[] = ['@REPLACE WITH SCENE LIST@']
+	// the script instances referenced by this script
+	'@REPLACE WITH SCRIPT INSTANCES@'
+	// the objects referenced by this script that will be loaded
+	objectMeshes: Mesh[]
+	// the views referenced by this script
+    views: improv.IView[] = [
+		'@REPLACE WITH VIEW LIST@'
+	]
+	// the actions referenced by this script
+    actions: improv.IAction[] = [
+		'@REPLACE WITH ACTION LIST@'
+	]
+	// the transitions referenced by this script
+	transitions: improv.ITransition[] = [
+		'@REPLACE WITH TRANSITION LIST@'
+	]
 
-  runSceneLogic(): void {
-    const pick = this._babylonMainScene.pick(
-      this._babylonMainScene.pointerX,
-      this._babylonMainScene.pointerY,
-      undefined,
-      false,
-    )
-	let pickMeshName = null
-    if (pick?.hit) {
-      pickMeshName = pick.pickedMesh.name
-    }
-    '@REPLACE WITH SCENE LOGIC@'
-  }
-}
-
-export default class SceneClassName extends Node {
-  _improvScene: scene_SceneClassName
+	// this script's name
+	_name: string
+	// all loaded scripts
   //game objects that the scene logic acts on
   '@REPLACE WITH VARIABLE LIST@'
 
@@ -43,7 +44,15 @@ export default class SceneClassName extends Node {
    * This function is called immediatly after the constructor has been called.
    */
   public onInitialize(): void {
-    this._improvScene = new scene_SceneClassName(this._scene, 'SceneClassName', ['@REPLACE WITH SCENE LIST@'], ['@REPLACE WITH LOAD MESH LIST@'])
+	if (!improv.AssetsManager) {
+		improv._babylonMainScene = this._scene
+		improv.AssetsManager = new AssetsManager(this._scene)
+		improv._camera = this._scene.getCameraByName('MainCamera')
+	  }
+	  
+	  //load objects
+	  let objectNamesToLoad = ['@REPLACE WITH LOAD MESH LIST@']
+	  //TODO: object loading
   }
 
   /**
@@ -57,9 +66,6 @@ export default class SceneClassName extends Node {
    * Called each frame.
    */
   public onUpdate(): void {
-    if (this._improvScene.IsActive) {
-      this._improvScene.runSceneLogic()
-    }
   }
 
   /**
@@ -82,5 +88,19 @@ export default class SceneClassName extends Node {
         // Do something...
         break
     }
+  }
+
+  public playScript(): void {
+    const pick = this._scene.pick(
+      this._scene.pointerX,
+      this._scene.pointerY,
+      undefined,
+      false,
+    )
+	let pickMeshName = null
+    if (pick?.hit) {
+      pickMeshName = pick.pickedMesh.name
+    }
+    '@REPLACE WITH SCENE LOGIC@'
   }
 }

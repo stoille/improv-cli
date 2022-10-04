@@ -43,7 +43,7 @@ function flattenDeep(arr1) {
 %}
 
 #unit lines are dependent on the unit line that preceded them since they are ambiguous otherwise
-unitLine -> TAB (comment|goto|transition|sceneHeading|cond|viewFullUnmarker|viewFullMarker|viewFullNoMarker|viewNoDurationUnmarker|viewNoDurationMarker|viewNoDurationNoMarker|viewNoMovementUnmarker|viewNoMovementMarker|viewNoMovementNoMarker|viewNoSourceUnmarker|viewNoSourceMarker|viewNoSourceNoMarker|viewNoSourceNoMovementnmarker|viewNoSourceNoMovementMarker|viewNoSourceNoMovementNoMarker|viewNoSourceNoDurationUnmarker|viewNoSourceNoDurationMarker|viewNoSourceNoDurationNoMarker|viewNoMovementNoDurationUnmarker|viewNoMovementNoDurationMarker|viewNoMovementNoDurationNoMarker|viewNoSourceNoMovementNoDurationUnmarker|viewNoSourceNoMovementNoDurationMarker|viewNoSourceNoMovementNoDurationNoMarker|action) _ comment:?{%
+unitLine -> TAB (comment|play|transition|sceneHeading|cond|viewFullUnmarker|viewFullMarker|viewFullNoMarker|viewNoDurationUnmarker|viewNoDurationMarker|viewNoDurationNoMarker|viewNoMovementUnmarker|viewNoMovementMarker|viewNoMovementNoMarker|viewNoSourceUnmarker|viewNoSourceMarker|viewNoSourceNoMarker|viewNoSourceNoMovementnmarker|viewNoSourceNoMovementMarker|viewNoSourceNoMovementNoMarker|viewNoSourceNoDurationUnmarker|viewNoSourceNoDurationMarker|viewNoSourceNoDurationNoMarker|viewNoMovementNoDurationUnmarker|viewNoMovementNoDurationMarker|viewNoMovementNoDurationNoMarker|viewNoSourceNoMovementNoDurationUnmarker|viewNoSourceNoMovementNoDurationMarker|viewNoSourceNoMovementNoDurationNoMarker|action) _ comment:?{%
 	//#this thing returns any of the non-terminals as an object like { ruleName: ruleObject}
 	([tab, d, ___, comment]) => {
 		if(comment) { d[0].comment = comment }
@@ -80,11 +80,11 @@ sceneHeading -> scenePlacement SEP (varName (_ "," _)):? varName SEP sceneTime {
 		return rule('sceneHeading',{ scenePlacement, location: location ? location[0] : undefined, sceneName, sceneTime}) }
 %}
 
-goto -> ("GOTO" | "INCLUDE") SEP .:+ {% ([gotoType, _, filePath]) => rule('goto', {gotoType, path:filePath.join('').trim()}) %}
+play -> ("PLAY") SEP .:+ {% ([playType, _, filePath]) => rule('play', {playType, path:filePath.join('').trim()}) %}
 
-transition -> transitionType (SEP cond):? (SEP timeSpan):? {% ([transitionType, cond, transitionTime]) => { 
-	return rule('transition',{transitionType:transitionType[0],transitionTime: transitionTime ? transitionTime[1] : 0, cond:cond?cond[1] : undefined}) } %}
-transitionType -> ("CUT"|"DISSOLVE"|"FADE IN"|"FADE OUT"|"FADE TO BLACK") _  {% d => d[0] %}
+transition -> transitionType (SEP cond):? (SEP timeSpan):? (SEP "\"" path "\""):? {% ([transitionType, cond, duration, path]) => { 
+	return rule('transition',{transitionType:transitionType[0],duration: duration ? duration[1] : 0, cond:cond?cond[1] : undefined, path}) } %}
+transitionType -> ("CUT"|"FADE") _  {% d => d[0] %}
 
 SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
