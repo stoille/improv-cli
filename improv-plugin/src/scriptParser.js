@@ -166,14 +166,14 @@ class ScriptParser {
 		if (condExp.result) {
 			condExp = condExp.result
 		}
-		let type = CondTypes[condExp.op.trim()]
-		let fullPath = condExp.rhs.root ? condExp.rhs.root.trim() + condExp.rhs.path.map(p => p.trim()) : undefined
+		let type = CondTypes[condExp.op]
 
 		//if logic node, call recurisively to get lhs/rhs links
 		if (type == CondTypes.AND || type == CondTypes.OR) {
 			return `(${this.getConds(condExp.lhs)} ${type === CondTypes.AND ? '&&' : '||'}${condExp.rhs.root ? null : this.getConds(condExp.rhs)})`
 		}
 		//BABYLON
+		let fullPath = condExp.rhs.root + (condExp.rhs.path.length > 0 ? condExp.rhs.path.join('/') : '')
 		this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(fullPath)
 		if (condExp.op == 'SELECT') {
 			let objectIndex = Object.keys(this._babylonSceneObjects).indexOf(fullPath)
@@ -203,23 +203,34 @@ class ScriptParser {
 		let viewSourceFullPath = null
 		let viewTargetFullPath = null
 		if (stmt.viewSource) {
-			viewSourceFullPath = (stmt.viewSource.root.trim() + stmt.viewSource.path.map(p => p.trim())).replace(' ', '_')
+			viewSourceFullPath = stmt.viewSource.path.root + stmt.viewSource.path.path.join('')
 			this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(viewSourceFullPath)
 		}
 
 		if (stmt.viewTarget) {
-			viewTargetFullPath = (stmt.viewTarget.root.trim() + stmt.viewTarget.path.map(p => p.trim())).replace(' ', '_')
+			viewTargetFullPath = stmt.viewTarget.path.root + stmt.viewTarget.path.path.join('')
 			this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(viewTargetFullPath)
 		}
 
 		//TODO: calculate fov and cameraTo from viewType
 		const cameraFOV = 50.0
 
+		let isLastLine = this.lines.length == this.lineCursor - 1
+		let isTransitionOnStack = ScriptParser.transitionStack.length > 0
+
+		let transition = isTransitionOnStack ?
+			ScriptParser.transitionStack.pop()
+			: {
+				transitionType: "CUT",
+				duration: 0,
+				fromViewId: this.currView ? this.currView.id : -1,
+			}
+		transition.toViewId = isLastLine ? -1 : ScriptParser.NextViewId
 		if (this.currView !== undefined) {
 			this.viewStack.push(this.currView)
 		}
 		//create new current view
-		this.currView = { id: ScriptParser.NextViewId, type: stmt.viewType, duration: stmt.duration, cameraMovementType: stmt.viewMovement ? stmt.viewMovement : null, cameraFOV, cameraFromId: viewSourceFullPath, cameraLookAtId: viewTargetFullPath, cameraLooping: false }
+		this.currView = { id: ScriptParser.NextViewId++, type: stmt.viewType, duration: stmt.duration, cameraMovementType: stmt.viewMovement ? stmt.viewMovement : null, cameraFOV, cameraFromId: viewSourceFullPath, cameraLookAtId: viewTargetFullPath, cameraLooping: false }
 		this.views.push(this.currView)
 
 		let lineCursor = this.lineCursor
@@ -229,15 +240,14 @@ class ScriptParser {
 		let next = await this.parseUntil((currStmt) => isTabDecreased(currStmt, stmt))
 
 		// handle transitions here so they write to the actions of the view initating the transition
-		let transition = await ((ScriptParser.transitionStack.length > 0) ? this.addTransition(ScriptParser.transitionStack.pop()) : this.addTransition())
-
-		ScriptParser.NextViewId += 1
+		let parsedTransition = await this.addTransition(transition)
 
 		return `improv.playView(this.views[${this.views.length - 1}],
 					() => { ${actions}
 					//closing playView actions scope: ${this.lines[lineCursor - 1]}
 					}, 
-					${transition},
+					${!isTransitionOnStack ? '// CUT' : ''}
+					${parsedTransition},
 					${next ? next : '() => improv.ViewStatus.DONE'}
 					//closing playView next scope: ${this.lines[lineCursor - 1]}
 					)`
@@ -246,21 +256,22 @@ class ScriptParser {
 	async addTransition(stmt, shouldQueue = false) {
 		// if stmt is a transition, queue it up to be added upon the next view
 		//save the script parser so that we can add the transitio to it since it will be the one initiating the transition
-		let path = stmt ? (stmt.path ? stmt.path[2].root : undefined) : undefined
 		let transition = {
-			type: stmt ? stmt.transitionType : "CUT",
-			duration: stmt ? stmt.duration : 0,
+			type: stmt.transitionType,
+			duration: stmt.duration,
 			fromViewId: this.currView.id,
-			toViewId: stmt ? (stmt.toViewId !== undefined ? stmt.toViewId : -1) : ScriptParser.NextViewId,
-			path
+			toViewId: stmt.toViewId ? stmt.toViewId : ScriptParser.NextViewId,
+			path: stmt.path
 		}
 
 		this.transitions.push(transition)
 
-		if (path) {
-			let fullPath = `${this.scriptPathDir}${path}/${path}.imp`
+		if (stmt.path) {
+			let filename = stmt.path.path.length > 0 ? stmt.path.path[stmt.path.path.length - 1] : stmt.path.root
+			let path = `${stmt.path.path.length > 0 ? stmt.path.root + '/' + stmt.path.path.join('/') : stmt.path.root}.imp`
+			let fullPath = `${this.scriptPathDir}${path}`
 			let parser = await generateBabylonScriptParser(fullPath, this.defaultSceneId, transition.fromViewId)
-			this.transitions[this.transitions.length - 1].toViewId = parser.views[0].id
+			transition.toViewId = parser.views[0].id
 			return `improv.playTransition(this.transitions[${this.transitions.length - 1}])`
 		}
 
@@ -404,7 +415,6 @@ class ScriptParser {
 				const lineDepth = (lineText.match(/\t/g) || []).length
 				lineText = lineText.trim()
 				stmt = parseLine(lineText)
-				stmt.depth = lineDepth
 
 				if (stmt == undefined) {
 					throw `line parsed to undefined statement: ${lineText}`
@@ -413,6 +423,7 @@ class ScriptParser {
 				if (!stmt || stmt.rule === 'comment') {
 					continue
 				}
+				stmt.depth = lineDepth
 
 				if (isTabDecreased(stmt, prevStmt)) {
 					while (this.viewStack.length > 0 && this.viewStack[this.viewStack.length - 1].depth > stmt.depth) {
@@ -478,36 +489,13 @@ function parseLine(lineText) {
 		results[result.rule] = result
 	}
 
-	let addRule = (r, ruleOverride) => ({ rule: ruleOverride ? ruleOverride : r.rule, depth: r.depth, ...r.result })
+	let addRule = r => ({ rule: r.rule, depth: r.depth, ...r.result })
 	if (results.comment) return addRule(results.comment)
 	if (results.play) return addRule(results.play)
 	if (results.transition) return addRule(results.transition)
 	if (results.sceneHeading) return addRule(results.sceneHeading)
 	if (results.cond) return addRule(results.cond)
-	if (results.viewFullUnmarker) return addRule(results.viewFullUnmarker, 'view')
-	if (results.viewFullMarker) return addRule(results.viewFullMarker, 'view')
-	if (results.viewFullNoMarker) return addRule(results.viewFullNoMarker, 'view')
-	if (results.viewNoDurationUnmarker) return addRule(results.viewNoDurationUnmarker, 'view')
-	if (results.hotNoDurationMarker) return addRule(results.hotNoDurationMarker, 'view')
-	if (results.viewNoDurationNoMarker) return addRule(results.viewNoDurationNoMarker, 'view')
-	if (results.viewNoMovementUnmarker) return addRule(results.viewNoMovementUnmarker, 'view')
-	if (results.viewNoMovementMarker) return addRule(results.viewNoMovementMarker, 'view')
-	if (results.viewNoMovementNoMarker) return addRule(results.viewNoMovementNoMarker, 'view')
-	if (results.viewNoSourceUnmarker) return addRule(results.viewNoSourceUnmarker, 'view')
-	if (results.viewNoSourceMarker) return addRule(results.viewNoSourceMarker, 'view')
-	if (results.viewNoSourceNoMarker) return addRule(results.viewNoSourceNoMarker, 'view')
-	if (results.viewNoSourceNoMovementnmarker) return addRule(results.viewNoSourceNoMovementnmarker, 'view')
-	if (results.viewNoSourceNoMovementMarker) return addRule(results.viewNoSourceNoMovementMarker, 'view')
-	if (results.viewNoSourceNoMovementNoMarker) return addRule(results.viewNoSourceNoMovementNoMarker, 'view')
-	if (results.viewNoSourceNoDurationUnmarker) return addRule(results.viewNoSourceNoDurationUnmarker, 'view')
-	if (results.viewNoSourceNoDurationMarker) return addRule(results.viewNoSourceNoDurationMarker, 'view')
-	if (results.viewNoSourceNoDurationNoMarker) return addRule(results.viewNoSourceNoDurationNoMarker, 'view')
-	if (results.viewNoMovementNoDurationUnmarker) return addRule(results.viewNoMovementNoDurationUnmarker, 'view')
-	if (results.viewNoMovementNoDurationMarker) return addRule(results.viewNoMovementNoDurationMarker, 'view')
-	if (results.viewNoMovementNoDurationNoMarker) return addRule(results.viewNoMovementNoDurationNoMarker, 'view')
-	if (results.viewNoSourceNoMovementNoDurationUnmarker) return addRule(results.viewNoSourceNoMovementNoDurationUnmarker, 'view')
-	if (results.viewNoSourceNoMovementNoDurationMarker) return addRule(results.viewNoSourceNoMovementNoDurationMarker, 'view')
-	if (results.viewNoSourceNoMovementNoDurationNoMarker) return addRule(results.viewNoSourceNoMovementNoDurationNoMarker, 'view')
+	if (results.view) return addRule(results.view)
 	if (results.action) return addRule(results.action)
 	return undefined
 }
@@ -593,6 +581,7 @@ function lintStmt(filePath, stmt, prevStmt, line, lastLine, lineCursor) {
 				case 'play':
 				case 'action':
 				case 'view':
+				case 'transition':
 					break
 				case 'cond':
 					//TODO: explore eliminating condition statement depth rules

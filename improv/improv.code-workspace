@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../improv-plugin"
+		},
+		{
+			"path": "../../../../Users/mlacay/dev/mp-test/src/scenes"
 		}
 	],
 	"settings": {
