@@ -38,7 +38,7 @@ export namespace improv {
     id: number
     type: string
     duration: number
-    cameraMovementType: string
+    cameraMovementType: string|null
     cameraFOV: number
     cameraFromId: string
     cameraLookAtId: string
@@ -75,7 +75,7 @@ export namespace improv {
   // babylon main scene to add to and remove assetContainers
   export var _babylonMainScene: Scene
 
-  export var _camera: Camera
+  export var _camera: Nullable<Camera>
 
   //babylon's assets loader
   export var AssetsManager: AssetsManager
@@ -251,7 +251,7 @@ export namespace improv {
     improv.AllMarkers[markerName] = true
   }
 
-  export function unsetMarker(markerName: string) {
+  export function removeMarker(markerName: string) {
     improv.AllMarkers[markerName] = false
   }
 

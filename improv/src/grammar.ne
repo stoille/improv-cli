@@ -76,20 +76,20 @@ sceneHeading -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") SEP (varName (_ "," _)):? varN
 play -> ("PLAY") SEP path {% ([playType, _, filePath]) => rule('play', {playType, path:filePath.join('').trim()}) %}
 
 transition -> ("CUT"|"FADE") (SEP timeSpan):? (SEP cond):? (SEP path):? {% ([transitionType, duration, cond, path]) => { 
-	return rule('transition',{transitionType,duration: duration ? duration[1] : 0, cond:cond?cond[1] : undefined, path: path ? path[1] : undefined}) } %}
+	return rule('transition',{transitionType: transitionType[0],duration: duration ? duration[1] : 0, cond:cond?cond[1] : undefined, path: path ? path[1] : undefined}) } %}
 
 SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
 
-view -> viewType SEP pathWithRange ("," pathWithRange):? (SEP viewMovement):? (SEP timeSpan):? (SEP marker|SEP SEP marker):? {%
-	([viewType, _, viewSource, viewTarget, viewMovement, duration, markers]) => rule('view', {
+view -> viewType SEP pathWithRange ("," pathWithRange):? (SEP viewMovement):? (SEP timeSpan):? (SEP marker):? (SEP SEP:? marker):? {%
+	([viewType, _, viewSource, viewTarget, viewMovement, duration, markers, removeMarkers]) => rule('view', {
 		viewType, 
 		viewSource:viewSource, 
 		viewTarget : viewTarget ? viewTarget[1] : viewSource, 
 		viewMovement: viewMovement ? viewMovement[1] : null, 
 		duration: duration ? duration[1] : -1, 
-		setMarkers: !markers ? undefined : (markers.length == 2 ? markers[1]:[]), 
-		unsetMarkers: !markers ? undefined : (markers.length == 3 ? markers[2]:[]), 
+		setMarkers: !markers ? [] : markers[1], 
+		removeMarkers: !removeMarkers ? [] : removeMarkers[2], 
 		})
 %}
 

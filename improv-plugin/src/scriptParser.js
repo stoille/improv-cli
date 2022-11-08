@@ -141,11 +141,11 @@ class ScriptParser {
 		this.defaultSceneId = defaultSceneId
 		this.lastViewId = defaultViewId
 	}
-	addMarker(stmt) {
-		return `improv.addMarker(${stmt.marker})`
+	addMarker(marker) {
+		return `improv.addMarker('${marker}')`
 	}
-	removeUnmarker(stmt) {
-		return `improv.removeMarker(${stmt.marker})`
+	removeMarker(marker) {
+		return `improv.removeMarker('${marker}')`
 	}
 	addPlay(stmt) {
 		this.scripts.add(stmt.path)
@@ -173,7 +173,7 @@ class ScriptParser {
 			return `(${this.getConds(condExp.lhs)} ${type === CondTypes.AND ? '&&' : '||'}${condExp.rhs.root ? null : this.getConds(condExp.rhs)})`
 		}
 		//BABYLON
-		let fullPath = condExp.rhs.root + (condExp.rhs.path.length > 0 ? condExp.rhs.path.join('/') : '')
+		let fullPath = condExp.rhs.path.root + (condExp.rhs.path.path.length > 0 ? condExp.rhs.path.path.join('/') : '')
 		this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(fullPath)
 		if (condExp.op == 'SELECT') {
 			let objectIndex = Object.keys(this._babylonSceneObjects).indexOf(fullPath)
@@ -233,6 +233,15 @@ class ScriptParser {
 		this.currView = { id: ScriptParser.NextViewId++, type: stmt.viewType, duration: stmt.duration, cameraMovementType: stmt.viewMovement ? stmt.viewMovement : null, cameraFOV, cameraFromId: viewSourceFullPath, cameraLookAtId: viewTargetFullPath, cameraLooping: false }
 		this.views.push(this.currView)
 
+		let outputStr = ''
+		for(let marker of stmt.setMarkers){
+			outputStr += `${this.addMarker(marker)}${os.EOL}`
+		}
+
+		for(let marker of stmt.removeMarkers){
+			outputStr += `${this.removeMarker(marker)}${os.EOL}`
+		}
+
 		let lineCursor = this.lineCursor
 		//stop parsing actions when EOF, tab decreases, or a new view starts
 		let actions = await this.parseUntil((currStmt) => isTabDecreased(currStmt, stmt) || currStmt.rule == 'view' && stmt.depth == currStmt.depth)
@@ -242,7 +251,7 @@ class ScriptParser {
 		// handle transitions here so they write to the actions of the view initating the transition
 		let parsedTransition = await this.addTransition(transition)
 
-		return `improv.playView(this.views[${this.views.length - 1}],
+		outputStr += `improv.playView(this.views[${this.views.length - 1}],
 					() => { ${actions}
 					//closing playView actions scope: ${this.lines[lineCursor - 1]}
 					}, 
@@ -251,6 +260,8 @@ class ScriptParser {
 					${next ? next : '() => improv.ViewStatus.DONE'}
 					//closing playView next scope: ${this.lines[lineCursor - 1]}
 					)`
+
+		return outputStr
 	}
 
 	async addTransition(stmt, shouldQueue = false) {
@@ -268,7 +279,7 @@ class ScriptParser {
 
 		if (stmt.path) {
 			let filename = stmt.path.path.length > 0 ? stmt.path.path[stmt.path.path.length - 1] : stmt.path.root
-			let path = `${stmt.path.path.length > 0 ? stmt.path.root + '/' + stmt.path.path.join('/') : stmt.path.root}.imp`
+			let path = `${stmt.path.path.length == 0 ? stmt.path.root : stmt.path.root + '/' + stmt.path.path.join('/')}.imp`
 			let fullPath = `${this.scriptPathDir}${path}`
 			let parser = await generateBabylonScriptParser(fullPath, this.defaultSceneId, transition.fromViewId)
 			transition.toViewId = parser.views[0].id
@@ -320,13 +331,13 @@ class ScriptParser {
 						babylonSrc = babylonSrc.replace(new RegExp('SceneClassName', 'g'), this.scriptName)
 						babylonSrc = babylonSrc.replace(`'@REPLACE WITH VARIABLE LIST@'`, this._babylonSceneObjectsSrc)
 						//write scene loading list
-						babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCENE LIST@'`, `'${Object.values(this.scenesToLoad).map(s => `${s.sceneName}_${s.scenePlacement}'`).join(',')}`)
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCENE LIST@'`, `${Object.values(this.scenesToLoad).map(s => `'${s.sceneName}_${s.scenePlacement}'`).join(',')}`)
 						//write scene object list
 						babylonSrc = babylonSrc.replace(`'@REPLACE WITH LOAD MESH LIST@'`, `this.${Object.keys(this._babylonSceneObjects).join(', this.')}`)
 						babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCRIPT REFERENCES@'`, Array.from(this.scripts.values()).map(e => `${e}`).join(','))
 						babylonSrc = babylonSrc.replace(`'@REPLACE WITH SCRIPT INSTANCES@'`, Array.from(this.scripts.values()).map(e => `@fromScene("${e}")
 					private _${e}: ${e}`))
-						babylonSrc = babylonSrc.replace(`'@REPLACE WITH VIEW LIST@'`, this.views.map(v => JSON.stringify(v)))
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH VIEW LIST@'`, JSON.stringify(this.views))
 						babylonSrc = babylonSrc.replace(`'@REPLACE WITH ACTION LIST@'`, this.actions.map(a => JSON.stringify(a)))
 						babylonSrc = babylonSrc.replace(`'@REPLACE WITH TRANSITION LIST@'`, this.transitions.map(t => JSON.stringify({ type: t.type, duration: t.duration, fromViewId: t.fromViewId, toViewId: t.toViewId })))
 
