@@ -91,3 +91,4 @@ package-lock*
 Web pack
 improv-plugin/build
 improv-plugin/declaration
+improv/scripts

@@ -66,6 +66,7 @@ async function generateBabylonSource(rootImprovScriptPath, outputDir) {
 	if (!ScriptParser.OutputPath) {
 		ScriptParser.OutputPath = `${outputDir}/${SCENE_DIR}`
 	}
+
 	return new Promise(res => {
 		fs.mkdir(ScriptParser.OutputPath, { recursive: true }, (err) => {
 			generateBabylonScriptParser(rootImprovScriptPath)
@@ -174,8 +175,9 @@ class ScriptParser {
 		}
 		//BABYLON
 		let fullPath = condExp.rhs.path.root + (condExp.rhs.path.path.length > 0 ? condExp.rhs.path.path.join('/') : '')
-		this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(fullPath)
-		if (condExp.op == 'SELECT') {
+		//if processing scene object, generate scene objects and test if condition is true
+		if (condExp.op == 'SELECT' || condExp.op == 'TAP' || condExp.op == 'NEAR') {
+			this._babylonSceneObjectsSrc += this.generateSceneObjectVariable(fullPath)
 			let objectIndex = Object.keys(this._babylonSceneObjects).indexOf(fullPath)
 			return `improv.isSelected(this.objectMeshes[${objectIndex}])`
 		}
@@ -224,6 +226,7 @@ class ScriptParser {
 				transitionType: "CUT",
 				duration: 0,
 				fromViewId: this.currView ? this.currView.id : -1,
+				path: null
 			}
 		transition.toViewId = isLastLine ? -1 : ScriptParser.NextViewId
 		if (this.currView !== undefined) {
@@ -234,11 +237,11 @@ class ScriptParser {
 		this.views.push(this.currView)
 
 		let outputStr = ''
-		for(let marker of stmt.setMarkers){
+		for (let marker of stmt.setMarkers) {
 			outputStr += `${this.addMarker(marker)}${os.EOL}`
 		}
 
-		for(let marker of stmt.removeMarkers){
+		for (let marker of stmt.removeMarkers) {
 			outputStr += `${this.removeMarker(marker)}${os.EOL}`
 		}
 
@@ -267,20 +270,20 @@ class ScriptParser {
 	async addTransition(stmt, shouldQueue = false) {
 		// if stmt is a transition, queue it up to be added upon the next view
 		//save the script parser so that we can add the transitio to it since it will be the one initiating the transition
+		let path = stmt.path ? `${stmt.path.path.length == 0 ? stmt.path.root : stmt.path.root + '/' + stmt.path.path.join('/')}` : null
 		let transition = {
 			type: stmt.transitionType,
 			duration: stmt.duration,
 			fromViewId: this.currView.id,
 			toViewId: stmt.toViewId ? stmt.toViewId : ScriptParser.NextViewId,
-			path: stmt.path
+			path
 		}
 
 		this.transitions.push(transition)
-
 		if (stmt.path) {
 			let filename = stmt.path.path.length > 0 ? stmt.path.path[stmt.path.path.length - 1] : stmt.path.root
-			let path = `${stmt.path.path.length == 0 ? stmt.path.root : stmt.path.root + '/' + stmt.path.path.join('/')}.imp`
-			let fullPath = `${this.scriptPathDir}${path}`
+
+			let fullPath = `${this.scriptPathDir}${path}.imp`
 			let parser = await generateBabylonScriptParser(fullPath, this.defaultSceneId, transition.fromViewId)
 			transition.toViewId = parser.views[0].id
 			return `improv.playTransition(this.transitions[${this.transitions.length - 1}])`
@@ -296,7 +299,7 @@ class ScriptParser {
 	}
 
 	addAction(stmt) {
-		this.actions.push({ id: ScriptParser.NextActionId, lines: stmt.lines, looping: false })
+		this.actions.push({ id: `action_${ScriptParser.NextActionId}`, lines: stmt.lines, looping: false })
 		ScriptParser.NextActionId += 1
 		return `improv.playAction(this.actions[${this.actions.length - 1}],() => {})`
 	}
@@ -339,7 +342,10 @@ class ScriptParser {
 					private _${e}: ${e}`))
 						babylonSrc = babylonSrc.replace(`'@REPLACE WITH VIEW LIST@'`, JSON.stringify(this.views))
 						babylonSrc = babylonSrc.replace(`'@REPLACE WITH ACTION LIST@'`, this.actions.map(a => JSON.stringify(a)))
-						babylonSrc = babylonSrc.replace(`'@REPLACE WITH TRANSITION LIST@'`, this.transitions.map(t => JSON.stringify({ type: t.type, duration: t.duration, fromViewId: t.fromViewId, toViewId: t.toViewId })))
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH TRANSITION LIST@'`, this.transitions.map(t => JSON.stringify(t)))
+
+						babylonSrc = babylonSrc.replace(`'@REPLACE WITH MAIN SCENE ASSIGNMENT@'`, this.scriptPath.includes('main.imp') ? 'improv.MainScene = this' : '')
+
 
 						//write source output
 						let scriptPath = `${ScriptParser.OutputPath}/${this.scriptName}.gen.ts`
@@ -488,7 +494,6 @@ function isTabDecreased(stmt, prevStmt) {
 }
 
 function parseLine(lineText) {
-	console.log(`generating parser...`)
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar), {
 		keepHistory: false
 	})

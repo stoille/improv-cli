@@ -1,4 +1,3 @@
-
 @{% 
 //dnp stands for deleteNullProps
 function dnp(obj){
@@ -48,8 +47,6 @@ unitLine -> TAB (comment|play|transition|sceneHeading|cond|view|action) _ commen
 	}
 %}
 
-sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
-
 #TODO: more robust conditional expression syntax
 #	expr ::= mulexpr { addop mulexpr }
 #	addop ::= "+" | "-"
@@ -62,21 +59,17 @@ sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"A
 
 cond -> _ "(" _ cond _ ")" _ {% d => { return d[3] } %}
 	| _ cond _ ("AND" | "&&" | "OR" | "||") _ cond _ {% ([_, lhs, __, op, ___, rhs]) => { return rule('cond', {op:op == ('AND' || '&&') ? 'AND' : ('OR' || '||') ? 'OR' : undefined, lhs,rhs}) } %}
-	| ("INPUT"|"SELECT"|"TRUE"|"FALSE"|"NEAR"|"TAP") SEP pathWithRange (SEP timeSpan):? (SEP timeSpan):? {% ([op, _, path, start, end]) => rule('cond', {op: op[0], rhs: path, start: start ? start[1] : 0, end: end ? end[1] : 0 }) %}
+	| condType SEP pathWithRange (SEP timeSpan):? (SEP timeSpan):? {% ([op, _, path, start, end]) => rule('cond', {op, rhs: path, start: start ? start[1] : 0, end: end ? end[1] : 0 }) %}
 
-viewType -> ("BLACK"|"BCU"|"CA"|"CU"|"CUSTOM"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"FISHEYE"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
-
-viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
-
-sceneHeading -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") SEP (varName (_ "," _)):? varName SEP sceneTime {% 
+sceneHeading -> sceneHeadingType SEP (varName (_ "," _)):? varName SEP sceneTime {% 
 	([scenePlacement, _, location, sceneName, __, sceneTime]) => {
 		return rule('sceneHeading',{ scenePlacement, location: location ? location[0].trim() : undefined, sceneName, sceneTime}) }
 %}
 
 play -> ("PLAY") SEP path {% ([playType, _, filePath]) => rule('play', {playType, path:filePath.join('').trim()}) %}
 
-transition -> ("CUT"|"FADE") (SEP timeSpan):? (SEP cond):? (SEP path):? {% ([transitionType, duration, cond, path]) => { 
-	return rule('transition',{transitionType: transitionType[0],duration: duration ? duration[1] : 0, cond:cond?cond[1] : undefined, path: path ? path[1] : undefined}) } %}
+transition -> transitionType (SEP timeSpan):? (SEP cond):? (SEP path):? {% ([transitionType, duration, cond, path]) => { 
+	return rule('transition',{transitionType,duration: duration ? duration[1] : 0, cond:cond?cond[1] : undefined, path: path ? path[1] : undefined}) } %}
 
 SEP -> _ "-" _ {% id %}
 CONT -> _ "..." _ {% id %}
@@ -129,3 +122,15 @@ wschar -> [ ] {% id %}
 TAB -> [\t]:* {% id %}
 
 comment -> "#" .:* {% d => rule('comment', d[1].join('')) %}  
+
+condType -> ("INPUT"|"SELECT"|"TRUE"|"FALSE"|"NEAR"|"TAP") {% d => d[0].join('') %}
+
+viewType -> ("BLACK"|"BCU"|"CA"|"CU"|"CUSTOM"|"ECU"|"ESTABLISHING SHOT"|"ESTABLISHING"|"FULL SHOT"|"FULL"|"EWS"|"EXTREME LONG SHOT"|"EXTREME"|"EYE"|"LEVEL"|"EYE LEVEL"|"FS"|"FISHEYE"|"HAND HELD"|"HIGH ANGLE"|"HIGH"|"LONG LENS SHOT"|"LONG"|"LONG SHOT"|"LOW ANGLE"|"LOW"|"MCU"|"MED"|"MEDIUM LONG SHOT"|"MEDIUM SHOT"|"MEDIUM"|"MID SHOT"|"MID"|"MWS"|"NODDY"|"NODDY SHOT"|"POV"|"PROFILE"|"PROFILE SHOT"|"REVERSE"|"REVERSE SHOT"|"OSS"|"BEV"|"TWO SHOT"|"TWO"|"VWS"|"WEATHER SHOT"|"WEATHER"|"WS")  {% d => d[0].join('') %}
+
+viewMovement -> ("CREEP IN"|"CREEP OUT"|"CREEP"|"CRASH IN"|"CRASH OUT"|"CRASH"|"EASE IN"|"EASE OUT"|"DTL"|"DOLLY IN"|"DOLLY OUT"|"DOLLY"|"DEEPFOCUS"|"DEEP"|"DUTCH"|"OBLIQUE"|"CANTED"|"OVERHEAD"|"PAN LEFT"|"PAN RIGHT"|"PAN"|"PED UP"|"PED DOWN"|"PUSH IN"|"PUSH OUT"|"PUSH"|"SLANTED"|"STEADICAM"|"TRACKING"|"ZOOM IN"|"ZOOM OUT"|"ZOOM") SEP:? {% d => d[0].join('') %}
+
+sceneHeadingType -> ("INT"|"EXT"|"INT/EXT"|"EXT/INT") {% d => d[0].join('') %}
+
+sceneTime -> ("DAWN"|"DUSK"|"SUNRISE"|"SUNSET"|"DAY"|"NIGHT"|"MORNING"|"NOON"|"AFTERNOON"|"EVENING"|"MOMENTS"|"LATER"|"CONTINUOUS"|"UNKNOWN") {% d => d[0].join('') %}
+
+transitionType -> ("CUT"|"FADE") {% d => d[0].join('') %}

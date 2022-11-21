@@ -14,9 +14,9 @@ export default class SceneClassName extends Node implements improv.IEntity {
 	// the objects referenced by this script that will be loaded
 	objectMeshes: Mesh[]
 	// the views referenced by this script
-    views: improv.IView[] = [
+    views: improv.IView[] = 
 		'@REPLACE WITH VIEW LIST@'
-	]
+	
 	// the actions referenced by this script
     actions: improv.IAction[] = [
 		'@REPLACE WITH ACTION LIST@'
@@ -49,6 +49,7 @@ export default class SceneClassName extends Node implements improv.IEntity {
 		improv.AssetsManager = new AssetsManager(this._scene)
 		improv._camera = this._scene.getCameraByName('MainCamera')
 	  }
+	  '@REPLACE WITH MAIN SCENE ASSIGNMENT@'
 	  
 	  //load objects
 	  let objectNamesToLoad = ['@REPLACE WITH LOAD MESH LIST@']
@@ -97,9 +98,9 @@ export default class SceneClassName extends Node implements improv.IEntity {
       undefined,
       false,
     )
-	let pickMeshName = null
+	let pickMeshName
     if (pick?.hit) {
-      pickMeshName = pick.pickedMesh.name
+      pickMeshName = pick.pickedMesh?.name
     }
     '@REPLACE WITH SCENE LOGIC@'
   }

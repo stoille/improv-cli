@@ -22,7 +22,7 @@ export namespace improv {
   }
 
   export interface IAction {
-    id: number
+    id: string
     lines: IActionLine[]
     looping: boolean
   }
@@ -32,13 +32,14 @@ export namespace improv {
     duration: number
     fromViewId: number
     toViewId: number
+    path: string | null
   }
 
   export interface IView {
     id: number
     type: string
     duration: number
-    cameraMovementType: string|null
+    cameraMovementType: string | null
     cameraFOV: number
     cameraFromId: string
     cameraLookAtId: string
@@ -71,6 +72,9 @@ export namespace improv {
   }
 
   export const AssetLocation: string = 'https://models.babylonjs.com/'
+
+  // improv main scene to run playScript on
+  export var MainScene: improv.IEntity
 
   // babylon main scene to add to and remove assetContainers
   export var _babylonMainScene: Scene
@@ -214,15 +218,15 @@ export namespace improv {
     return status
   }
 
-  export function playTransition(transition: ITransition) : TransitionStatus {
+  export function playTransition(transition: ITransition): TransitionStatus {
     //TODO: make CUT support switching active camera depend on transition type
     //if (transition.type == 'CUT') {
     this._viewStatuses[transition.fromViewId] = ViewStatus.DONE
     this._viewStatuses[transition.toViewId] = ViewStatus.PLAYING
     //change camera position
     //improv._camera
-	//TODO: fade in/out
-	return TransitionStatus.DONE
+    //TODO: fade in/out
+    return TransitionStatus.DONE
   }
 
   export function playAction(
@@ -261,5 +265,9 @@ export namespace improv {
     cameraLookAtId: string,
   ) {
     return `${viewType}_${cameraFromId}_${cameraLookAtId}`
+  }
+
+  export function update() {
+    MainScene.playScript()
   }
 }

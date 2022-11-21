@@ -12,6 +12,8 @@
 	],
 	"settings": {
 		"editor.insertSpaces": false,
-		"editor.detectIndentation": false
+		"editor.detectIndentation": false,
+		"editor.experimentalDecorators": true,
+		"js/ts.implicitProjectConfig.experimentalDecorators": true
 	}
 }
